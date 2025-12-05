@@ -58,9 +58,7 @@ const Index = () => {
 
         {/* Winter Style Guides Section */}
         <section className="px-4 md:px-8 py-16 md:py-24 bg-ancora-burgundy">
-          <h2 className="text-2xl mb-10 text-center text-primary font-sans md:text-2xl">
-            Fall/Winter Style Guides
-          </h2>
+          <h2 className="text-2xl mb-10 text-center text-primary font-sans md:text-2xl">Winter Style Guides</h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto">
             <GuideCard image={guideLayering} title="The Art of Layering" />
             <GuideCard image={guideParty} title="Holiday Party Looks" />
