@@ -4,6 +4,8 @@ import { ProductCard } from "@/components/ProductCard";
 import heroImage from "@/assets/hero-fashion.jpg";
 import productBlazer from "@/assets/product-blazer.jpg";
 import productBag from "@/assets/product-bag.jpg";
+import productBlouse from "@/assets/product-blouse.jpg";
+import productHeels from "@/assets/product-heels.jpg";
 
 const Index = () => {
   return (
@@ -37,7 +39,7 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Featured Products Section */}
+        {/* New Arrivals Section */}
         <section className="px-4 md:px-8 py-16 md:py-24">
           <h2 className="font-serif text-2xl md:text-3xl text-ancora-burgundy mb-10 text-center">
             New Arrivals
@@ -56,16 +58,73 @@ const Index = () => {
               price="$425"
             />
             <ProductCard
-              image={productBlazer}
+              image={productBlouse}
               brand="MAISON CLAIRE"
-              name="Summer Weight Jacket"
+              name="Silk Button-Up Blouse"
+              price="$185"
+            />
+            <ProductCard
+              image={productHeels}
+              brand="VERA STUDIO"
+              name="Strappy Evening Sandals"
               price="$320"
+            />
+          </div>
+        </section>
+
+        {/* Seasonal Essentials Section */}
+        <section className="px-4 md:px-8 py-16 md:py-24 bg-ancora-cream/30">
+          <h2 className="font-serif text-2xl md:text-3xl text-ancora-burgundy mb-10 text-center">
+            Seasonal Essentials
+          </h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto">
+            <ProductCard
+              image={productBlouse}
+              brand="ANCORA"
+              name="Relaxed Silk Shirt"
+              price="$195"
+            />
+            <ProductCard
+              image={productHeels}
+              brand="LENA ROSE"
+              name="Minimalist Heel Sandal"
+              price="$285"
+            />
+            <ProductCard
+              image={productBag}
+              brand="MAISON CLAIRE"
+              name="Structured Mini Bag"
+              price="$345"
+            />
+            <ProductCard
+              image={productBlazer}
+              brand="VERA STUDIO"
+              name="Oversized Wool Blazer"
+              price="$420"
+            />
+            <ProductCard
+              image={productHeels}
+              brand="ANCORA"
+              name="Classic Block Heel"
+              price="$265"
+            />
+            <ProductCard
+              image={productBlouse}
+              brand="LENA ROSE"
+              name="Draped Satin Top"
+              price="$175"
+            />
+            <ProductCard
+              image={productBlazer}
+              brand="ANCORA"
+              name="Tailored Cotton Jacket"
+              price="$310"
             />
             <ProductCard
               image={productBag}
               brand="VERA STUDIO"
-              name="Everyday Carryall"
-              price="$385"
+              name="Soft Leather Clutch"
+              price="$225"
             />
           </div>
         </section>
