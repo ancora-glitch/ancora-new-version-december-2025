@@ -27,55 +27,55 @@ export const ProductCard = ({
   };
 
   return (
-    <div className="group bg-ancora-cream rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
+    <div className="group">
       {/* Image Container */}
-      <div className="relative aspect-[4/5] overflow-hidden">
+      <div className="aspect-[4/5] overflow-hidden bg-[#f5f5f5] mb-3">
         <img
           src={image}
           alt={`${brand} - ${name}`}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        
-        {/* Wishlist Heart Icon */}
-        <button
-          onClick={handleWishlistClick}
-          className="absolute top-3 right-3 p-2 rounded-full bg-white/80 hover:bg-white transition-colors duration-200"
-          aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-        >
-          <Heart
-            className={`w-5 h-5 transition-colors duration-200 ${
-              isWishlisted
-                ? "fill-ancora-burgundy text-ancora-burgundy"
-                : "text-foreground hover:text-ancora-burgundy"
-            }`}
-          />
-        </button>
       </div>
 
       {/* Card Content */}
-      <div className="p-4 space-y-2">
-        {/* Brand */}
-        <p className="font-sans text-xs font-bold uppercase tracking-wider text-foreground">
-          {brand}
-        </p>
+      <div className="space-y-1">
+        {/* Brand and Heart Row */}
+        <div className="flex items-start justify-between gap-2">
+          <p className="font-sans text-sm font-bold uppercase tracking-wide text-foreground">
+            {brand}
+          </p>
+          <button
+            onClick={handleWishlistClick}
+            className="flex-shrink-0 mt-0.5"
+            aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+          >
+            <Heart
+              className={`w-5 h-5 transition-colors duration-200 ${
+                isWishlisted
+                  ? "fill-ancora-burgundy text-ancora-burgundy"
+                  : "text-foreground/60 hover:text-ancora-burgundy"
+              }`}
+            />
+          </button>
+        </div>
         
         {/* Product Name */}
-        <p className="font-sans text-sm text-muted-foreground line-clamp-2">
+        <p className="font-sans text-sm text-muted-foreground line-clamp-1">
           {name}
         </p>
         
-        {/* Price */}
-        <p className="font-sans text-base font-bold text-foreground">
-          {price}
-        </p>
-        
-        {/* Explore Link */}
-        <button
-          onClick={onExplore}
-          className="font-sans text-xs text-muted-foreground hover:text-ancora-burgundy transition-colors duration-200 mt-2"
-        >
-          Explore →
-        </button>
+        {/* Price and Explore Row */}
+        <div className="flex items-center justify-between pt-2">
+          <p className="font-sans text-sm font-bold text-foreground">
+            {price}
+          </p>
+          <button
+            onClick={onExplore}
+            className="font-sans text-sm text-foreground hover:text-ancora-burgundy transition-colors duration-200 underline underline-offset-2"
+          >
+            Explore →
+          </button>
+        </div>
       </div>
     </div>
   );

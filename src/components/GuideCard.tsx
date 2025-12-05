@@ -1,5 +1,3 @@
-import { Button } from "@/components/ui/button";
-
 interface GuideCardProps {
   image: string;
   title: string;
@@ -8,28 +6,29 @@ interface GuideCardProps {
 
 export const GuideCard = ({ image, title, onGoToGuide }: GuideCardProps) => {
   return (
-    <div className="group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
-      {/* Image */}
-      <div className="aspect-[4/3] overflow-hidden">
+    <div className="group">
+      {/* Image with Title Overlay */}
+      <div className="relative aspect-[3/4] overflow-hidden mb-3">
         <img
           src={image}
           alt={title}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
+        {/* Title Overlay */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
+          <h3 className="font-sans text-sm md:text-base text-white">
+            {title}
+          </h3>
+        </div>
       </div>
 
-      {/* Content */}
-      <div className="p-5 md:p-6 space-y-4">
-        <h3 className="font-serif text-lg md:text-xl text-ancora-burgundy">
-          {title}
-        </h3>
-        <Button
-          onClick={onGoToGuide}
-          className="w-full bg-ancora-burgundy hover:bg-ancora-burgundy/90 text-white font-sans font-medium"
-        >
-          Go to guide
-        </Button>
-      </div>
+      {/* Button */}
+      <button
+        onClick={onGoToGuide}
+        className="w-full py-3 bg-white text-foreground font-sans text-xs tracking-wider uppercase hover:bg-ancora-cream transition-colors duration-200"
+      >
+        Go to guide
+      </button>
     </div>
   );
 };

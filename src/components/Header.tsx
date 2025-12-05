@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Menu, X, ChevronRight, ChevronDown } from "lucide-react";
+import { Menu, X, ChevronRight, ChevronDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MenuItem {
@@ -44,12 +44,17 @@ export function Header() {
         </button>
 
         {/* Logo */}
-        <h1 className="absolute left-1/2 -translate-x-1/2 font-serif text-2xl font-semibold tracking-wide text-primary">
+        <h1 className="absolute left-1/2 -translate-x-1/2 font-serif text-2xl tracking-[0.2em] text-primary">
           ANCORA
         </h1>
 
-        {/* Spacer for balance */}
-        <div className="w-10" />
+        {/* Search Icon */}
+        <button
+          className="p-2 -mr-2 text-foreground hover:text-primary transition-colors"
+          aria-label="Search"
+        >
+          <Search size={22} />
+        </button>
       </div>
 
       {/* Dropdown Menu */}
@@ -66,7 +71,6 @@ export function Header() {
             <li key={item.label}>
               {item.subItems ? (
                 <>
-                  {/* Parent item with submenu */}
                   <button
                     onClick={() => toggleSubmenu(item.label)}
                     className="w-full flex items-center justify-between px-6 py-3 font-sans font-medium text-foreground hover:text-primary hover:bg-accent/50 transition-colors"
@@ -79,7 +83,6 @@ export function Header() {
                     )}
                   </button>
 
-                  {/* Submenu */}
                   <div
                     className={cn(
                       "overflow-hidden transition-all duration-200",
@@ -98,7 +101,6 @@ export function Header() {
                   </div>
                 </>
               ) : (
-                /* Simple menu item */
                 <button className="w-full text-left px-6 py-3 font-sans font-medium text-foreground hover:text-primary hover:bg-accent/50 transition-colors">
                   {item.label}
                 </button>

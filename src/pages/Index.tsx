@@ -133,9 +133,9 @@ const Index = () => {
         </section>
 
         {/* Winter Style Guides Section */}
-        <section className="px-4 md:px-8 py-16 md:py-24">
-          <h2 className="font-serif text-2xl md:text-3xl text-ancora-burgundy mb-10 text-center">
-            Winter Style Guides
+        <section className="px-4 md:px-8 py-16 md:py-24 bg-ancora-burgundy">
+          <h2 className="font-serif text-2xl md:text-3xl text-white mb-10 text-center italic">
+            Fall/Winter Style Guides
           </h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto">
             <GuideCard
