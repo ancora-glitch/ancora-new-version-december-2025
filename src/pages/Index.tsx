@@ -23,10 +23,10 @@ const Index = () => {
           <img src={heroImage} alt="Fashion editorial featuring elegant clothing" className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
             <div className="bg-ancora-cream/90 rounded-lg p-8 md:p-12 max-w-xl">
-              <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl text-ancora-burgundy mb-4 text-primary">
+              <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl text-ancora-burgundy mb-4 text-secondary">
                 Wear it now
               </h1>
-              <p className="font-sans text-base md:text-lg mb-8 text-primary">
+              <p className="font-sans text-base md:text-lg mb-8 text-secondary">
                 Time to bring out your most dazzling pieces
               </p>
               <Button className="bg-ancora-burgundy hover:bg-ancora-burgundy/90 font-sans font-medium px-8 py-3 h-auto rounded-md bg-secondary-foreground text-secondary">
@@ -41,7 +41,7 @@ const Index = () => {
 
         {/* Seasonal Essentials Section */}
         <section className="px-4 md:px-8 py-20 md:py-28 bg-ancora-cream/30">
-          <h2 className="font-sans text-2xl md:text-3xl text-ancora-burgundy mb-12 text-center italic font-medium">
+          <h2 className="font-sans text-2xl md:text-3xl text-ancora-burgundy mb-12 text-center font-medium">
             Seasonal Essentials
           </h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto">
