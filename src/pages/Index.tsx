@@ -1,6 +1,9 @@
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
+import { ProductCard } from "@/components/ProductCard";
 import heroImage from "@/assets/hero-fashion.jpg";
+import productBlazer from "@/assets/product-blazer.jpg";
+import productBag from "@/assets/product-bag.jpg";
 
 const Index = () => {
   return (
@@ -31,6 +34,39 @@ const Index = () => {
                 Explore styles
               </Button>
             </div>
+          </div>
+        </section>
+
+        {/* Featured Products Section */}
+        <section className="px-4 md:px-8 py-16 md:py-24">
+          <h2 className="font-serif text-2xl md:text-3xl text-ancora-burgundy mb-10 text-center">
+            New Arrivals
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto">
+            <ProductCard
+              image={productBlazer}
+              brand="ANCORA"
+              name="Structured Linen Blazer"
+              price="$295"
+            />
+            <ProductCard
+              image={productBag}
+              brand="ANCORA"
+              name="Classic Leather Tote"
+              price="$425"
+            />
+            <ProductCard
+              image={productBlazer}
+              brand="MAISON CLAIRE"
+              name="Summer Weight Jacket"
+              price="$320"
+            />
+            <ProductCard
+              image={productBag}
+              brand="VERA STUDIO"
+              name="Everyday Carryall"
+              price="$385"
+            />
           </div>
         </section>
       </main>
