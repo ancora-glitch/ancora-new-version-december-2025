@@ -40,8 +40,8 @@ const Index = () => {
         
 
         {/* Seasonal Essentials Section */}
-        <section className="px-4 md:px-8 py-16 md:py-24 bg-ancora-cream/30">
-          <h2 className="font-serif text-2xl md:text-3xl text-ancora-burgundy mb-10 text-center text-primary">
+        <section className="px-4 md:px-8 py-20 md:py-28 bg-ancora-cream/30">
+          <h2 className="font-sans text-2xl md:text-3xl text-ancora-burgundy mb-12 text-center italic font-medium">
             Seasonal Essentials
           </h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto">
