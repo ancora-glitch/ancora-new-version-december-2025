@@ -9,29 +9,25 @@ import guideLayering from "@/assets/guide-layering.jpg";
 import guideParty from "@/assets/guide-party.jpg";
 import guideKnitwear from "@/assets/guide-knitwear.jpg";
 import guideCapsule from "@/assets/guide-capsule.jpg";
-
 const Index = () => {
-  const { data: products, isLoading } = useProducts();
-
-  return (
-    <div className="min-h-screen bg-background">
+  const {
+    data: products,
+    isLoading
+  } = useProducts();
+  return <div className="min-h-screen bg-background">
       <Header />
       
       {/* Main content with padding for fixed header */}
       <main className="pt-16">
         {/* Hero Section */}
         <section className="relative w-full h-[80vh] min-h-[600px]">
-          <img 
-            src={heroImage} 
-            alt="Fashion editorial featuring elegant clothing" 
-            className="absolute inset-0 w-full h-full object-cover" 
-          />
+          <img src={heroImage} alt="Fashion editorial featuring elegant clothing" className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute bottom-8 left-4 right-4 md:bottom-12 md:left-8 md:right-8">
             <div className="bg-[#F8F4EF]/85 backdrop-blur-sm p-8 md:p-12 lg:p-14 max-w-lg shadow-lg">
               <h1 className="text-4xl md:text-5xl lg:text-6xl mb-5 leading-tight text-primary">
                 Wear it now
               </h1>
-              <p className="text-base md:text-lg mb-10 text-foreground/70 leading-relaxed">
+              <p className="text-base md:text-lg mb-10 leading-relaxed text-primary">
                 Time to bring out your most dazzling pieces
               </p>
               <Button className="w-full md:w-auto font-medium text-sm tracking-wide px-10 py-4 h-auto uppercase">
@@ -47,24 +43,7 @@ const Index = () => {
             Seasonal Essentials
           </h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-7 lg:gap-8 max-w-7xl mx-auto">
-            {isLoading ? (
-              <p className="col-span-full text-center text-muted-foreground">Loading products...</p>
-            ) : products && products.length > 0 ? (
-              products.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  image={product.image}
-                  brand={product.brand}
-                  name={product.name}
-                  price={formatPrice(product.price)}
-                  additionalImages={product.additional_images || []}
-                  affiliateUrl={product.affiliate_url || undefined}
-                  marketplace={product.marketplace || undefined}
-                />
-              ))
-            ) : (
-              <p className="col-span-full text-center text-muted-foreground">No products available</p>
-            )}
+            {isLoading ? <p className="col-span-full text-center text-muted-foreground">Loading products...</p> : products && products.length > 0 ? products.map(product => <ProductCard key={product.id} image={product.image} brand={product.brand} name={product.name} price={formatPrice(product.price)} additionalImages={product.additional_images || []} affiliateUrl={product.affiliate_url || undefined} marketplace={product.marketplace || undefined} />) : <p className="col-span-full text-center text-muted-foreground">No products available</p>}
           </div>
         </section>
 
@@ -83,8 +62,6 @@ const Index = () => {
       </main>
 
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
