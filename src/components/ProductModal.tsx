@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { X, Heart, ChevronLeft, ChevronRight } from "lucide-react";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 interface ProductModalProps {
@@ -28,6 +27,8 @@ export const ProductModal = ({
 }: ProductModalProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  if (!isOpen) return null;
+
   const handlePrevImage = () => {
     setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
   };
@@ -37,10 +38,15 @@ export const ProductModal = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md w-[95vw] p-0 gap-0 border-0 bg-gradient-to-b from-secondary to-background overflow-hidden animate-fade-up">
-        <DialogTitle className="sr-only">{brand} - {name}</DialogTitle>
-        
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Overlay */}
+      <div 
+        className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      
+      {/* Modal Content */}
+      <div className="relative z-10 max-w-md w-[95vw] bg-gradient-to-b from-secondary to-background rounded-lg overflow-hidden animate-fade-up shadow-xl">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -130,7 +136,7 @@ export const ProductModal = ({
             Buy Now
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 };
