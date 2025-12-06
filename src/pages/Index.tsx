@@ -53,7 +53,7 @@ const Index = () => {
             Winter Style Guides
           </h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-7 lg:gap-8 max-w-7xl mx-auto">
-            <GuideCard image={guideLayering} title="Care guide: Show your loafers some love" />
+            <GuideCard image={guideLayering} title="Tis the season for office parties – curated edit of our favorite looks" />
             <GuideCard image={guideParty} title="Weekend wardrobe" />
             <GuideCard image={guideKnitwear} title="Care Guide: Show your loafers some love" />
             <GuideCard image={guideCapsule} title="Winter Capsule Wardrobe" />
