@@ -25,7 +25,7 @@ export const GuideCard = ({ image, title, onGoToGuide }: GuideCardProps) => {
       {/* Button */}
       <button
         onClick={onGoToGuide}
-        className="w-full py-3 bg-white text-foreground font-sans text-xs tracking-wider uppercase hover:bg-ancora-cream transition-colors duration-200"
+        className="w-full py-3 bg-card text-foreground font-sans text-xs tracking-wider uppercase hover:bg-secondary transition-colors duration-200"
       >
         Go to guide
       </button>

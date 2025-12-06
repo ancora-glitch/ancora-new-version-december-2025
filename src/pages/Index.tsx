@@ -12,15 +12,21 @@ import guideLayering from "@/assets/guide-layering.jpg";
 import guideParty from "@/assets/guide-party.jpg";
 import guideKnitwear from "@/assets/guide-knitwear.jpg";
 import guideCapsule from "@/assets/guide-capsule.jpg";
+
 const Index = () => {
-  return <div className="min-h-screen bg-background">
+  return (
+    <div className="min-h-screen bg-background">
       <Header />
       
       {/* Main content with padding for fixed header */}
       <main className="pt-16">
         {/* Hero Section */}
         <section className="relative w-full h-[85vh] min-h-[500px]">
-          <img src={heroImage} alt="Fashion editorial featuring elegant clothing" className="absolute inset-0 w-full h-full object-cover" />
+          <img 
+            src={heroImage} 
+            alt="Fashion editorial featuring elegant clothing" 
+            className="absolute inset-0 w-full h-full object-cover" 
+          />
           <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
             <div className="bg-background/90 rounded-lg p-8 md:p-12 max-w-xl">
               <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl text-primary mb-4">
@@ -35,9 +41,6 @@ const Index = () => {
             </div>
           </div>
         </section>
-
-        {/* New Arrivals Section */}
-        
 
         {/* Seasonal Essentials Section */}
         <section className="px-4 md:px-8 py-20 md:py-28 bg-secondary/30">
@@ -58,7 +61,9 @@ const Index = () => {
 
         {/* Winter Style Guides Section */}
         <section className="px-4 md:px-8 py-16 md:py-24 bg-primary">
-          <h2 className="text-2xl mb-10 text-center text-primary-foreground font-sans md:text-2xl">Winter Style Guides</h2>
+          <h2 className="text-2xl mb-10 text-center text-primary-foreground font-sans md:text-2xl">
+            Winter Style Guides
+          </h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto">
             <GuideCard image={guideLayering} title="The Art of Layering" />
             <GuideCard image={guideParty} title="Holiday Party Looks" />
@@ -69,6 +74,8 @@ const Index = () => {
       </main>
 
       <Footer />
-    </div>;
+    </div>
+  );
 };
+
 export default Index;
