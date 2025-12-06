@@ -21,21 +21,21 @@ const Index = () => {
       {/* Main content with padding for fixed header */}
       <main className="pt-16">
         {/* Hero Section */}
-        <section className="relative w-full h-[85vh] min-h-[500px]">
+        <section className="relative w-full h-[80vh] min-h-[600px]">
           <img 
             src={heroImage} 
             alt="Fashion editorial featuring elegant clothing" 
             className="absolute inset-0 w-full h-full object-cover" 
           />
-          <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
-            <div className="bg-background/90 rounded-lg p-8 md:p-12 max-w-xl">
-              <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl text-primary mb-4">
+          <div className="absolute bottom-8 left-4 right-4 md:bottom-12 md:left-8 md:right-8">
+            <div className="bg-background/92 backdrop-blur-sm p-8 md:p-12 lg:p-14 max-w-lg shadow-sm">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl mb-5 leading-tight">
                 Wear it now
               </h1>
-              <p className="font-sans text-base md:text-lg mb-8 text-muted-foreground">
+              <p className="text-base md:text-lg mb-10 text-muted-foreground leading-relaxed">
                 Time to bring out your most dazzling pieces
               </p>
-              <Button className="font-sans font-medium px-8 py-3 h-auto rounded-md">
+              <Button className="w-full md:w-auto font-medium text-sm tracking-wide px-10 py-4 h-auto uppercase">
                 Explore styles
               </Button>
             </div>
@@ -43,11 +43,11 @@ const Index = () => {
         </section>
 
         {/* Seasonal Essentials Section */}
-        <section className="px-4 md:px-8 py-20 md:py-28 bg-secondary/30">
-          <h2 className="font-sans text-2xl md:text-3xl text-primary mb-12 text-center font-medium italic">
+        <section className="px-4 md:px-8 lg:px-12 py-20 md:py-28 lg:py-32 bg-secondary/40">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl mb-14 md:mb-16 text-center italic font-normal">
             Seasonal Essentials
           </h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-7 lg:gap-8 max-w-7xl mx-auto">
             <ProductCard image={productBlouse} brand="ANCORA" name="Relaxed Silk Shirt" price="$195" />
             <ProductCard image={productHeels} brand="LENA ROSE" name="Minimalist Heel Sandal" price="$285" />
             <ProductCard image={productBag} brand="MAISON CLAIRE" name="Structured Mini Bag" price="$345" />
@@ -60,11 +60,11 @@ const Index = () => {
         </section>
 
         {/* Winter Style Guides Section */}
-        <section className="px-4 md:px-8 py-16 md:py-24 bg-primary">
-          <h2 className="text-2xl mb-10 text-center text-primary-foreground font-sans md:text-2xl">
+        <section className="px-4 md:px-8 lg:px-12 py-20 md:py-28 lg:py-32 bg-primary">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl mb-14 md:mb-16 text-center text-primary-foreground font-normal italic">
             Winter Style Guides
           </h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-7 lg:gap-8 max-w-7xl mx-auto">
             <GuideCard image={guideLayering} title="The Art of Layering" />
             <GuideCard image={guideParty} title="Holiday Party Looks" />
             <GuideCard image={guideKnitwear} title="Cozy Knitwear Edit" />

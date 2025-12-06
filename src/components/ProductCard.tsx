@@ -38,44 +38,45 @@ export const ProductCard = ({
 
   return (
     <>
-      <div className="group bg-secondary/50 rounded-lg overflow-hidden">
+      <div className="group bg-card overflow-hidden border border-border/20">
         {/* Image Container */}
-        <div className="relative aspect-[4/5] overflow-hidden bg-secondary">
+        <div className="relative aspect-[4/5] overflow-hidden bg-secondary/30">
           <img
             src={image}
             alt={name}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
           />
         </div>
 
         {/* Card Content */}
-        <div className="p-3 space-y-1">
+        <div className="p-4 space-y-2">
           {/* Brand + Heart */}
           <div className="flex items-center justify-between">
-            <span className="font-sans text-sm font-bold uppercase tracking-wide text-foreground">
+            <span className="text-xs font-semibold uppercase tracking-widest text-foreground">
               {brand}
             </span>
             <button
               onClick={(e) => handleWishlistClick(e)}
-              className="p-1 transition-colors hover:text-primary"
+              className="p-1 transition-colors duration-200 hover:text-primary"
               aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
             >
               <Heart
-                size={18}
-                className={isWishlisted ? "fill-primary text-primary" : "text-foreground"}
+                size={16}
+                strokeWidth={1.5}
+                className={isWishlisted ? "fill-primary text-primary" : "text-muted-foreground"}
               />
             </button>
           </div>
 
           {/* Product Name */}
-          <p className="font-sans text-sm text-muted-foreground">{name}</p>
+          <p className="text-sm text-muted-foreground leading-relaxed">{name}</p>
 
           {/* Price + Explore */}
           <div className="flex items-center justify-between pt-2">
-            <span className="font-sans text-base font-bold text-foreground">{price}</span>
+            <span className="text-base font-semibold text-foreground">{price}</span>
             <button
               onClick={handleExploreClick}
-              className="font-sans text-sm text-foreground underline underline-offset-2 hover:text-primary transition-colors"
+              className="text-xs tracking-wide text-foreground underline underline-offset-4 hover:text-primary transition-colors duration-200"
             >
               Explore →
             </button>
