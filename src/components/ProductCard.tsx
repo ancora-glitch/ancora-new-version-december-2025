@@ -8,6 +8,9 @@ interface ProductCardProps {
   brand: string;
   name: string;
   price: string;
+  additionalImages?: string[];
+  affiliateUrl?: string;
+  marketplace?: string;
   onWishlistToggle?: (isWishlisted: boolean) => void;
   onExplore?: () => void;
 }
@@ -17,6 +20,9 @@ export const ProductCard = ({
   brand,
   name,
   price,
+  additionalImages = [],
+  affiliateUrl,
+  marketplace,
   onWishlistToggle,
   onExplore
 }: ProductCardProps) => {
@@ -87,7 +93,7 @@ export const ProductCard = ({
       <ProductModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        images={[image]}
+        images={[image, ...additionalImages]}
         brand={brand}
         name={name}
         price={price}
@@ -102,8 +108,8 @@ export const ProductCard = ({
       <RedirectModal
         isOpen={isRedirectModalOpen}
         onClose={() => setIsRedirectModalOpen(false)}
-        redirectUrl="https://example-marketplace.com"
-        marketplaceName="Partner Store"
+        redirectUrl={affiliateUrl || "https://example-marketplace.com"}
+        marketplaceName={marketplace || "Partner Store"}
       />
     </>
   );

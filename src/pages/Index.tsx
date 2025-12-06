@@ -3,17 +3,16 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/ProductCard";
 import { GuideCard } from "@/components/GuideCard";
+import { useProducts, formatPrice } from "@/hooks/useProducts";
 import heroImage from "@/assets/hero-fashion.jpg";
-import productBlazer from "@/assets/product-blazer.jpg";
-import productBag from "@/assets/product-bag.jpg";
-import productBlouse from "@/assets/product-blouse.jpg";
-import productHeels from "@/assets/product-heels.jpg";
 import guideLayering from "@/assets/guide-layering.jpg";
 import guideParty from "@/assets/guide-party.jpg";
 import guideKnitwear from "@/assets/guide-knitwear.jpg";
 import guideCapsule from "@/assets/guide-capsule.jpg";
 
 const Index = () => {
+  const { data: products, isLoading } = useProducts();
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -48,14 +47,24 @@ const Index = () => {
             Seasonal Essentials
           </h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-7 lg:gap-8 max-w-7xl mx-auto">
-            <ProductCard image={productBlouse} brand="ANCORA" name="Relaxed Silk Shirt" price="$195" />
-            <ProductCard image={productHeels} brand="LENA ROSE" name="Minimalist Heel Sandal" price="$285" />
-            <ProductCard image={productBag} brand="MAISON CLAIRE" name="Structured Mini Bag" price="$345" />
-            <ProductCard image={productBlazer} brand="VERA STUDIO" name="Oversized Wool Blazer" price="$420" />
-            <ProductCard image={productHeels} brand="ANCORA" name="Classic Block Heel" price="$265" />
-            <ProductCard image={productBlouse} brand="LENA ROSE" name="Draped Satin Top" price="$175" />
-            <ProductCard image={productBlazer} brand="ANCORA" name="Tailored Cotton Jacket" price="$310" />
-            <ProductCard image={productBag} brand="VERA STUDIO" name="Soft Leather Clutch" price="$225" />
+            {isLoading ? (
+              <p className="col-span-full text-center text-muted-foreground">Loading products...</p>
+            ) : products && products.length > 0 ? (
+              products.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  image={product.image}
+                  brand={product.brand}
+                  name={product.name}
+                  price={formatPrice(product.price)}
+                  additionalImages={product.additional_images || []}
+                  affiliateUrl={product.affiliate_url || undefined}
+                  marketplace={product.marketplace || undefined}
+                />
+              ))
+            ) : (
+              <p className="col-span-full text-center text-muted-foreground">No products available</p>
+            )}
           </div>
         </section>
 
