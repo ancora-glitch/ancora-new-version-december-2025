@@ -31,52 +31,87 @@ export function Header() {
   const toggleSubmenu = (label: string) => {
     setExpandedItem(expandedItem === label ? null : label);
   };
-  return <header className="fixed top-0 left-0 right-0 z-50 bg-background">
+  return (
+    <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border/50">
       {/* Header Bar */}
-      <div className="flex items-center justify-between h-16 px-4">
+      <div className="flex items-center justify-between h-16 px-5 md:px-8">
         {/* Hamburger Button */}
-        <button onClick={toggleMenu} className="p-2 -ml-2 text-foreground hover:text-primary transition-colors" aria-label={isOpen ? "Close menu" : "Open menu"}>
-          {isOpen ? <X size={24} /> : <Menu size={24} />}
+        <button 
+          onClick={toggleMenu} 
+          className="p-2 -ml-2 text-foreground hover:text-primary transition-colors duration-200" 
+          aria-label={isOpen ? "Close menu" : "Open menu"}
+        >
+          {isOpen ? <X size={22} strokeWidth={1.5} /> : <Menu size={22} strokeWidth={1.5} />}
         </button>
 
         {/* Logo */}
-        <h1 className="absolute left-1/2 -translate-x-1/2 tracking-[0.2em] text-primary font-extrabold font-sans text-4xl text-center">
+        <h1 className="absolute left-1/2 -translate-x-1/2 tracking-[0.25em] text-primary font-bold font-serif text-2xl md:text-3xl">
           ANCORA
         </h1>
 
         {/* Search Icon */}
-        <button className="p-2 -mr-2 text-foreground hover:text-primary transition-colors" aria-label="Search">
-          <Search size={22} />
+        <button 
+          className="p-2 -mr-2 text-foreground hover:text-primary transition-colors duration-200" 
+          aria-label="Search"
+        >
+          <Search size={20} strokeWidth={1.5} />
         </button>
       </div>
 
       {/* Dropdown Menu */}
-      <nav className={cn("absolute left-0 right-0 bg-card shadow-lg rounded-b-lg mx-4 overflow-hidden transition-all duration-300", isOpen ? "opacity-100 animate-slide-down" : "opacity-0 pointer-events-none -translate-y-2")}>
-        <ul className="py-4">
-          {menuItems.map(item => <li key={item.label}>
-              {item.subItems ? <>
-                  <button onClick={() => toggleSubmenu(item.label)} className="w-full flex items-center justify-between px-6 py-3 font-sans font-medium text-foreground hover:text-primary hover:bg-accent/50 transition-colors">
-                    <span>{item.label}</span>
-                    {expandedItem === item.label ? <ChevronDown size={18} className="text-muted-foreground" /> : <ChevronRight size={18} className="text-muted-foreground" />}
+      <nav className={cn(
+        "absolute left-0 right-0 bg-card shadow-lg mx-4 md:mx-8 overflow-hidden transition-all duration-300 border border-border/30",
+        isOpen ? "opacity-100 animate-slide-down" : "opacity-0 pointer-events-none -translate-y-2"
+      )}>
+        <ul className="py-3">
+          {menuItems.map(item => (
+            <li key={item.label}>
+              {item.subItems ? (
+                <>
+                  <button 
+                    onClick={() => toggleSubmenu(item.label)} 
+                    className="w-full flex items-center justify-between px-6 py-3.5 text-sm tracking-wide text-foreground hover:text-primary hover:bg-accent/40 transition-colors duration-200"
+                  >
+                    <span className="font-medium">{item.label}</span>
+                    {expandedItem === item.label ? (
+                      <ChevronDown size={16} className="text-muted-foreground" />
+                    ) : (
+                      <ChevronRight size={16} className="text-muted-foreground" />
+                    )}
                   </button>
 
-                  <div className={cn("overflow-hidden transition-all duration-200", expandedItem === item.label ? "max-h-64" : "max-h-0")}>
-                    <ul className="bg-accent/30 py-2">
-                      {item.subItems.map(subItem => <li key={subItem}>
-                          <button className="w-full text-left px-10 py-2.5 font-sans text-sm text-muted-foreground hover:text-primary hover:bg-accent/50 transition-colors">
+                  <div className={cn(
+                    "overflow-hidden transition-all duration-200",
+                    expandedItem === item.label ? "max-h-64" : "max-h-0"
+                  )}>
+                    <ul className="bg-accent/20 py-2">
+                      {item.subItems.map(subItem => (
+                        <li key={subItem}>
+                          <button className="w-full text-left px-10 py-2.5 text-sm text-muted-foreground hover:text-primary hover:bg-accent/40 transition-colors duration-200">
                             {subItem}
                           </button>
-                        </li>)}
+                        </li>
+                      ))}
                     </ul>
                   </div>
-                </> : <button className="w-full text-left px-6 py-3 font-sans font-medium text-foreground hover:text-primary hover:bg-accent/50 transition-colors">
+                </>
+              ) : (
+                <button className="w-full text-left px-6 py-3.5 text-sm font-medium tracking-wide text-foreground hover:text-primary hover:bg-accent/40 transition-colors duration-200">
                   {item.label}
-                </button>}
-            </li>)}
+                </button>
+              )}
+            </li>
+          ))}
         </ul>
       </nav>
 
       {/* Overlay */}
-      {isOpen && <div className="fixed inset-0 bg-foreground/10 -z-10" onClick={toggleMenu} />}
-    </header>;
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-foreground/8 backdrop-blur-[1px] -z-10" 
+          onClick={toggleMenu} 
+        />
+      )}
+    </header>
+  );
 }
