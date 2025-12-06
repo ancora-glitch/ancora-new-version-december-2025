@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Heart } from "lucide-react";
 import { ProductModal } from "./ProductModal";
+import { RedirectModal } from "./RedirectModal";
 
 interface ProductCardProps {
   image: string;
@@ -21,6 +22,7 @@ export const ProductCard = ({
 }: ProductCardProps) => {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isRedirectModalOpen, setIsRedirectModalOpen] = useState(false);
 
   const handleWishlistClick = (e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -91,9 +93,16 @@ export const ProductCard = ({
         isWishlisted={isWishlisted}
         onWishlistToggle={() => handleWishlistClick()}
         onBuyNow={() => {
-          console.log("Buy now clicked");
           setIsModalOpen(false);
+          setIsRedirectModalOpen(true);
         }}
+      />
+
+      <RedirectModal
+        isOpen={isRedirectModalOpen}
+        onClose={() => setIsRedirectModalOpen(false)}
+        redirectUrl="https://example-marketplace.com"
+        marketplaceName="Partner Store"
       />
     </>
   );
