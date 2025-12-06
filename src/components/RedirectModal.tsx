@@ -63,7 +63,7 @@ export const RedirectModal = ({
         </h1>
 
         <p className="font-sans text-base text-muted-foreground tracking-wide">
-          …and walking over to
+          …and catwalking over to
         </p>
 
         {/* Marketplace Logo */}
