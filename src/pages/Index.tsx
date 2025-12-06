@@ -7,7 +7,7 @@ import { useProducts, formatPrice } from "@/hooks/useProducts";
 import heroImage from "@/assets/hero-fashion.jpg";
 import guideLayering from "@/assets/guide-layering.jpg";
 import guideParty from "@/assets/guide-party.jpg";
-import guideKnitwear from "@/assets/guide-knitwear.jpg";
+import guideKnitwear from "@/assets/guide-knitwear-new.jpg";
 import guideCapsule from "@/assets/guide-capsule.jpg";
 const Index = () => {
   const {
