@@ -28,11 +28,11 @@ const Index = () => {
             className="absolute inset-0 w-full h-full object-cover" 
           />
           <div className="absolute bottom-8 left-4 right-4 md:bottom-12 md:left-8 md:right-8">
-            <div className="bg-background/92 backdrop-blur-sm p-8 md:p-12 lg:p-14 max-w-lg shadow-sm">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl mb-5 leading-tight">
+            <div className="bg-white/90 backdrop-blur-sm p-8 md:p-12 lg:p-14 max-w-lg shadow-lg">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl mb-5 leading-tight text-primary">
                 Wear it now
               </h1>
-              <p className="text-base md:text-lg mb-10 text-muted-foreground leading-relaxed">
+              <p className="text-base md:text-lg mb-10 text-foreground/70 leading-relaxed">
                 Time to bring out your most dazzling pieces
               </p>
               <Button className="w-full md:w-auto font-medium text-sm tracking-wide px-10 py-4 h-auto uppercase">
