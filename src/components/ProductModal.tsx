@@ -2,7 +2,6 @@ import { useState } from "react";
 import { X, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -40,9 +39,7 @@ export const ProductModal = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md w-[95vw] p-0 gap-0 border-0 bg-gradient-to-b from-secondary to-background overflow-hidden animate-fade-up">
-        <VisuallyHidden>
-          <DialogTitle>{brand} - {name}</DialogTitle>
-        </VisuallyHidden>
+        <DialogTitle className="sr-only">{brand} - {name}</DialogTitle>
         
         {/* Close Button */}
         <button
