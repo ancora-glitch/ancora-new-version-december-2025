@@ -28,7 +28,7 @@ const Index = () => {
             className="absolute inset-0 w-full h-full object-cover" 
           />
           <div className="absolute bottom-8 left-4 right-4 md:bottom-12 md:left-8 md:right-8">
-            <div className="bg-white/90 backdrop-blur-sm p-8 md:p-12 lg:p-14 max-w-lg shadow-lg">
+            <div className="bg-[#F8F4EF]/85 backdrop-blur-sm p-8 md:p-12 lg:p-14 max-w-lg shadow-lg">
               <h1 className="text-4xl md:text-5xl lg:text-6xl mb-5 leading-tight text-primary">
                 Wear it now
               </h1>
