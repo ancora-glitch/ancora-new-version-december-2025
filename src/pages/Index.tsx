@@ -22,14 +22,14 @@ const Index = () => {
         <section className="relative w-full h-[85vh] min-h-[500px]">
           <img src={heroImage} alt="Fashion editorial featuring elegant clothing" className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
-            <div className="bg-ancora-cream/90 rounded-lg p-8 md:p-12 max-w-xl">
-              <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl text-ancora-burgundy mb-4 text-secondary">
+            <div className="bg-background/90 rounded-lg p-8 md:p-12 max-w-xl">
+              <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl text-primary mb-4">
                 Wear it now
               </h1>
-              <p className="font-sans text-base md:text-lg mb-8 text-secondary">
+              <p className="font-sans text-base md:text-lg mb-8 text-muted-foreground">
                 Time to bring out your most dazzling pieces
               </p>
-              <Button className="bg-ancora-burgundy hover:bg-ancora-burgundy/90 font-sans font-medium px-8 py-3 h-auto rounded-md bg-secondary-foreground text-secondary">
+              <Button className="font-sans font-medium px-8 py-3 h-auto rounded-md">
                 Explore styles
               </Button>
             </div>
@@ -40,8 +40,8 @@ const Index = () => {
         
 
         {/* Seasonal Essentials Section */}
-        <section className="px-4 md:px-8 py-20 md:py-28 bg-ancora-cream/30">
-          <h2 className="font-sans text-2xl md:text-3xl text-ancora-burgundy mb-12 text-center font-medium text-primary">
+        <section className="px-4 md:px-8 py-20 md:py-28 bg-secondary/30">
+          <h2 className="font-sans text-2xl md:text-3xl text-primary mb-12 text-center font-medium italic">
             Seasonal Essentials
           </h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto">
@@ -57,8 +57,8 @@ const Index = () => {
         </section>
 
         {/* Winter Style Guides Section */}
-        <section className="px-4 md:px-8 py-16 md:py-24 bg-ancora-burgundy">
-          <h2 className="text-2xl mb-10 text-center text-primary font-sans md:text-2xl">Winter Style Guides</h2>
+        <section className="px-4 md:px-8 py-16 md:py-24 bg-primary">
+          <h2 className="text-2xl mb-10 text-center text-primary-foreground font-sans md:text-2xl">Winter Style Guides</h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto">
             <GuideCard image={guideLayering} title="The Art of Layering" />
             <GuideCard image={guideParty} title="Holiday Party Looks" />
