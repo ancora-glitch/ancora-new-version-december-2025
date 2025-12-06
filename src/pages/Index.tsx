@@ -39,7 +39,7 @@ const Index = () => {
 
         {/* Seasonal Essentials Section */}
         <section className="px-4 md:px-8 lg:px-12 py-20 md:py-28 lg:py-32 bg-secondary/40">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl mb-14 md:mb-16 text-center italic font-normal">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl mb-14 md:mb-16 text-center font-normal">
             Seasonal Essentials
           </h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-7 lg:gap-8 max-w-7xl mx-auto">
