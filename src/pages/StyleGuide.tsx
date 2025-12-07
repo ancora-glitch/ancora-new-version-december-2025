@@ -1,0 +1,121 @@
+import { useParams, Link } from "react-router-dom";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
+import { useStyleGuide } from "@/hooks/useStyleGuides";
+import { ArrowLeft } from "lucide-react";
+
+const StyleGuide = () => {
+  const { slug } = useParams<{ slug: string }>();
+  const { data: guide, isLoading, error } = useStyleGuide(slug || "");
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="pt-24 pb-16">
+          <div className="max-w-4xl mx-auto px-6">
+            <div className="animate-pulse space-y-8">
+              <div className="h-8 bg-muted rounded w-3/4" />
+              <div className="aspect-[16/9] bg-muted rounded" />
+              <div className="space-y-4">
+                <div className="h-4 bg-muted rounded w-full" />
+                <div className="h-4 bg-muted rounded w-5/6" />
+                <div className="h-4 bg-muted rounded w-4/6" />
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error || !guide) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="pt-24 pb-16">
+          <div className="max-w-4xl mx-auto px-6 text-center">
+            <h1 className="font-serif text-3xl md:text-4xl text-primary mb-4">
+              Style Guide Not Found
+            </h1>
+            <p className="text-muted-foreground mb-8">
+              The style guide you're looking for doesn't exist or has been removed.
+            </p>
+            <Link 
+              to="/" 
+              className="inline-flex items-center gap-2 text-primary hover:underline"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Home
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      
+      <main className="pt-20">
+        {/* Hero Image */}
+        <div className="relative w-full aspect-[16/9] md:aspect-[21/9] overflow-hidden">
+          <img
+            src={guide.image}
+            alt={guide.title}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+        </div>
+
+        {/* Content */}
+        <article className="max-w-3xl mx-auto px-6 py-12 md:py-16">
+          {/* Back Link */}
+          <Link 
+            to="/" 
+            className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-8 text-sm tracking-wider uppercase"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Home
+          </Link>
+
+          {/* Title */}
+          <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl text-primary leading-tight mb-8">
+            {guide.title}
+          </h1>
+
+          {/* Intro Text */}
+          <p className="text-lg md:text-xl text-foreground/80 leading-relaxed mb-12 font-light">
+            {guide.intro_text}
+          </p>
+
+          {/* Divider */}
+          <div className="w-16 h-px bg-primary/30 mb-12" />
+
+          {/* Body Content (Rich Text) */}
+          <div 
+            className="prose prose-lg max-w-none
+              prose-headings:font-serif prose-headings:text-primary prose-headings:font-normal
+              prose-h2:text-2xl prose-h2:md:text-3xl prose-h2:mt-12 prose-h2:mb-6
+              prose-h3:text-xl prose-h3:md:text-2xl prose-h3:mt-8 prose-h3:mb-4
+              prose-p:text-foreground/80 prose-p:leading-relaxed prose-p:mb-6
+              prose-strong:text-foreground prose-strong:font-medium
+              prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+              prose-blockquote:border-l-primary prose-blockquote:border-l-2 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-foreground/70
+              prose-ul:text-foreground/80 prose-ol:text-foreground/80
+              prose-li:mb-2
+              prose-img:rounded-lg prose-img:shadow-md"
+            dangerouslySetInnerHTML={{ __html: guide.body }}
+          />
+        </article>
+      </main>
+
+      <Footer />
+    </div>
+  );
+};
+
+export default StyleGuide;
