@@ -56,6 +56,39 @@ export type Database = {
         }
         Relationships: []
       }
+      style_guides: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          image: string
+          intro_text: string
+          slug: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          image: string
+          intro_text: string
+          slug: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          image?: string
+          intro_text?: string
+          slug?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
