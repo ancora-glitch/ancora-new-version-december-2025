@@ -1,19 +1,17 @@
+import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/ProductCard";
 import { GuideCard } from "@/components/GuideCard";
 import { useProducts, formatPrice } from "@/hooks/useProducts";
+import { useStyleGuides } from "@/hooks/useStyleGuides";
 import heroImage from "@/assets/hero-fashion.jpg";
-import guideLayering from "@/assets/guide-office-party.jpg";
-import guideParty from "@/assets/guide-party.jpg";
-import guideKnitwear from "@/assets/guide-knitwear-new.jpg";
-import guideCapsule from "@/assets/guide-capsule.jpg";
+
 const Index = () => {
-  const {
-    data: products,
-    isLoading
-  } = useProducts();
+  const navigate = useNavigate();
+  const { data: products, isLoading } = useProducts();
+  const { data: styleGuides, isLoading: guidesLoading } = useStyleGuides();
   return <div className="min-h-screen bg-background">
       <Header />
       
@@ -53,10 +51,20 @@ const Index = () => {
             Winter Style Guides
           </h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-7 lg:gap-8 max-w-7xl mx-auto">
-            <GuideCard image={guideLayering} title="Tis the season for office parties – curated edit of our favorite looks" />
-            <GuideCard image={guideParty} title="Stay warm and chic with these tried and tested winter-approved styling tricks." />
-            <GuideCard image={guideKnitwear} title="Care Guide: Show your loafers some love" />
-            <GuideCard image={guideCapsule} title="Winter Capsule Wardrobe" />
+            {guidesLoading ? (
+              <p className="col-span-full text-center text-primary-foreground/70">Loading guides...</p>
+            ) : styleGuides && styleGuides.length > 0 ? (
+              styleGuides.map((guide) => (
+                <GuideCard
+                  key={guide.id}
+                  image={guide.image}
+                  title={guide.title}
+                  onGoToGuide={() => navigate(`/style-guides/${guide.slug}`)}
+                />
+              ))
+            ) : (
+              <p className="col-span-full text-center text-primary-foreground/70">No style guides available</p>
+            )}
           </div>
         </section>
       </main>
