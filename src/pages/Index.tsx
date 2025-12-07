@@ -5,7 +5,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { GuideCard } from "@/components/GuideCard";
 import { useProducts, formatPrice } from "@/hooks/useProducts";
 import heroImage from "@/assets/hero-fashion.jpg";
-import guideLayering from "@/assets/guide-party.jpg";
+import guideLayering from "@/assets/guide-office-party.jpg";
 import guideParty from "@/assets/guide-party.jpg";
 import guideKnitwear from "@/assets/guide-knitwear-new.jpg";
 import guideCapsule from "@/assets/guide-capsule.jpg";
