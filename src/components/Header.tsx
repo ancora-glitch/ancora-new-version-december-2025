@@ -45,7 +45,7 @@ export function Header() {
         </button>
 
         {/* Logo */}
-        <h1 className="absolute left-1/2 -translate-x-1/2 tracking-[0.25em] text-primary font-bold font-serif text-2xl md:text-3xl">
+        <h1 className="absolute left-1/2 -translate-x-1/2 tracking-[0.12em] text-primary font-bold font-logo text-2xl md:text-3xl uppercase">
           ANCORA
         </h1>
 
