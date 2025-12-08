@@ -108,3 +108,14 @@
     @apply font-sans;
   }
 }
+
+/* Coming Soon Hero Image Responsive Positioning */
+.hero-image-position {
+  object-position: 65% center;
+}
+
+@media (min-width: 768px) {
+  .hero-image-position {
+    object-position: 70% 35%;
+  }
+}

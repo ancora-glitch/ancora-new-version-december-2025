@@ -47,12 +47,11 @@ const ComingSoon = () => {
         </h1>
 
         {/* Hero Image */}
-        <div className="w-full max-w-[1000px] h-[240px] overflow-hidden rounded-[10px] mb-14 md:mb-20">
+        <div className="w-full max-w-[1000px] h-[240px] md:h-[230px] overflow-hidden rounded-[10px] mb-14 md:mb-20">
           <img 
             src={heroImage} 
             alt="Fashion editorial - stylish woman in leather jacket" 
-            className="w-full h-full object-cover"
-            style={{ objectPosition: '65% center' }}
+            className="w-full h-full object-cover hero-image-position"
           />
         </div>
 
