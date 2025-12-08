@@ -24,7 +24,7 @@ const Index = () => {
       <main className="pt-16">
         {/* Hero Section */}
         <section className="relative w-full h-[80vh] min-h-[600px]">
-          <img alt="Fashion editorial featuring elegant clothing" className="absolute inset-0 w-full h-full object-cover" src="/lovable-uploads/f5d5719e-ed29-45f3-b4c6-f3849a6e259f.jpg" />
+          <img alt="Fashion editorial featuring elegant clothing" className="absolute inset-0 w-full h-full object-cover object-center md:object-[50%_25%]" src="/lovable-uploads/f5d5719e-ed29-45f3-b4c6-f3849a6e259f.jpg" />
           <div className="absolute bottom-8 left-4 right-4 md:bottom-12 md:left-8 md:right-8">
             <div className="bg-[#F8F4EF]/85 backdrop-blur-sm p-8 md:p-12 lg:p-14 max-w-lg shadow-lg">
               <h1 className="text-4xl md:text-5xl lg:text-6xl mb-5 leading-tight text-primary">
