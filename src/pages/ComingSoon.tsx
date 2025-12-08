@@ -47,7 +47,7 @@ const ComingSoon = () => {
         </h1>
 
         {/* Hero Image */}
-        <div className="w-full max-w-[900px] h-[300px] md:h-[320px] overflow-hidden rounded-[10px] mb-14 md:mb-20 mx-auto">
+        <div className="w-full md:w-[75%] md:max-w-[820px] h-[300px] md:h-[320px] overflow-hidden rounded-[10px] mb-14 md:mb-20 mx-auto">
           <img 
             src={heroImage} 
             alt="Fashion editorial - stylish woman in leather jacket" 
