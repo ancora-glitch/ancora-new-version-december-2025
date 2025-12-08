@@ -42,7 +42,7 @@ const ComingSoon = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <main className="flex-1 flex flex-col items-center px-6 py-12 md:py-20">
         {/* Logo */}
-        <h1 className="font-logo text-primary text-3xl md:text-4xl tracking-[0.18em] uppercase font-bold mb-14 md:mb-20">
+        <h1 className="font-logo text-primary text-2xl md:text-3xl tracking-[0.12em] uppercase font-bold mb-14 md:mb-20">
           ANCORA
         </h1>
 
