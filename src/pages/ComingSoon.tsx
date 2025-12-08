@@ -40,60 +40,60 @@ const ComingSoon = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <main className="flex-1 flex items-center justify-center px-6 py-16">
-        <div className="w-full max-w-[600px] text-center space-y-10">
-          {/* Logo */}
-          <h1 className="font-logo text-primary text-2xl tracking-[0.12em] uppercase">
-            ANCORA
-          </h1>
+      <main className="flex-1 flex flex-col items-center px-6 py-12 md:py-20">
+        {/* Logo */}
+        <h1 className="font-logo text-primary text-3xl md:text-4xl tracking-[0.18em] uppercase font-bold mb-14 md:mb-20">
+          ANCORA
+        </h1>
 
-          {/* Hero Image Placeholder */}
-          <div className="w-full aspect-[3/4] sm:aspect-[16/9] overflow-hidden rounded-sm">
-            <img 
-              src={heroImage} 
-              alt="Fashion editorial - stylish woman in leather jacket" 
-              className="w-full h-full object-cover object-top"
-            />
-          </div>
+        {/* Hero Image */}
+        <div className="w-full max-w-[1000px] h-[350px] md:h-[420px] overflow-hidden rounded-[10px] mb-14 md:mb-20">
+          <img 
+            src={heroImage} 
+            alt="Fashion editorial - stylish woman in leather jacket" 
+            className="w-full h-full object-cover object-center"
+          />
+        </div>
 
-          {/* Content */}
-          <div className="space-y-6">
-            <h2 className="font-serif text-primary text-3xl md:text-4xl leading-tight">
-              Ancora is coming soon
-            </h2>
-            <p className="text-foreground/80 text-base md:text-lg leading-relaxed max-w-[480px] mx-auto">
-              We're building a new way to shop pre-loved – curated, inspiring, smooth and stylish.
-              <br />
-              Sign up to get first access when we launch.
-            </p>
-          </div>
+        {/* Content */}
+        <div className="w-full max-w-[600px] text-center space-y-8 mb-12 md:mb-16">
+          <h2 className="font-serif text-primary text-3xl md:text-4xl leading-tight">
+            Ancora is coming soon
+          </h2>
+          <p className="text-foreground/80 text-base md:text-lg leading-relaxed max-w-[500px] mx-auto">
+            We're building a new way to shop pre-loved – curated, inspiring, smooth and stylish.
+            <br />
+            Sign up to get first access when we launch.
+          </p>
+        </div>
 
-          {/* Form */}
+        {/* Form */}
+        <div className="w-full max-w-[480px]">
           {isSubmitted ? (
-            <p className="text-primary font-medium text-lg">
+            <p className="text-primary font-medium text-lg text-center">
               Thank you! You're on the list.
             </p>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-3 max-w-[400px] mx-auto">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
-                  className="flex-1 px-4 py-3 border border-border rounded-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  className="flex-1 px-5 py-3.5 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
                   disabled={isSubmitting}
                 />
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-6 py-3 bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
+                  className="px-8 py-3.5 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 whitespace-nowrap"
                 >
                   {isSubmitting ? "..." : "Notify me"}
                 </button>
               </div>
               {error && (
-                <p className="text-destructive text-sm">{error}</p>
+                <p className="text-destructive text-sm text-center">{error}</p>
               )}
             </form>
           )}
@@ -101,7 +101,7 @@ const ComingSoon = () => {
       </main>
 
       {/* Footer */}
-      <footer className="py-8 text-center">
+      <footer className="py-10 text-center">
         <p className="text-muted-foreground text-sm">© Ancora 2025</p>
       </footer>
     </div>
