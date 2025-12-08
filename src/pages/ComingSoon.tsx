@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import heroImage from "@/assets/coming-soon-hero.jpg";
 
 const ComingSoon = () => {
   const [email, setEmail] = useState("");
@@ -47,7 +48,13 @@ const ComingSoon = () => {
           </h1>
 
           {/* Hero Image Placeholder */}
-          <div className="w-full aspect-[16/9] bg-muted/30 rounded-sm" />
+          <div className="w-full aspect-[3/4] sm:aspect-[16/9] overflow-hidden rounded-sm">
+            <img 
+              src={heroImage} 
+              alt="Fashion editorial - stylish woman in leather jacket" 
+              className="w-full h-full object-cover object-top"
+            />
+          </div>
 
           {/* Content */}
           <div className="space-y-6">
