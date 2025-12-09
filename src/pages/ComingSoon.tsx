@@ -37,7 +37,7 @@ const ComingSoon = () => {
       <main className="flex-1 flex flex-col items-center px-6 py-12 md:py-20">
         {/* Logo */}
         <Link to="/home" className="mb-14 md:mb-20">
-          <h1 className="font-logo text-primary text-2xl md:text-3xl tracking-[0.12em] uppercase font-black">
+          <h1 className="font-logo text-primary text-4xl md:text-5xl lg:text-6xl tracking-[0.12em] uppercase font-black">
             ANCORA
           </h1>
         </Link>
