@@ -16,7 +16,7 @@ export default {
       fontFamily: {
         serif: ['Playfair Display', 'serif'],
         sans: ['Trispace', 'system-ui', 'sans-serif'],
-        logo: ['Space Grotesk', 'sans-serif'],
+        logo: ['Urbanist', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",

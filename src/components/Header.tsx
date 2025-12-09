@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Menu, X, ChevronRight, ChevronDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 interface MenuItem {
@@ -45,9 +46,11 @@ export function Header() {
         </button>
 
         {/* Logo */}
-        <h1 className="absolute left-1/2 -translate-x-1/2 tracking-[0.12em] text-primary font-bold font-logo text-2xl md:text-3xl uppercase">
-          ANCORA
-        </h1>
+        <Link to="/home" className="absolute left-1/2 -translate-x-1/2">
+          <h1 className="tracking-[0.12em] text-primary font-black font-logo text-2xl md:text-3xl uppercase">
+            ANCORA
+          </h1>
+        </Link>
 
         {/* Search Icon */}
         <button 
