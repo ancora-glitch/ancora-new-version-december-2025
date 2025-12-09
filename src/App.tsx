@@ -6,8 +6,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import StyleGuide from "./pages/StyleGuide";
 import ComingSoon from "./pages/ComingSoon";
+import About from "./pages/About";
 import NotFound from "./pages/NotFound";
-
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -20,6 +20,7 @@ const App = () => (
           <Route path="/" element={<Navigate to="/coming-soon" replace />} />
           <Route path="/coming-soon" element={<ComingSoon />} />
           <Route path="/home" element={<Index />} />
+          <Route path="/about" element={<About />} />
           <Route path="/style-guides/:slug" element={<StyleGuide />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
