@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { PullQuote } from "@/components/PullQuote";
 
 const About = () => {
   const sectionsRef = useRef<(HTMLElement | null)[]>([]);
@@ -34,67 +35,81 @@ const About = () => {
           ref={(el) => (sectionsRef.current[0] = el)}
           className="fade-section px-6 md:px-12 lg:px-24 py-16 md:py-24"
         >
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-[700px] mx-auto">
             <h1 className="font-serif text-primary text-4xl md:text-5xl lg:text-6xl leading-tight mb-8">
               About Ancora
             </h1>
           </div>
         </section>
 
-        {/* First Body Section */}
+        {/* Intro/Ingress Section */}
         <section 
           ref={(el) => (sectionsRef.current[1] = el)}
-          className="fade-section px-6 md:px-12 lg:px-24 py-12 md:py-16"
+          className="fade-section px-6 md:px-12 lg:px-24 py-8 md:py-12"
         >
-          <div className="max-w-3xl mx-auto">
-            <p className="text-foreground/90 text-lg md:text-xl leading-relaxed">
-              Ancora exists for the everyday style seekers and the hardcore fashion hunters — for anyone who believes that great style isn't bought, it's found.
+          <div className="max-w-[700px] mx-auto">
+            <p className="article-intro">
+              <em>Ancora exists for the everyday style seekers and the hardcore fashion hunters</em> — for anyone who believes that great style isn't bought, it's found.
             </p>
           </div>
         </section>
 
-        {/* Second Body Section */}
+        {/* Our Story Section */}
         <section 
           ref={(el) => (sectionsRef.current[2] = el)}
-          className="fade-section px-6 md:px-12 lg:px-24 py-12 md:py-16"
+          className="fade-section px-6 md:px-12 lg:px-24 py-8 md:py-12"
         >
-          <div className="max-w-3xl mx-auto">
-            <p className="text-foreground/80 text-base md:text-lg leading-relaxed">
+          <div className="max-w-[700px] mx-auto article-body">
+            <h2 className="article-subheader">Our Story</h2>
+            <p className="drop-cap">
               We created the shopping experience we always longed for: a modern, intuitive way to discover pre-loved fashion. Explore curated edits, get guided recommendations, or dive straight into the hunt for those pieces you can't stop thinking about.
             </p>
           </div>
         </section>
 
-        {/* Philosophy Section */}
+        {/* Pull Quote */}
         <section 
           ref={(el) => (sectionsRef.current[3] = el)}
-          className="fade-section px-6 md:px-12 lg:px-24 py-16 md:py-24 bg-primary/[0.03]"
+          className="fade-section px-6 md:px-12 lg:px-24 py-8 md:py-12"
         >
-          <div className="max-w-3xl mx-auto">
-            <p className="text-foreground/90 text-lg md:text-xl leading-relaxed italic">
-              Because style isn't something you manufacture. And good style has nothing to do with producing more.
-            </p>
-            <p className="text-foreground/80 text-base md:text-lg leading-relaxed mt-8">
+          <div className="max-w-[700px] mx-auto">
+            <PullQuote>
+              Style isn't something you manufacture. And good style has nothing to do with producing more.
+            </PullQuote>
+          </div>
+        </section>
+
+        {/* Philosophy Section */}
+        <section 
+          ref={(el) => (sectionsRef.current[4] = el)}
+          className="fade-section px-6 md:px-12 lg:px-24 py-8 md:py-12"
+        >
+          <div className="max-w-[700px] mx-auto article-body">
+            <h2 className="article-subheader">Our Philosophy</h2>
+            <p>
               Everything you could ever want already exists — humanity has made more clothes than we could wear in generations. The future of fashion is about uncovering what's already here.
+            </p>
+            <p>
+              We believe in the thrill of discovery, the joy of finding that perfect piece that feels like it was made for you. Every item has a story, and we're here to help you write the next chapter.
             </p>
           </div>
         </section>
 
         {/* Origin Section */}
         <section 
-          ref={(el) => (sectionsRef.current[4] = el)}
+          ref={(el) => (sectionsRef.current[5] = el)}
           className="fade-section px-6 md:px-12 lg:px-24 py-16 md:py-24"
         >
-          <div className="max-w-3xl mx-auto">
-            <div className="h-px w-16 bg-primary/30 mb-12" />
-            <p className="text-foreground/80 text-base md:text-lg leading-relaxed">
+          <div className="max-w-[700px] mx-auto article-body">
+            <h2 className="article-subheader">Where We Started</h2>
+            <p>
               Ancora started in 2025 in Stockholm, founded by three friends with a shared love for fashion, culture, technology, and circularity. We're here to reshape how we shop, wear, and value fashion — one discovered piece at a time.
             </p>
           </div>
         </section>
 
         {/* Spacer */}
-        <div className="h-16 md:h-24" />
+        <div className="h-8 md:h-16" />
       </main>
 
       <Footer />

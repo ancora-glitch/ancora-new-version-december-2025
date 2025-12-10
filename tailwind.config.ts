@@ -15,8 +15,10 @@ export default {
     extend: {
       fontFamily: {
         serif: ['Playfair Display', 'serif'],
+        'serif-body': ['Source Serif 4', 'Georgia', 'serif'],
         sans: ['Trispace', 'system-ui', 'sans-serif'],
         logo: ['Urbanist', 'sans-serif'],
+        heading: ['Urbanist', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
