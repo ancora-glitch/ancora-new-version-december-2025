@@ -37,7 +37,7 @@ const ComingSoon = () => {
       <main className="flex-1 flex flex-col items-center px-6 py-12 md:py-20">
         {/* Logo */}
         <Link to="/home" className="mb-14 md:mb-20">
-          <h1 className="font-logo text-primary text-4xl md:text-5xl lg:text-6xl tracking-[0.12em] uppercase font-black">
+          <h1 className="font-logo text-4xl md:text-5xl lg:text-6xl tracking-[0.12em] uppercase font-black" style={{ color: '#661B1C' }}>
             ANCORA
           </h1>
         </Link>
@@ -49,10 +49,10 @@ const ComingSoon = () => {
 
         {/* Content */}
         <div className="w-full max-w-[600px] text-center space-y-8 mb-12 md:mb-16">
-          <h2 className="font-serif text-primary text-3xl md:text-4xl leading-tight">
+          <h2 className="font-serif text-3xl md:text-4xl leading-tight" style={{ color: '#661B1C' }}>
             Ancora is coming soon
           </h2>
-          <p className="text-base md:text-lg leading-relaxed max-w-[500px] mx-auto text-primary">
+          <p className="text-base md:text-lg leading-relaxed max-w-[500px] mx-auto" style={{ color: '#661B1C' }}>
             We're building a new way to shop pre-loved – curated, inspiring, smooth and stylish.
             <br />
             Sign up to get first access when we launch.
