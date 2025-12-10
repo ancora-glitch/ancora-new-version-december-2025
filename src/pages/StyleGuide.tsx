@@ -13,7 +13,7 @@ const StyleGuide = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <main className="pt-24 pb-16">
-          <div className="max-w-4xl mx-auto px-6">
+          <div className="max-w-[700px] mx-auto px-6">
             <div className="animate-pulse space-y-8">
               <div className="h-8 bg-muted rounded w-3/4" />
               <div className="aspect-[16/9] bg-muted rounded" />
@@ -35,7 +35,7 @@ const StyleGuide = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <main className="pt-24 pb-16">
-          <div className="max-w-4xl mx-auto px-6 text-center">
+          <div className="max-w-[700px] mx-auto px-6 text-center">
             <h1 className="font-serif text-3xl md:text-4xl text-primary mb-4">
               Style Guide Not Found
             </h1>
@@ -72,23 +72,23 @@ const StyleGuide = () => {
         </div>
 
         {/* Content */}
-        <article className="max-w-3xl mx-auto px-6 py-12 md:py-16">
+        <article className="max-w-[700px] mx-auto px-6 py-12 md:py-16">
           {/* Back Link */}
           <Link 
             to="/" 
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-8 text-sm tracking-wider uppercase"
+            className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-8 text-sm tracking-wider uppercase font-sans"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Home
           </Link>
 
           {/* Title */}
-          <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl text-primary leading-tight mb-8">
+          <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl text-primary leading-tight mb-10">
             {guide.title}
           </h1>
 
           {/* Intro Text */}
-          <p className="text-lg md:text-xl text-foreground/80 leading-relaxed mb-12 font-light">
+          <p className="article-intro">
             {guide.intro_text}
           </p>
 
@@ -97,15 +97,15 @@ const StyleGuide = () => {
 
           {/* Body Content (Rich Text) */}
           <div 
-            className="prose prose-lg max-w-none
-              prose-headings:font-serif prose-headings:text-primary prose-headings:font-normal
-              prose-h2:text-2xl prose-h2:md:text-3xl prose-h2:mt-12 prose-h2:mb-6
-              prose-h3:text-xl prose-h3:md:text-2xl prose-h3:mt-8 prose-h3:mb-4
-              prose-p:text-foreground/80 prose-p:leading-relaxed prose-p:mb-6
-              prose-strong:text-foreground prose-strong:font-medium
+            className="prose prose-lg max-w-none prose-editorial
+              prose-headings:font-heading prose-headings:text-primary prose-headings:font-semibold
+              prose-h2:text-xl prose-h2:md:text-2xl prose-h2:mt-12 prose-h2:mb-6
+              prose-h3:text-lg prose-h3:md:text-xl prose-h3:mt-8 prose-h3:mb-4
+              prose-p:text-foreground prose-p:leading-relaxed prose-p:mb-6
+              prose-strong:text-foreground prose-strong:font-semibold
               prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-              prose-blockquote:border-l-primary prose-blockquote:border-l-2 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-foreground/70
-              prose-ul:text-foreground/80 prose-ol:text-foreground/80
+              prose-blockquote:border-l-primary prose-blockquote:border-l-2 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-primary
+              prose-ul:text-foreground prose-ol:text-foreground
               prose-li:mb-2
               prose-img:rounded-lg prose-img:shadow-md"
             dangerouslySetInnerHTML={{ __html: guide.body }}
