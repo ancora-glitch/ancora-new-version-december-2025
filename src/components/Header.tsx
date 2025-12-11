@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 interface MenuItem {
   label: string;
   subItems?: string[];
+  href?: string;
 }
 const menuItems: MenuItem[] = [{
   label: "Clothing",
@@ -18,7 +19,8 @@ const menuItems: MenuItem[] = [{
 }, {
   label: "Guest Edits"
 }, {
-  label: "About Ancora"
+  label: "About Ancora",
+  href: "/about"
 }];
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
@@ -98,6 +100,14 @@ export function Header() {
                     </ul>
                   </div>
                 </>
+              ) : item.href ? (
+                <Link 
+                  to={item.href}
+                  onClick={toggleMenu}
+                  className="block w-full text-left px-6 py-3.5 text-sm font-medium tracking-wide text-foreground hover:text-primary hover:bg-accent/40 transition-colors duration-200"
+                >
+                  {item.label}
+                </Link>
               ) : (
                 <button className="w-full text-left px-6 py-3.5 text-sm font-medium tracking-wide text-foreground hover:text-primary hover:bg-accent/40 transition-colors duration-200">
                   {item.label}
