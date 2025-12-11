@@ -10,7 +10,9 @@ export const Footer = () => {
             <p className="text-lg md:text-xl font-serif tracking-wide">Join the community</p>
             <div className="flex gap-4">
               <a 
-                href="#" 
+                href="https://www.instagram.com/ancora_edit/" 
+                target="_blank"
+                rel="noopener noreferrer"
                 aria-label="Follow us on Instagram" 
                 className="p-2.5 rounded-full border border-primary-foreground/30 hover:bg-primary-foreground/10 transition-colors duration-200"
               >
