@@ -19,8 +19,10 @@ export const Footer = () => {
                 <Instagram className="w-5 h-5" strokeWidth={1.5} />
               </a>
               <a 
-                href="#" 
-                aria-label="Bookmark" 
+                href="https://ancoraedit.substack.com/" 
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Follow us on Substack" 
                 className="p-2.5 rounded-full border border-primary-foreground/30 hover:bg-primary-foreground/10 transition-colors duration-200"
               >
                 <Bookmark className="w-5 h-5" strokeWidth={1.5} />
