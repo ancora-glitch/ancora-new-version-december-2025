@@ -24,10 +24,10 @@ const Index = () => {
       <main className="pt-16">
         {/* Hero Section */}
         <section className="relative w-full h-[80vh] min-h-[600px]">
-          <img alt="Fashion editorial featuring elegant clothing" className="absolute inset-0 w-full h-full object-cover object-center md:object-[50%_25%]" src="/lovable-uploads/f5d5719e-ed29-45f3-b4c6-f3849a6e259f.jpg" />
+          <img alt="Fashion editorial featuring elegant clothing" className="absolute inset-0 w-full h-full object-cover object-[center_top] md:object-[50%_25%]" src="/lovable-uploads/f5d5719e-ed29-45f3-b4c6-f3849a6e259f.jpg" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
-          <div className="absolute inset-0 flex items-center justify-center px-4 md:px-8">
-            <div className="bg-black/25 backdrop-blur-sm rounded-lg p-6 md:p-10 lg:p-12 max-w-2xl text-center">
+          <div className="absolute inset-0 flex items-end md:items-center justify-center px-4 md:px-8 pb-12 md:pb-0">
+            <div className="bg-black/15 md:bg-black/25 backdrop-blur-sm rounded-lg p-6 md:p-10 lg:p-12 max-w-2xl text-center">
               <h1 className="text-3xl md:text-4xl lg:text-5xl mb-4 md:mb-6 leading-tight text-white font-serif">
                 Curated second hand. Carefully edited.
               </h1>
