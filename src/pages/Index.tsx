@@ -49,31 +49,10 @@ const Index = () => {
             Curated second hand pieces selected for this week.
           </p>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-7 lg:gap-8 max-w-7xl mx-auto">
-            {isLoading ? (
-              <p className="col-span-full text-center text-muted-foreground">Loading products...</p>
-            ) : products && products.length > 0 ? (
-              products.slice(0, 6).map(product => (
-                <ProductCard 
-                  key={product.id} 
-                  image={product.image} 
-                  brand={product.brand} 
-                  name={product.name} 
-                  price={formatPrice(product.price)} 
-                  additionalImages={product.additional_images || []} 
-                  affiliateUrl={product.affiliate_url || undefined} 
-                  marketplace={product.marketplace || undefined} 
-                />
-              ))
-            ) : (
-              <p className="col-span-full text-center text-muted-foreground">No products available</p>
-            )}
+            {isLoading ? <p className="col-span-full text-center text-muted-foreground">Loading products...</p> : products && products.length > 0 ? products.slice(0, 6).map(product => <ProductCard key={product.id} image={product.image} brand={product.brand} name={product.name} price={formatPrice(product.price)} additionalImages={product.additional_images || []} affiliateUrl={product.affiliate_url || undefined} marketplace={product.marketplace || undefined} />) : <p className="col-span-full text-center text-muted-foreground">No products available</p>}
           </div>
           <div className="text-center mt-12">
-            <Button 
-              variant="outline" 
-              className="px-10 py-4 h-auto uppercase tracking-wide"
-              onClick={() => navigate('/edits')}
-            >
+            <Button variant="outline" className="px-10 py-4 h-auto uppercase tracking-wide" onClick={() => navigate('/edits')}>
               View Full Edit
             </Button>
           </div>
@@ -81,7 +60,7 @@ const Index = () => {
 
         {/* Winter Style Guides Section */}
         <section className="px-4 md:px-8 lg:px-12 py-20 md:py-28 lg:py-32 bg-primary">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl mb-14 md:mb-16 text-center text-primary-foreground font-normal">Style Guides</h2>
+          <h2 className="text-2xl md:text-3xl lg:text-4xl mb-14 md:mb-16 text-center text-primary-foreground font-normal">Stories</h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-7 lg:gap-8 max-w-7xl mx-auto">
             {guidesLoading ? <p className="col-span-full text-center text-primary-foreground/70">Loading guides...</p> : styleGuides && styleGuides.length > 0 ? styleGuides.map(guide => <GuideCard key={guide.id} image={guide.image} title={guide.title} href={`/style-guides/${guide.slug}`} />) : <p className="col-span-full text-center text-primary-foreground/70">No style guides available</p>}
           </div>
