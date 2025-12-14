@@ -35,16 +35,10 @@ const Index = () => {
                 Weekly drops, thoughtful stories, and a new way to shop pre-loved.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button 
-                  className="font-medium text-sm tracking-wide px-8 py-4 h-auto"
-                  onClick={() => navigate('/edits')}
-                >
-                  See the latest Drop
+                <Button className="font-medium text-sm tracking-wide px-8 py-4 h-auto" onClick={() => navigate('/edits')}>
+                  Latest Drop
                 </Button>
-                <Button 
-                  className="font-medium text-sm tracking-wide px-8 py-4 h-auto"
-                  onClick={() => navigate('/stories')}
-                >
+                <Button className="font-medium text-sm tracking-wide px-8 py-4 h-auto" onClick={() => navigate('/stories')}>
                   Read our Stories
                 </Button>
               </div>
