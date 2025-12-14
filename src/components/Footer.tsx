@@ -1,4 +1,5 @@
 import { Instagram, Bookmark } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export const Footer = () => {
   return (
@@ -32,12 +33,9 @@ export const Footer = () => {
 
           {/* Right Column */}
           <nav className="flex flex-col gap-4">
-            <a href="#" className="text-sm tracking-wide hover:opacity-70 transition-opacity duration-200">
+            <Link to="/about" className="text-sm tracking-wide hover:opacity-70 transition-opacity duration-200">
               About ANCORA
-            </a>
-            <a href="#" className="text-sm tracking-wide hover:opacity-70 transition-opacity duration-200">
-              FAQ
-            </a>
+            </Link>
             <a href="#" className="text-sm tracking-wide hover:opacity-70 transition-opacity duration-200">
               Contact
             </a>
