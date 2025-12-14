@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,7 @@ const Index = () => {
                 </Button>
                 <Button 
                   className="font-medium text-sm tracking-wide px-8 py-4 h-auto"
-                  onClick={() => navigate('/style-guides')}
+                  onClick={() => navigate('/stories')}
                 >
                   Read our Stories
                 </Button>
@@ -70,9 +70,11 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Winter Style Guides Section */}
+        {/* Stories Section */}
         <section className="px-4 md:px-8 lg:px-12 py-20 md:py-28 lg:py-32 bg-primary">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl mb-14 md:mb-16 text-center text-primary-foreground font-normal">Stories</h2>
+          <Link to="/stories" className="block text-center mb-14 md:mb-16 hover:opacity-80 transition-opacity">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl text-primary-foreground font-normal">Stories</h2>
+          </Link>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-7 lg:gap-8 max-w-7xl mx-auto">
             {guidesLoading ? <p className="col-span-full text-center text-primary-foreground/70">Loading guides...</p> : styleGuides && styleGuides.length > 0 ? styleGuides.map(guide => <GuideCard key={guide.id} image={guide.image} title={guide.title} href={`/style-guides/${guide.slug}`} />) : <p className="col-span-full text-center text-primary-foreground/70">No style guides available</p>}
           </div>
