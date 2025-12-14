@@ -8,7 +8,7 @@ const Contact = () => {
       <Header />
       
       {/* Hero Section */}
-      <section className="bg-primary py-16 md:py-24">
+      <section className="bg-primary pt-20 pb-16 md:py-24">
         <div className="max-w-4xl mx-auto px-6 md:px-8">
           <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl text-primary-foreground text-center">
             Contact
