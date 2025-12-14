@@ -1,39 +1,27 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, ChevronRight, ChevronDown, Search } from "lucide-react";
+import { Menu, X, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+
 interface MenuItem {
   label: string;
-  subItems?: string[];
-  href?: string;
+  href: string;
 }
-const menuItems: MenuItem[] = [{
-  label: "Clothing",
-  subItems: ["Dresses", "Tops", "Bottoms", "Outerwear"]
-}, {
-  label: "Bags",
-  subItems: ["Totes", "Crossbody", "Clutches", "Backpacks"]
-}, {
-  label: "Shoes",
-  subItems: ["Heels", "Flats", "Sandals", "Boots"]
-}, {
-  label: "Guest Edits"
-}, {
-  label: "About Ancora",
-  href: "/about"
-}];
+
+const menuItems: MenuItem[] = [
+  { label: "Home", href: "/home" },
+  { label: "Edits", href: "/edits" },
+  { label: "Stories", href: "/style-guides" },
+  { label: "About", href: "/about" }
+];
+
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
-  const [expandedItem, setExpandedItem] = useState<string | null>(null);
+
   const toggleMenu = () => {
     setIsOpen(!isOpen);
-    if (isOpen) {
-      setExpandedItem(null);
-    }
   };
-  const toggleSubmenu = (label: string) => {
-    setExpandedItem(expandedItem === label ? null : label);
-  };
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border/50">
       {/* Header Bar */}
@@ -71,48 +59,13 @@ export function Header() {
         <ul className="py-3">
           {menuItems.map(item => (
             <li key={item.label}>
-              {item.subItems ? (
-                <>
-                  <button 
-                    onClick={() => toggleSubmenu(item.label)} 
-                    className="w-full flex items-center justify-between px-6 py-3.5 text-sm tracking-wide text-foreground hover:text-primary hover:bg-accent/40 transition-colors duration-200"
-                  >
-                    <span className="font-medium">{item.label}</span>
-                    {expandedItem === item.label ? (
-                      <ChevronDown size={16} className="text-muted-foreground" />
-                    ) : (
-                      <ChevronRight size={16} className="text-muted-foreground" />
-                    )}
-                  </button>
-
-                  <div className={cn(
-                    "overflow-hidden transition-all duration-200",
-                    expandedItem === item.label ? "max-h-64" : "max-h-0"
-                  )}>
-                    <ul className="bg-accent/20 py-2">
-                      {item.subItems.map(subItem => (
-                        <li key={subItem}>
-                          <button className="w-full text-left px-10 py-2.5 text-sm text-muted-foreground hover:text-primary hover:bg-accent/40 transition-colors duration-200">
-                            {subItem}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </>
-              ) : item.href ? (
-                <Link 
-                  to={item.href}
-                  onClick={toggleMenu}
-                  className="block w-full text-left px-6 py-3.5 text-sm font-medium tracking-wide text-foreground hover:text-primary hover:bg-accent/40 transition-colors duration-200"
-                >
-                  {item.label}
-                </Link>
-              ) : (
-                <button className="w-full text-left px-6 py-3.5 text-sm font-medium tracking-wide text-foreground hover:text-primary hover:bg-accent/40 transition-colors duration-200">
-                  {item.label}
-                </button>
-              )}
+              <Link 
+                to={item.href}
+                onClick={toggleMenu}
+                className="block w-full text-left px-6 py-3.5 text-sm font-medium tracking-wide text-foreground hover:text-primary hover:bg-accent/40 transition-colors duration-200"
+              >
+                {item.label}
+              </Link>
             </li>
           ))}
         </ul>
