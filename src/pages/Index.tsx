@@ -25,17 +25,29 @@ const Index = () => {
         {/* Hero Section */}
         <section className="relative w-full h-[80vh] min-h-[600px]">
           <img alt="Fashion editorial featuring elegant clothing" className="absolute inset-0 w-full h-full object-cover object-center md:object-[50%_25%]" src="/lovable-uploads/f5d5719e-ed29-45f3-b4c6-f3849a6e259f.jpg" />
-          <div className="absolute bottom-8 left-4 right-4 md:bottom-12 md:left-8 md:right-8">
-            <div className="bg-[#F8F4EF]/85 backdrop-blur-sm p-8 md:p-12 lg:p-14 max-w-lg shadow-lg">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl mb-5 leading-tight text-primary">
-                Wear it now
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
+          <div className="absolute inset-0 flex items-center justify-center px-4 md:px-8">
+            <div className="text-center max-w-2xl">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl mb-4 md:mb-6 leading-tight text-white font-serif">
+                Curated second hand. Carefully edited.
               </h1>
-              <p className="text-base md:text-lg mb-10 leading-relaxed text-primary">
-                Time to bring out your most dazzling pieces
+              <p className="text-base md:text-lg lg:text-xl mb-8 md:mb-10 leading-relaxed text-white/90">
+                Weekly drops, thoughtful stories, and a new way to shop pre-loved.
               </p>
-              <Button className="w-full md:w-auto font-medium text-sm tracking-wide px-10 py-4 h-auto uppercase">
-                Explore styles
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button 
+                  className="font-medium text-sm tracking-wide px-8 py-4 h-auto"
+                  onClick={() => navigate('/edits')}
+                >
+                  See the latest Drop
+                </Button>
+                <Button 
+                  className="font-medium text-sm tracking-wide px-8 py-4 h-auto"
+                  onClick={() => navigate('/style-guides')}
+                >
+                  Read our Stories
+                </Button>
+              </div>
             </div>
           </div>
         </section>
