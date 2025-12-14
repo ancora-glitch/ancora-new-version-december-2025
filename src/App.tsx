@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import StyleGuide from "./pages/StyleGuide";
+import Stories from "./pages/Stories";
 import ComingSoon from "./pages/ComingSoon";
 import About from "./pages/About";
 import NotFound from "./pages/NotFound";
@@ -21,6 +22,7 @@ const App = () => (
           <Route path="/coming-soon" element={<ComingSoon />} />
           <Route path="/home" element={<Index />} />
           <Route path="/about" element={<About />} />
+          <Route path="/stories" element={<Stories />} />
           <Route path="/style-guides/:slug" element={<StyleGuide />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
