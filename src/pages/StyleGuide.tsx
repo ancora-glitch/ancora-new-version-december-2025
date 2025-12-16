@@ -3,6 +3,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useStyleGuide } from "@/hooks/useStyleGuides";
 import { ArrowLeft } from "lucide-react";
+import DOMPurify from "dompurify";
 
 const StyleGuide = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -108,7 +109,7 @@ const StyleGuide = () => {
               prose-ul:text-foreground prose-ol:text-foreground
               prose-li:mb-2
               prose-img:rounded-lg prose-img:shadow-md"
-            dangerouslySetInnerHTML={{ __html: guide.body }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(guide.body) }}
           />
         </article>
       </main>
