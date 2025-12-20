@@ -51,9 +51,7 @@ const Index = () => {
           <h2 className="text-2xl md:text-3xl lg:text-4xl mb-4 text-center font-normal">
             Latest Edit
           </h2>
-          <p className="text-center text-muted-foreground mb-14 md:mb-16 text-base md:text-lg">
-            Curated second hand pieces selected for this week.
-          </p>
+          <p className="text-center text-muted-foreground mb-14 md:mb-16 text-base md:text-lg">Curated second hand pieces selected exklusively.</p>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-6 lg:gap-8 max-w-7xl mx-auto">
             {isLoading ? <p className="col-span-full text-center text-muted-foreground">Loading products...</p> : products && products.length > 0 ? products.slice(0, 8).map(product => <Link key={product.id} to={`/product/${product.slug || product.id}`} className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 transition-colors">
                   <div className="relative aspect-[4/5] overflow-hidden bg-secondary/30">
