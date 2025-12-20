@@ -35,24 +35,38 @@ export const ImageUploader = ({
   const fetchStorageFiles = async () => {
     setLoadingStorage(true);
     try {
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .list(folder || undefined, { limit: 100, sortBy: { column: 'created_at', order: 'desc' } });
+      const allFiles: StorageFile[] = [];
+      
+      // Recursive function to fetch files from all subdirectories
+      const fetchFromPath = async (path: string) => {
+        const { data, error } = await supabase.storage
+          .from(bucket)
+          .list(path || undefined, { limit: 100, sortBy: { column: 'created_at', order: 'desc' } });
 
-      if (error) {
-        console.error("Error fetching storage files:", error);
-        return;
-      }
+        if (error) {
+          console.error("Error fetching storage files:", error);
+          return;
+        }
 
-      const files: StorageFile[] = (data || [])
-        .filter(file => !file.id.endsWith('/') && file.name !== '.emptyFolderPlaceholder')
-        .map(file => {
-          const filePath = folder ? `${folder}/${file.name}` : file.name;
-          const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
-          return { name: file.name, url: urlData.publicUrl };
-        });
+        for (const item of data || []) {
+          if (item.name === '.emptyFolderPlaceholder') continue;
+          
+          const fullPath = path ? `${path}/${item.name}` : item.name;
+          
+          // Check if it's a folder (no metadata means it's a folder)
+          if (!item.metadata) {
+            // It's a folder, recurse into it
+            await fetchFromPath(fullPath);
+          } else {
+            // It's a file, add it to the list
+            const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fullPath);
+            allFiles.push({ name: item.name, url: urlData.publicUrl });
+          }
+        }
+      };
 
-      setStorageFiles(files);
+      await fetchFromPath(folder);
+      setStorageFiles(allFiles);
     } catch (err) {
       console.error("Error:", err);
     } finally {
