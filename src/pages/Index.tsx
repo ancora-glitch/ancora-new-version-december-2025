@@ -54,8 +54,39 @@ const Index = () => {
           <p className="text-center text-muted-foreground mb-14 md:mb-16 text-base md:text-lg">
             Curated second hand pieces selected for this week.
           </p>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-7 lg:gap-8 max-w-7xl mx-auto">
-            {isLoading ? <p className="col-span-full text-center text-muted-foreground">Loading products...</p> : products && products.length > 0 ? products.slice(0, 6).map(product => <ProductCard key={product.id} image={product.image} brand={product.brand} name={product.name} price={formatPrice(product.price)} additionalImages={product.additional_images || []} affiliateUrl={product.affiliate_url || undefined} marketplace={product.marketplace || undefined} />) : <p className="col-span-full text-center text-muted-foreground">No products available</p>}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-6 lg:gap-8 max-w-7xl mx-auto">
+            {isLoading ? (
+              <p className="col-span-full text-center text-muted-foreground">Loading products...</p>
+            ) : products && products.length > 0 ? (
+              products.slice(0, 8).map((product) => (
+                <Link
+                  key={product.id}
+                  to={`/product/${product.slug || product.id}`}
+                  className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 transition-colors"
+                >
+                  <div className="relative aspect-[4/5] overflow-hidden bg-secondary/30">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                    />
+                  </div>
+                  <div className="p-4 space-y-1.5">
+                    <span className="text-xs font-semibold uppercase tracking-widest text-foreground">
+                      {product.brand}
+                    </span>
+                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-1">
+                      {product.name}
+                    </p>
+                    <p className="text-base font-semibold text-foreground pt-1">
+                      {formatPrice(product.price)}
+                    </p>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <p className="col-span-full text-center text-muted-foreground">No products available</p>
+            )}
           </div>
           <div className="text-center mt-12">
             <Button variant="outline" className="px-10 py-4 h-auto uppercase tracking-wide" onClick={() => navigate('/edits')}>
