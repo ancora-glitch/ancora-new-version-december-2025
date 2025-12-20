@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { Heart } from "lucide-react";
+import { Link } from "react-router-dom";
 import { ProductModal } from "./ProductModal";
 import { RedirectModal } from "./RedirectModal";
 
 interface ProductCardProps {
+  id: string;
+  slug?: string;
   image: string;
   brand: string;
   name: string;
@@ -12,10 +15,11 @@ interface ProductCardProps {
   affiliateUrl?: string;
   marketplace?: string;
   onWishlistToggle?: (isWishlisted: boolean) => void;
-  onExplore?: () => void;
 }
 
 export const ProductCard = ({
+  id,
+  slug,
   image,
   brand,
   name,
@@ -24,27 +28,25 @@ export const ProductCard = ({
   affiliateUrl,
   marketplace,
   onWishlistToggle,
-  onExplore
 }: ProductCardProps) => {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isRedirectModalOpen, setIsRedirectModalOpen] = useState(false);
 
-  const handleWishlistClick = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
+  const handleWishlistClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     const newState = !isWishlisted;
     setIsWishlisted(newState);
     onWishlistToggle?.(newState);
   };
 
-  const handleExploreClick = () => {
-    setIsModalOpen(true);
-    onExplore?.();
-  };
-
   return (
     <>
-      <div className="group bg-card overflow-hidden border border-border/20">
+      <Link
+        to={`/product/${slug || id}`}
+        className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 transition-colors"
+      >
         {/* Image Container */}
         <div className="relative aspect-[4/5] overflow-hidden bg-secondary/30">
           <img
@@ -62,7 +64,7 @@ export const ProductCard = ({
               {brand}
             </span>
             <button
-              onClick={(e) => handleWishlistClick(e)}
+              onClick={handleWishlistClick}
               className="p-1 transition-colors duration-200 hover:text-primary"
               aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
             >
@@ -77,18 +79,12 @@ export const ProductCard = ({
           {/* Product Name */}
           <p className="text-sm text-muted-foreground leading-relaxed">{name}</p>
 
-          {/* Price + Explore */}
-          <div className="flex items-center justify-between pt-2">
+          {/* Price */}
+          <div className="pt-2">
             <span className="text-base font-semibold text-foreground">{price}</span>
-            <button
-              onClick={handleExploreClick}
-              className="text-xs tracking-wide text-foreground underline underline-offset-4 hover:text-primary transition-colors duration-200"
-            >
-              Explore →
-            </button>
           </div>
         </div>
-      </div>
+      </Link>
 
       <ProductModal
         isOpen={isModalOpen}
@@ -98,7 +94,11 @@ export const ProductCard = ({
         name={name}
         price={price}
         isWishlisted={isWishlisted}
-        onWishlistToggle={() => handleWishlistClick()}
+        onWishlistToggle={() => {
+          const newState = !isWishlisted;
+          setIsWishlisted(newState);
+          onWishlistToggle?.(newState);
+        }}
         onBuyNow={() => {
           setIsModalOpen(false);
           setIsRedirectModalOpen(true);
