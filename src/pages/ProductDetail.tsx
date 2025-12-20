@@ -64,7 +64,10 @@ const ProductDetail = () => {
   }
 
   // Combine main image with additional images
-  const allImages = [product.image, ...(product.additional_images || [])].filter(Boolean);
+  const additionalImages = Array.isArray(product.additional_images) 
+    ? (product.additional_images as string[]) 
+    : [];
+  const allImages: string[] = [product.image, ...additionalImages].filter(Boolean) as string[];
 
   const handlePrevImage = () => {
     setCurrentImageIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1));

@@ -21,5 +21,5 @@ export const useProducts = () => {
 };
 
 export const formatPrice = (price: number): string => {
-  return `$${price.toLocaleString()}`;
+  return `${price.toLocaleString()} SEK`;
 };
