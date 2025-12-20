@@ -217,21 +217,29 @@ const ProductDetail = () => {
                 {/* Divider */}
                 <div className="border-t border-border" />
 
-                {/* CTA - DM on Instagram */}
-                <a
-                  href="https://www.instagram.com/ancora_edit/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex items-center justify-center gap-3 w-full py-4 px-6 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors rounded-sm"
-                >
-                  <Instagram size={20} />
-                  <span className="font-medium tracking-wide">DM on Instagram to buy</span>
-                </a>
-
-                {/* Additional Info */}
-                <p className="text-sm text-muted-foreground text-center">
-                  Questions? Send us a message on Instagram.
-                </p>
+                {/* CTA - Affiliate or Instagram DM */}
+                {product.affiliate_url ? (
+                  <a
+                    href={product.affiliate_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex items-center justify-center gap-3 w-full py-4 px-6 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors rounded-sm"
+                  >
+                    <span className="font-medium tracking-wide">Buy Now</span>
+                  </a>
+                ) : (
+                  <>
+                    <a
+                      href="https://www.instagram.com/ancora_edit/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group inline-flex items-center gap-2 text-foreground hover:text-primary transition-colors"
+                    >
+                      <Instagram size={18} />
+                      <span className="underline underline-offset-4">DM us on Instagram to buy</span>
+                    </a>
+                  </>
+                )}
               </div>
             </div>
           </div>
