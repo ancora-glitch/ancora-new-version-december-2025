@@ -16,7 +16,7 @@ export type Database = {
     Tables: {
       products: {
         Row: {
-          additional_images: string[] | null
+          additional_images: Json | null
           affiliate_url: string | null
           brand: string
           condition: string | null
@@ -33,7 +33,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          additional_images?: string[] | null
+          additional_images?: Json | null
           affiliate_url?: string | null
           brand: string
           condition?: string | null
@@ -50,7 +50,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          additional_images?: string[] | null
+          additional_images?: Json | null
           affiliate_url?: string | null
           brand?: string
           condition?: string | null
