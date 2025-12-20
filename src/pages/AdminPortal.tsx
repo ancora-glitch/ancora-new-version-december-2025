@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
+import { ImageUploader } from "@/components/ImageUploader";
 
 const AdminPortal = () => {
   const { data: stories, isLoading: storiesLoading } = useStyleGuides();
@@ -31,7 +32,7 @@ const AdminPortal = () => {
   const [productBrand, setProductBrand] = useState("");
   const [productName, setProductName] = useState("");
   const [productPrice, setProductPrice] = useState("");
-  const [productImage, setProductImage] = useState("");
+  const [productImages, setProductImages] = useState<string[]>([]);
   const [productDescription, setProductDescription] = useState("");
   const [productAffiliateUrl, setProductAffiliateUrl] = useState("");
   const [productMarketplace, setProductMarketplace] = useState("");
@@ -90,19 +91,22 @@ const AdminPortal = () => {
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!productBrand.trim() || !productName.trim() || !productPrice) {
-      toast.error("Brand, name and price are required");
+    if (!productBrand.trim() || !productName.trim() || !productPrice || productImages.length === 0) {
+      toast.error("Brand, name, price and at least one image are required");
       return;
     }
     setSavingProduct(true);
     
     const slug = `${productBrand}-${productName}`.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+    const mainImage = productImages[0];
+    const additionalImages = productImages.slice(1);
     
     const { error } = await supabase.from("products").insert([{
       brand: productBrand.trim(),
       name: productName.trim(),
       price: parseFloat(productPrice),
-      image: productImage.trim(),
+      image: mainImage,
+      additional_images: additionalImages,
       description: productDescription.trim() || null,
       affiliate_url: productAffiliateUrl.trim() || null,
       marketplace: productMarketplace.trim() || null,
@@ -119,7 +123,7 @@ const AdminPortal = () => {
       setProductBrand("");
       setProductName("");
       setProductPrice("");
-      setProductImage("");
+      setProductImages([]);
       setProductDescription("");
       setProductAffiliateUrl("");
       setProductMarketplace("");
@@ -197,8 +201,8 @@ const AdminPortal = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="productImage">Image URL *</Label>
-                  <Input id="productImage" value={productImage} onChange={(e) => setProductImage(e.target.value)} placeholder="https://..." className="bg-background border-border" />
+                  <Label>Images *</Label>
+                  <ImageUploader images={productImages} onImagesChange={setProductImages} bucket="products" />
                 </div>
 
                 <div className="space-y-2">
