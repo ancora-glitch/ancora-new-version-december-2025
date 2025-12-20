@@ -19,12 +19,16 @@ export type Database = {
           additional_images: string[] | null
           affiliate_url: string | null
           brand: string
+          condition: string | null
           created_at: string
+          description: string | null
           id: string
           image: string
           marketplace: string | null
+          material: string | null
           name: string
           price: number
+          slug: string | null
           status: Database["public"]["Enums"]["product_status"]
           updated_at: string
         }
@@ -32,12 +36,16 @@ export type Database = {
           additional_images?: string[] | null
           affiliate_url?: string | null
           brand: string
+          condition?: string | null
           created_at?: string
+          description?: string | null
           id?: string
           image: string
           marketplace?: string | null
+          material?: string | null
           name: string
           price: number
+          slug?: string | null
           status?: Database["public"]["Enums"]["product_status"]
           updated_at?: string
         }
@@ -45,12 +53,16 @@ export type Database = {
           additional_images?: string[] | null
           affiliate_url?: string | null
           brand?: string
+          condition?: string | null
           created_at?: string
+          description?: string | null
           id?: string
           image?: string
           marketplace?: string | null
+          material?: string | null
           name?: string
           price?: number
+          slug?: string | null
           status?: Database["public"]["Enums"]["product_status"]
           updated_at?: string
         }
