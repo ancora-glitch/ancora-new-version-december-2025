@@ -36,7 +36,7 @@ const Index = () => {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button className="font-medium text-sm tracking-wide px-8 py-4 h-auto" onClick={() => navigate('/edits')}>
-                  Latest Drop
+                  Latest Edit 
                 </Button>
                 <Button className="font-medium text-sm tracking-wide px-8 py-4 h-auto" onClick={() => navigate('/stories')}>
                   Read our Stories
@@ -49,27 +49,15 @@ const Index = () => {
         {/* This Week's Edit Section */}
         <section className="px-4 md:px-8 lg:px-12 py-20 md:py-28 lg:py-32 bg-secondary/40">
           <h2 className="text-2xl md:text-3xl lg:text-4xl mb-4 text-center font-normal">
-            This Week's Edit
+            Latest Edit
           </h2>
           <p className="text-center text-muted-foreground mb-14 md:mb-16 text-base md:text-lg">
             Curated second hand pieces selected for this week.
           </p>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-6 lg:gap-8 max-w-7xl mx-auto">
-            {isLoading ? (
-              <p className="col-span-full text-center text-muted-foreground">Loading products...</p>
-            ) : products && products.length > 0 ? (
-              products.slice(0, 8).map((product) => (
-                <Link
-                  key={product.id}
-                  to={`/product/${product.slug || product.id}`}
-                  className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 transition-colors"
-                >
+            {isLoading ? <p className="col-span-full text-center text-muted-foreground">Loading products...</p> : products && products.length > 0 ? products.slice(0, 8).map(product => <Link key={product.id} to={`/product/${product.slug || product.id}`} className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 transition-colors">
                   <div className="relative aspect-[4/5] overflow-hidden bg-secondary/30">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                    />
+                    <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" />
                   </div>
                   <div className="p-4 space-y-1.5">
                     <span className="text-xs font-semibold uppercase tracking-widest text-foreground">
@@ -82,11 +70,7 @@ const Index = () => {
                       {formatPrice(product.price)}
                     </p>
                   </div>
-                </Link>
-              ))
-            ) : (
-              <p className="col-span-full text-center text-muted-foreground">No products available</p>
-            )}
+                </Link>) : <p className="col-span-full text-center text-muted-foreground">No products available</p>}
           </div>
           <div className="text-center mt-12">
             <Button variant="outline" className="px-10 py-4 h-auto uppercase tracking-wide" onClick={() => navigate('/edits')}>
