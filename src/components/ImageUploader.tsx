@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { X, Upload, Image as ImageIcon, RefreshCw } from "lucide-react";
+import { X, Upload, Image as ImageIcon, RefreshCw, ChevronDown, Folder } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -29,13 +29,39 @@ export const ImageUploader = ({
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [storageFiles, setStorageFiles] = useState<StorageFile[]>([]);
+  const [storageFolders, setStorageFolders] = useState<string[]>([]);
+  const [selectedFolder, setSelectedFolder] = useState<string>("");
   const [loadingStorage, setLoadingStorage] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
+  const [showFolderDropdown, setShowFolderDropdown] = useState(false);
 
-  const fetchStorageFiles = async () => {
+  // Fetch folders at root level
+  const fetchFolders = async () => {
+    try {
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .list(folder || undefined, { limit: 100 });
+
+      if (error) {
+        console.error("Error fetching folders:", error);
+        return;
+      }
+
+      const folders = (data || [])
+        .filter(item => !item.metadata && item.name !== '.emptyFolderPlaceholder')
+        .map(item => item.name);
+
+      setStorageFolders(folders);
+    } catch (err) {
+      console.error("Error:", err);
+    }
+  };
+
+  const fetchStorageFiles = async (targetFolder: string = selectedFolder) => {
     setLoadingStorage(true);
     try {
       const allFiles: StorageFile[] = [];
+      const basePath = folder ? (targetFolder ? `${folder}/${targetFolder}` : folder) : targetFolder;
       
       // Recursive function to fetch files from all subdirectories
       const fetchFromPath = async (path: string) => {
@@ -65,7 +91,7 @@ export const ImageUploader = ({
         }
       };
 
-      await fetchFromPath(folder);
+      await fetchFromPath(basePath);
       setStorageFiles(allFiles);
     } catch (err) {
       console.error("Error:", err);
@@ -76,9 +102,21 @@ export const ImageUploader = ({
 
   useEffect(() => {
     if (showPicker) {
+      fetchFolders();
       fetchStorageFiles();
     }
   }, [showPicker, bucket, folder]);
+
+  useEffect(() => {
+    if (showPicker) {
+      fetchStorageFiles(selectedFolder);
+    }
+  }, [selectedFolder]);
+
+  const handleFolderSelect = (folderName: string) => {
+    setSelectedFolder(folderName);
+    setShowFolderDropdown(false);
+  };
 
   const addFromStorage = (url: string) => {
     if (images.includes(url)) {
@@ -232,10 +270,57 @@ export const ImageUploader = ({
       {showPicker && (
         <div className="border border-border rounded-sm p-3 bg-muted/30">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium">Storage Images</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">Storage Images</span>
+              
+              {/* Folder dropdown */}
+              {storageFolders.length > 0 && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowFolderDropdown(!showFolderDropdown)}
+                    className="flex items-center gap-1 px-2 py-1 text-xs bg-background border border-border rounded hover:bg-muted transition-colors"
+                  >
+                    <Folder className="w-3 h-3" />
+                    {selectedFolder || "All folders"}
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+                  
+                  {showFolderDropdown && (
+                    <div className="absolute top-full left-0 mt-1 z-50 bg-background border border-border rounded shadow-lg min-w-32 max-h-48 overflow-y-auto">
+                      <button
+                        type="button"
+                        onClick={() => handleFolderSelect("")}
+                        className={cn(
+                          "w-full text-left px-3 py-2 text-xs hover:bg-muted transition-colors",
+                          selectedFolder === "" && "bg-muted font-medium"
+                        )}
+                      >
+                        All folders
+                      </button>
+                      {storageFolders.map((folderName) => (
+                        <button
+                          key={folderName}
+                          type="button"
+                          onClick={() => handleFolderSelect(folderName)}
+                          className={cn(
+                            "w-full text-left px-3 py-2 text-xs hover:bg-muted transition-colors flex items-center gap-2",
+                            selectedFolder === folderName && "bg-muted font-medium"
+                          )}
+                        >
+                          <Folder className="w-3 h-3" />
+                          {folderName}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            
             <button
               type="button"
-              onClick={fetchStorageFiles}
+              onClick={() => fetchStorageFiles(selectedFolder)}
               disabled={loadingStorage}
               className="p-1 hover:bg-muted rounded transition-colors"
             >
