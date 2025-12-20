@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useProjects } from "@/hooks/useProjects";
+import { useStyleGuides } from "@/hooks/useStyleGuides";
 import { useProducts } from "@/hooks/useProducts";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -15,16 +15,17 @@ import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 
 const AdminPortal = () => {
-  const { data: projects, isLoading: projectsLoading } = useProjects();
+  const { data: stories, isLoading: storiesLoading } = useStyleGuides();
   const { data: products, isLoading: productsLoading } = useProducts();
   const queryClient = useQueryClient();
 
-  // Project form state
-  const [projectTitle, setProjectTitle] = useState("");
-  const [projectDescription, setProjectDescription] = useState("");
-  const [projectImageUrl, setProjectImageUrl] = useState("");
-  const [projectVideoUrl, setProjectVideoUrl] = useState("");
-  const [savingProject, setSavingProject] = useState(false);
+  // Story form state
+  const [storyTitle, setStoryTitle] = useState("");
+  const [storyImage, setStoryImage] = useState("");
+  const [storyIntroText, setStoryIntroText] = useState("");
+  const [storyBody, setStoryBody] = useState("");
+  const [storySlug, setStorySlug] = useState("");
+  const [savingStory, setSavingStory] = useState(false);
 
   // Product form state
   const [productBrand, setProductBrand] = useState("");
@@ -39,40 +40,51 @@ const AdminPortal = () => {
   const [productStatus, setProductStatus] = useState<"active" | "sold">("active");
   const [savingProduct, setSavingProduct] = useState(false);
 
-  const handleSaveProject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!projectTitle.trim()) {
-      toast.error("Project title is required");
-      return;
-    }
-    setSavingProject(true);
-    const { error } = await supabase.from("projects").insert({
-      title: projectTitle.trim(),
-      description: projectDescription.trim() || null,
-      image_url: projectImageUrl.trim() || null,
-      video_link: projectVideoUrl.trim() || null,
-    });
-    if (error) {
-      toast.error("Failed to save project: " + error.message);
-    } else {
-      toast.success("Project saved");
-      setProjectTitle("");
-      setProjectDescription("");
-      setProjectImageUrl("");
-      setProjectVideoUrl("");
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
-    }
-    setSavingProject(false);
+  // Auto-generate slug from title
+  const handleStoryTitleChange = (value: string) => {
+    setStoryTitle(value);
+    const slug = value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+    setStorySlug(slug);
   };
 
-  const handleDeleteProject = async (id: string, title: string) => {
+  const handleSaveStory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!storyTitle.trim() || !storyImage.trim() || !storyIntroText.trim() || !storyBody.trim()) {
+      toast.error("Title, image, intro text and body are required");
+      return;
+    }
+    setSavingStory(true);
+    
+    const { error } = await supabase.from("style_guides").insert([{
+      title: storyTitle.trim(),
+      image: storyImage.trim(),
+      intro_text: storyIntroText.trim(),
+      body: storyBody.trim(),
+      slug: storySlug.trim() || storyTitle.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+    }]);
+    
+    if (error) {
+      toast.error("Failed to save story: " + error.message);
+    } else {
+      toast.success("Story saved");
+      setStoryTitle("");
+      setStoryImage("");
+      setStoryIntroText("");
+      setStoryBody("");
+      setStorySlug("");
+      queryClient.invalidateQueries({ queryKey: ["style-guides"] });
+    }
+    setSavingStory(false);
+  };
+
+  const handleDeleteStory = async (id: string, title: string) => {
     if (!window.confirm(`Delete "${title}"?`)) return;
-    const { error } = await supabase.from("projects").delete().eq("id", id);
+    const { error } = await supabase.from("style_guides").delete().eq("id", id);
     if (error) {
       toast.error("Failed to delete: " + error.message);
     } else {
-      toast.success("Project deleted");
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      toast.success("Story deleted");
+      queryClient.invalidateQueries({ queryKey: ["style-guides"] });
     }
   };
 
@@ -146,7 +158,7 @@ const AdminPortal = () => {
           <Tabs defaultValue="products" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-8">
               <TabsTrigger value="products">Products</TabsTrigger>
-              <TabsTrigger value="projects">Projects</TabsTrigger>
+              <TabsTrigger value="stories">Stories</TabsTrigger>
             </TabsList>
 
             {/* PRODUCTS TAB */}
@@ -251,62 +263,67 @@ const AdminPortal = () => {
               </div>
             </TabsContent>
 
-            {/* PROJECTS TAB */}
-            <TabsContent value="projects" className="space-y-10">
-              <form onSubmit={handleSaveProject} className="space-y-5 p-6 border border-border rounded-sm bg-card">
-                <h2 className="font-display text-lg text-primary mb-4">Add New Project</h2>
+            {/* STORIES TAB */}
+            <TabsContent value="stories" className="space-y-10">
+              <form onSubmit={handleSaveStory} className="space-y-5 p-6 border border-border rounded-sm bg-card">
+                <h2 className="font-display text-lg text-primary mb-4">Add New Story</h2>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="projectTitle">Project Title *</Label>
-                  <Input id="projectTitle" value={projectTitle} onChange={(e) => setProjectTitle(e.target.value)} placeholder="Enter project title" className="bg-background border-border" />
+                  <Label htmlFor="storyTitle">Title *</Label>
+                  <Input id="storyTitle" value={storyTitle} onChange={(e) => handleStoryTitleChange(e.target.value)} placeholder="e.g. Care Guide: Show Your Loafers Some Love" className="bg-background border-border" />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="projectDescription">Description</Label>
-                  <Textarea id="projectDescription" value={projectDescription} onChange={(e) => setProjectDescription(e.target.value)} placeholder="Enter project description" className="bg-background border-border min-h-[100px]" />
+                  <Label htmlFor="storySlug">Slug</Label>
+                  <Input id="storySlug" value={storySlug} onChange={(e) => setStorySlug(e.target.value)} placeholder="auto-generated-from-title" className="bg-background border-border" />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="projectImageUrl">Image URL</Label>
-                  <Input id="projectImageUrl" value={projectImageUrl} onChange={(e) => setProjectImageUrl(e.target.value)} placeholder="https://..." className="bg-background border-border" />
+                  <Label htmlFor="storyImage">Image URL *</Label>
+                  <Input id="storyImage" value={storyImage} onChange={(e) => setStoryImage(e.target.value)} placeholder="https://..." className="bg-background border-border" />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="projectVideoUrl">Video URL</Label>
-                  <Input id="projectVideoUrl" value={projectVideoUrl} onChange={(e) => setProjectVideoUrl(e.target.value)} placeholder="https://youtube.com/..." className="bg-background border-border" />
+                  <Label htmlFor="storyIntroText">Intro Text *</Label>
+                  <Textarea id="storyIntroText" value={storyIntroText} onChange={(e) => setStoryIntroText(e.target.value)} placeholder="A short introduction to the story..." className="bg-background border-border min-h-[80px]" />
                 </div>
 
-                <Button type="submit" disabled={savingProject} className="w-full">
-                  {savingProject ? "Saving..." : "Save Project"}
+                <div className="space-y-2">
+                  <Label htmlFor="storyBody">Body *</Label>
+                  <Textarea id="storyBody" value={storyBody} onChange={(e) => setStoryBody(e.target.value)} placeholder="The full story content..." className="bg-background border-border min-h-[200px]" />
+                </div>
+
+                <Button type="submit" disabled={savingStory} className="w-full">
+                  {savingStory ? "Saving..." : "Save Story"}
                 </Button>
               </form>
 
-              {/* Projects List */}
+              {/* Stories List */}
               <div>
-                <h2 className="font-display text-lg text-primary mb-6">Existing Projects ({projects?.length || 0})</h2>
-                {projectsLoading ? (
+                <h2 className="font-display text-lg text-primary mb-6">Existing Stories ({stories?.length || 0})</h2>
+                {storiesLoading ? (
                   <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-16 bg-muted rounded-sm animate-pulse" />)}</div>
-                ) : projects && projects.length > 0 ? (
+                ) : stories && stories.length > 0 ? (
                   <div className="space-y-3">
-                    {projects.map((project) => (
-                      <div key={project.id} className="flex items-center justify-between p-4 border border-border rounded-sm bg-card">
+                    {stories.map((story) => (
+                      <div key={story.id} className="flex items-center justify-between p-4 border border-border rounded-sm bg-card">
                         <div className="flex items-center gap-4 min-w-0">
-                          {project.image_url && (
-                            <img src={project.image_url} alt={project.title} className="w-12 h-12 object-cover rounded-sm flex-shrink-0" />
+                          {story.image && (
+                            <img src={story.image} alt={story.title} className="w-12 h-12 object-cover rounded-sm flex-shrink-0" />
                           )}
                           <div className="min-w-0">
-                            <h3 className="font-medium text-primary truncate">{project.title}</h3>
-                            {project.description && <p className="text-muted-foreground text-sm truncate">{project.description}</p>}
+                            <h3 className="font-medium text-primary truncate">{story.title}</h3>
+                            <p className="text-muted-foreground text-sm truncate">{story.intro_text}</p>
                           </div>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteProject(project.id, project.title)} className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0">
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteStory(story.id, story.title)} className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0">
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-muted-foreground text-center py-8 border border-border rounded-sm">No projects yet.</p>
+                  <p className="text-muted-foreground text-center py-8 border border-border rounded-sm">No stories yet.</p>
                 )}
               </div>
             </TabsContent>
