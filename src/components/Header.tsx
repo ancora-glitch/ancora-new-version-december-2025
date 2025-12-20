@@ -12,6 +12,7 @@ const menuItems: MenuItem[] = [
   { label: "Home", href: "/home" },
   { label: "Edits", href: "/edits" },
   { label: "Stories", href: "/stories" },
+  { label: "Projects", href: "/projects" },
   { label: "About", href: "/about" }
 ];
 
