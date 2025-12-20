@@ -13,6 +13,7 @@ import NotFound from "./pages/NotFound";
 import ProductDetail from "./pages/ProductDetail";
 import Edits from "./pages/Edits";
 import Projects from "./pages/Projects";
+import AdminPortal from "./pages/AdminPortal";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/product/:slug" element={<ProductDetail />} />
           <Route path="/edits" element={<Edits />} />
           <Route path="/projects" element={<Projects />} />
+          <Route path="/admin-portal" element={<AdminPortal />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
