@@ -1,8 +1,13 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { X, Upload, Image as ImageIcon } from "lucide-react";
+import { X, Upload, Image as ImageIcon, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+interface StorageFile {
+  name: string;
+  url: string;
+}
 
 interface ImageUploaderProps {
   images: string[];
@@ -10,6 +15,7 @@ interface ImageUploaderProps {
   bucket?: string;
   folder?: string;
   maxImages?: number;
+  showStoragePicker?: boolean;
 }
 
 export const ImageUploader = ({
@@ -18,9 +24,60 @@ export const ImageUploader = ({
   bucket = "products",
   folder = "",
   maxImages = 10,
+  showStoragePicker = true,
 }: ImageUploaderProps) => {
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [storageFiles, setStorageFiles] = useState<StorageFile[]>([]);
+  const [loadingStorage, setLoadingStorage] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+
+  const fetchStorageFiles = async () => {
+    setLoadingStorage(true);
+    try {
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .list(folder || undefined, { limit: 100, sortBy: { column: 'created_at', order: 'desc' } });
+
+      if (error) {
+        console.error("Error fetching storage files:", error);
+        return;
+      }
+
+      const files: StorageFile[] = (data || [])
+        .filter(file => !file.id.endsWith('/') && file.name !== '.emptyFolderPlaceholder')
+        .map(file => {
+          const filePath = folder ? `${folder}/${file.name}` : file.name;
+          const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
+          return { name: file.name, url: urlData.publicUrl };
+        });
+
+      setStorageFiles(files);
+    } catch (err) {
+      console.error("Error:", err);
+    } finally {
+      setLoadingStorage(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showPicker) {
+      fetchStorageFiles();
+    }
+  }, [showPicker, bucket, folder]);
+
+  const addFromStorage = (url: string) => {
+    if (images.includes(url)) {
+      toast.error("Image already added");
+      return;
+    }
+    if (images.length >= maxImages) {
+      toast.error(`Maximum ${maxImages} images allowed`);
+      return;
+    }
+    onImagesChange([...images, url]);
+    toast.success("Image added");
+  };
 
   const uploadFile = async (file: File): Promise<string | null> => {
     const fileExt = file.name.split(".").pop();
@@ -144,6 +201,60 @@ export const ImageUploader = ({
           )}
         </div>
       </label>
+
+      {/* Storage picker toggle */}
+      {showStoragePicker && (
+        <button
+          type="button"
+          onClick={() => setShowPicker(!showPicker)}
+          className="text-sm text-primary hover:underline flex items-center gap-1"
+        >
+          <ImageIcon className="w-4 h-4" />
+          {showPicker ? "Hide storage images" : "Choose from existing images"}
+        </button>
+      )}
+
+      {/* Storage picker */}
+      {showPicker && (
+        <div className="border border-border rounded-sm p-3 bg-muted/30">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium">Storage Images</span>
+            <button
+              type="button"
+              onClick={fetchStorageFiles}
+              disabled={loadingStorage}
+              className="p-1 hover:bg-muted rounded transition-colors"
+            >
+              <RefreshCw className={cn("w-4 h-4", loadingStorage && "animate-spin")} />
+            </button>
+          </div>
+          
+          {loadingStorage ? (
+            <div className="flex justify-center py-4">
+              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : storageFiles.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">No images in storage</p>
+          ) : (
+            <div className="grid grid-cols-4 md:grid-cols-6 gap-2 max-h-48 overflow-y-auto">
+              {storageFiles.map((file) => (
+                <button
+                  key={file.url}
+                  type="button"
+                  onClick={() => addFromStorage(file.url)}
+                  disabled={images.includes(file.url)}
+                  className={cn(
+                    "aspect-square rounded-sm overflow-hidden border border-border hover:border-primary transition-colors",
+                    images.includes(file.url) && "opacity-50 ring-2 ring-primary"
+                  )}
+                >
+                  <img src={file.url} alt={file.name} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Preview grid */}
       {images.length > 0 && (
