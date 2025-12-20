@@ -15,6 +15,7 @@ import Edits from "./pages/Edits";
 import Projects from "./pages/Projects";
 import AdminPortal from "./pages/AdminPortal";
 import Auth from "./pages/Auth";
+import RequireAdmin from "./components/RequireAdmin";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -34,7 +35,14 @@ const App = () => (
           <Route path="/product/:slug" element={<ProductDetail />} />
           <Route path="/edits" element={<Edits />} />
           <Route path="/projects" element={<Projects />} />
-          <Route path="/admin-portal" element={<AdminPortal />} />
+          <Route
+            path="/admin-portal"
+            element={
+              <RequireAdmin>
+                <AdminPortal />
+              </RequireAdmin>
+            }
+          />
           <Route path="/auth" element={<Auth />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
