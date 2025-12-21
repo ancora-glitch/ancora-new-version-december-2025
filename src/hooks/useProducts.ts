@@ -20,6 +20,7 @@ export const useProducts = () => {
   });
 };
 
-export const formatPrice = (price: number): string => {
-  return `${price.toLocaleString()} SEK`;
+export const formatPrice = (price: string | number): string => {
+  // Price is now stored as text, return as-is
+  return String(price);
 };

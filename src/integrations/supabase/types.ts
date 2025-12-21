@@ -27,7 +27,7 @@ export type Database = {
           marketplace: string | null
           material: string | null
           name: string
-          price: number
+          price: string
           slug: string | null
           status: Database["public"]["Enums"]["product_status"]
           updated_at: string
@@ -44,7 +44,7 @@ export type Database = {
           marketplace?: string | null
           material?: string | null
           name: string
-          price: number
+          price: string
           slug?: string | null
           status?: Database["public"]["Enums"]["product_status"]
           updated_at?: string
@@ -61,7 +61,7 @@ export type Database = {
           marketplace?: string | null
           material?: string | null
           name?: string
-          price?: number
+          price?: string
           slug?: string | null
           status?: Database["public"]["Enums"]["product_status"]
           updated_at?: string

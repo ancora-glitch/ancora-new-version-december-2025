@@ -104,7 +104,7 @@ const AdminPortal = () => {
     const { error } = await supabase.from("products").insert([{
       brand: productBrand.trim(),
       name: productName.trim(),
-      price: parseFloat(productPrice),
+      price: productPrice.trim(),
       image: mainImage,
       additional_images: additionalImages,
       description: productDescription.trim() || null,
@@ -184,7 +184,7 @@ const AdminPortal = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="productPrice">Price *</Label>
-                    <Input id="productPrice" type="number" value={productPrice} onChange={(e) => setProductPrice(e.target.value)} placeholder="250" className="bg-background border-border" />
+                    <Input id="productPrice" type="text" value={productPrice} onChange={(e) => setProductPrice(e.target.value)} placeholder="250 SEK" className="bg-background border-border" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="productStatus">Status</Label>
