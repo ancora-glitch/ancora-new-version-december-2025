@@ -12,8 +12,25 @@ import { useProducts } from "@/hooks/useProducts";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Trash2 } from "lucide-react";
-import { ImageUploader } from "@/components/ImageUploader";
+import { Trash2, Pencil, X } from "lucide-react";
+import { StorageImagePicker } from "@/components/StorageImagePicker";
+
+interface Product {
+  id: string;
+  brand: string;
+  name: string;
+  price: string;
+  image: string;
+  additional_images?: string[];
+  description?: string | null;
+  affiliate_url?: string | null;
+  marketplace?: string | null;
+  condition?: string | null;
+  material?: string | null;
+  size?: string | null;
+  status: "active" | "sold";
+  slug?: string | null;
+}
 
 const AdminPortal = () => {
   const { data: stories, isLoading: storiesLoading } = useStyleGuides();
@@ -22,16 +39,18 @@ const AdminPortal = () => {
 
   // Story form state
   const [storyTitle, setStoryTitle] = useState("");
-  const [storyImage, setStoryImage] = useState("");
+  const [storyImage, setStoryImage] = useState<string[]>([]);
   const [storyIntroText, setStoryIntroText] = useState("");
   const [storyBody, setStoryBody] = useState("");
   const [storySlug, setStorySlug] = useState("");
   const [savingStory, setSavingStory] = useState(false);
 
   // Product form state
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [productBrand, setProductBrand] = useState("");
   const [productName, setProductName] = useState("");
   const [productPrice, setProductPrice] = useState("");
+  const [productSize, setProductSize] = useState("");
   const [productImages, setProductImages] = useState<string[]>([]);
   const [productDescription, setProductDescription] = useState("");
   const [productAffiliateUrl, setProductAffiliateUrl] = useState("");
@@ -48,9 +67,43 @@ const AdminPortal = () => {
     setStorySlug(slug);
   };
 
+  const resetProductForm = () => {
+    setEditingProductId(null);
+    setProductBrand("");
+    setProductName("");
+    setProductPrice("");
+    setProductSize("");
+    setProductImages([]);
+    setProductDescription("");
+    setProductAffiliateUrl("");
+    setProductMarketplace("");
+    setProductCondition("");
+    setProductMaterial("");
+    setProductStatus("active");
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setEditingProductId(product.id);
+    setProductBrand(product.brand);
+    setProductName(product.name);
+    setProductPrice(product.price);
+    setProductSize(product.size || "");
+    const allImages = [product.image, ...(product.additional_images || [])];
+    setProductImages(allImages);
+    setProductDescription(product.description || "");
+    setProductAffiliateUrl(product.affiliate_url || "");
+    setProductMarketplace(product.marketplace || "");
+    setProductCondition(product.condition || "");
+    setProductMaterial(product.material || "");
+    setProductStatus(product.status);
+    
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleSaveStory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!storyTitle.trim() || !storyImage.trim() || !storyIntroText.trim() || !storyBody.trim()) {
+    if (!storyTitle.trim() || storyImage.length === 0 || !storyIntroText.trim() || !storyBody.trim()) {
       toast.error("Title, image, intro text and body are required");
       return;
     }
@@ -58,7 +111,7 @@ const AdminPortal = () => {
     
     const { error } = await supabase.from("style_guides").insert([{
       title: storyTitle.trim(),
-      image: storyImage.trim(),
+      image: storyImage[0],
       intro_text: storyIntroText.trim(),
       body: storyBody.trim(),
       slug: storySlug.trim() || storyTitle.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
@@ -69,7 +122,7 @@ const AdminPortal = () => {
     } else {
       toast.success("Story saved");
       setStoryTitle("");
-      setStoryImage("");
+      setStoryImage([]);
       setStoryIntroText("");
       setStoryBody("");
       setStorySlug("");
@@ -101,10 +154,11 @@ const AdminPortal = () => {
     const mainImage = productImages[0];
     const additionalImages = productImages.slice(1);
     
-    const { error } = await supabase.from("products").insert([{
+    const productData = {
       brand: productBrand.trim(),
       name: productName.trim(),
       price: productPrice.trim(),
+      size: productSize.trim() || null,
       image: mainImage,
       additional_images: additionalImages,
       description: productDescription.trim() || null,
@@ -114,22 +168,28 @@ const AdminPortal = () => {
       material: productMaterial.trim() || null,
       status: productStatus,
       slug,
-    }]);
+    };
+
+    let error;
+    
+    if (editingProductId) {
+      // Update existing product
+      const result = await supabase
+        .from("products")
+        .update(productData)
+        .eq("id", editingProductId);
+      error = result.error;
+    } else {
+      // Insert new product
+      const result = await supabase.from("products").insert([productData]);
+      error = result.error;
+    }
     
     if (error) {
-      toast.error("Failed to save product: " + error.message);
+      toast.error(`Failed to ${editingProductId ? 'update' : 'save'} product: ` + error.message);
     } else {
-      toast.success("Product saved");
-      setProductBrand("");
-      setProductName("");
-      setProductPrice("");
-      setProductImages([]);
-      setProductDescription("");
-      setProductAffiliateUrl("");
-      setProductMarketplace("");
-      setProductCondition("");
-      setProductMaterial("");
-      setProductStatus("active");
+      toast.success(editingProductId ? "Product updated" : "Product saved");
+      resetProductForm();
       queryClient.invalidateQueries({ queryKey: ["products"] });
     }
     setSavingProduct(false);
@@ -142,6 +202,9 @@ const AdminPortal = () => {
       toast.error("Failed to delete: " + error.message);
     } else {
       toast.success("Product deleted");
+      if (editingProductId === id) {
+        resetProductForm();
+      }
       queryClient.invalidateQueries({ queryKey: ["products"] });
     }
   };
@@ -168,7 +231,23 @@ const AdminPortal = () => {
             {/* PRODUCTS TAB */}
             <TabsContent value="products" className="space-y-10">
               <form onSubmit={handleSaveProduct} className="space-y-5 p-6 border border-border rounded-sm bg-card">
-                <h2 className="font-display text-lg text-primary mb-4">Add New Product</h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="font-display text-lg text-primary">
+                    {editingProductId ? "Edit Product" : "Add New Product"}
+                  </h2>
+                  {editingProductId && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={resetProductForm}
+                      className="text-muted-foreground"
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Cancel Edit
+                    </Button>
+                  )}
+                </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -181,10 +260,14 @@ const AdminPortal = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="productPrice">Price *</Label>
                     <Input id="productPrice" type="text" value={productPrice} onChange={(e) => setProductPrice(e.target.value)} placeholder="250 SEK" className="bg-background border-border" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="productSize">Size</Label>
+                    <Input id="productSize" type="text" value={productSize} onChange={(e) => setProductSize(e.target.value)} placeholder="e.g. M, 38, One size" className="bg-background border-border" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="productStatus">Status</Label>
@@ -202,7 +285,7 @@ const AdminPortal = () => {
 
                 <div className="space-y-2">
                   <Label>Images *</Label>
-                  <ImageUploader images={productImages} onImagesChange={setProductImages} bucket="products" />
+                  <StorageImagePicker images={productImages} onImagesChange={setProductImages} bucket="products" />
                 </div>
 
                 <div className="space-y-2">
@@ -233,7 +316,7 @@ const AdminPortal = () => {
                 </div>
 
                 <Button type="submit" disabled={savingProduct} className="w-full">
-                  {savingProduct ? "Saving..." : "Save Product"}
+                  {savingProduct ? "Saving..." : editingProductId ? "Update Product" : "Save Product"}
                 </Button>
               </form>
 
@@ -245,19 +328,51 @@ const AdminPortal = () => {
                 ) : products && products.length > 0 ? (
                   <div className="space-y-3">
                     {products.map((product) => (
-                      <div key={product.id} className="flex items-center justify-between p-4 border border-border rounded-sm bg-card">
+                      <div 
+                        key={product.id} 
+                        className={`flex items-center justify-between p-4 border rounded-sm bg-card cursor-pointer transition-colors ${
+                          editingProductId === product.id 
+                            ? 'border-primary bg-primary/5' 
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                        onClick={() => handleEditProduct(product as Product)}
+                      >
                         <div className="flex items-center gap-4 min-w-0">
                           {product.image && (
                             <img src={product.image} alt={product.name} className="w-12 h-12 object-cover rounded-sm flex-shrink-0" />
                           )}
                           <div className="min-w-0">
                             <h3 className="font-medium text-primary truncate">{product.brand} - {product.name}</h3>
-                            <p className="text-muted-foreground text-sm">{product.price} SEK · {product.status}</p>
+                            <p className="text-muted-foreground text-sm">
+                              {product.price} · {product.status}
+                              {(product as Product).size && ` · Size: ${(product as Product).size}`}
+                            </p>
                           </div>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteProduct(product.id, product.name)} className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditProduct(product as Product);
+                            }} 
+                            className="text-primary hover:bg-primary/10"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteProduct(product.id, product.name);
+                            }} 
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -283,8 +398,13 @@ const AdminPortal = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="storyImage">Image URL *</Label>
-                  <Input id="storyImage" value={storyImage} onChange={(e) => setStoryImage(e.target.value)} placeholder="https://..." className="bg-background border-border" />
+                  <Label>Image *</Label>
+                  <StorageImagePicker 
+                    images={storyImage} 
+                    onImagesChange={setStoryImage} 
+                    bucket="guide-images" 
+                    singleImage={true}
+                  />
                 </div>
 
                 <div className="space-y-2">
