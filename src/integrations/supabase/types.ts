@@ -28,6 +28,7 @@ export type Database = {
           material: string | null
           name: string
           price: string
+          size: string | null
           slug: string | null
           status: Database["public"]["Enums"]["product_status"]
           updated_at: string
@@ -45,6 +46,7 @@ export type Database = {
           material?: string | null
           name: string
           price: string
+          size?: string | null
           slug?: string | null
           status?: Database["public"]["Enums"]["product_status"]
           updated_at?: string
@@ -62,6 +64,7 @@ export type Database = {
           material?: string | null
           name?: string
           price?: string
+          size?: string | null
           slug?: string | null
           status?: Database["public"]["Enums"]["product_status"]
           updated_at?: string
