@@ -8,12 +8,29 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStyleGuides } from "@/hooks/useStyleGuides";
-import { useProducts } from "@/hooks/useProducts";
+import { useAllProducts } from "@/hooks/useProducts";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Trash2, Pencil, X } from "lucide-react";
+import { Trash2, Pencil, X, GripVertical } from "lucide-react";
 import { StorageImagePicker } from "@/components/StorageImagePicker";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface Product {
   id: string;
@@ -30,11 +47,95 @@ interface Product {
   size?: string | null;
   status: "active" | "sold";
   slug?: string | null;
+  sort_order?: number | null;
 }
+
+// Sortable Product Item Component
+interface SortableProductItemProps {
+  product: Product;
+  editingProductId: string | null;
+  onEdit: (product: Product) => void;
+  onDelete: (id: string, name: string) => void;
+}
+
+const SortableProductItem = ({ product, editingProductId, onEdit, onDelete }: SortableProductItemProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: product.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center justify-between p-4 border rounded-sm bg-card cursor-pointer transition-colors ${
+        editingProductId === product.id
+          ? 'border-primary bg-primary/5'
+          : 'border-border hover:border-primary/50'
+      }`}
+      onClick={() => onEdit(product)}
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-1 text-muted-foreground hover:text-primary touch-none"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical className="w-5 h-5" />
+        </div>
+        {product.image && (
+          <img src={product.image} alt={product.name} className="w-12 h-12 object-cover rounded-sm flex-shrink-0" />
+        )}
+        <div className="min-w-0">
+          <h3 className="font-medium text-primary truncate">{product.brand} - {product.name}</h3>
+          <p className="text-muted-foreground text-sm">
+            {product.price} · {product.status}
+            {product.size && ` · Size: ${product.size}`}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit(product);
+          }}
+          className="text-primary hover:bg-primary/10"
+        >
+          <Pencil className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(product.id, product.name);
+          }}
+          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+};
 
 const AdminPortal = () => {
   const { data: stories, isLoading: storiesLoading } = useStyleGuides();
-  const { data: products, isLoading: productsLoading } = useProducts();
+  const { data: products, isLoading: productsLoading } = useAllProducts();
   const queryClient = useQueryClient();
 
   // Story form state
@@ -191,6 +292,7 @@ const AdminPortal = () => {
       toast.success(editingProductId ? "Product updated" : "Product saved");
       resetProductForm();
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["products-all"] });
     }
     setSavingProduct(false);
   };
@@ -206,7 +308,59 @@ const AdminPortal = () => {
         resetProductForm();
       }
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["products-all"] });
     }
+  };
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id || !products) return;
+
+    const oldIndex = products.findIndex((p) => p.id === active.id);
+    const newIndex = products.findIndex((p) => p.id === over.id);
+
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    // Optimistically update the UI
+    const reorderedProducts = arrayMove(products, oldIndex, newIndex);
+    queryClient.setQueryData(["products-all"], reorderedProducts);
+
+    // Update sort_order for all affected products
+    const updates = reorderedProducts.map((product, index) => ({
+      id: product.id,
+      sort_order: index,
+    }));
+
+    // Batch update in database
+    for (const update of updates) {
+      const { error } = await supabase
+        .from("products")
+        .update({ sort_order: update.sort_order })
+        .eq("id", update.id);
+
+      if (error) {
+        toast.error("Failed to save order: " + error.message);
+        queryClient.invalidateQueries({ queryKey: ["products-all"] });
+        return;
+      }
+    }
+
+    // Also invalidate the active products query
+    queryClient.invalidateQueries({ queryKey: ["products"] });
+    toast.success("Order saved");
   };
 
   return (
@@ -322,60 +476,33 @@ const AdminPortal = () => {
 
               {/* Products List */}
               <div>
-                <h2 className="font-display text-lg text-primary mb-6">Existing Products ({products?.length || 0})</h2>
+                <h2 className="font-display text-lg text-primary mb-2">Existing Products ({products?.length || 0})</h2>
+                <p className="text-muted-foreground text-sm mb-6">Drag products to reorder. Order is saved automatically.</p>
                 {productsLoading ? (
                   <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-16 bg-muted rounded-sm animate-pulse" />)}</div>
                 ) : products && products.length > 0 ? (
-                  <div className="space-y-3">
-                    {products.map((product) => (
-                      <div 
-                        key={product.id} 
-                        className={`flex items-center justify-between p-4 border rounded-sm bg-card cursor-pointer transition-colors ${
-                          editingProductId === product.id 
-                            ? 'border-primary bg-primary/5' 
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                        onClick={() => handleEditProduct(product as Product)}
-                      >
-                        <div className="flex items-center gap-4 min-w-0">
-                          {product.image && (
-                            <img src={product.image} alt={product.name} className="w-12 h-12 object-cover rounded-sm flex-shrink-0" />
-                          )}
-                          <div className="min-w-0">
-                            <h3 className="font-medium text-primary truncate">{product.brand} - {product.name}</h3>
-                            <p className="text-muted-foreground text-sm">
-                              {product.price} · {product.status}
-                              {(product as Product).size && ` · Size: ${(product as Product).size}`}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditProduct(product as Product);
-                            }} 
-                            className="text-primary hover:bg-primary/10"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteProduct(product.id, product.name);
-                            }} 
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={products.map((p) => p.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-3">
+                        {products.map((product) => (
+                          <SortableProductItem
+                            key={product.id}
+                            product={product as Product}
+                            editingProductId={editingProductId}
+                            onEdit={handleEditProduct}
+                            onDelete={handleDeleteProduct}
+                          />
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </SortableContext>
+                  </DndContext>
                 ) : (
                   <p className="text-muted-foreground text-center py-8 border border-border rounded-sm">No products yet.</p>
                 )}

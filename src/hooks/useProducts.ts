@@ -12,7 +12,23 @@ export const useProducts = () => {
         .from("products")
         .select("*")
         .eq("status", "active")
-        .order("created_at", { ascending: false });
+        .order("sort_order", { ascending: true });
+
+      if (error) throw error;
+      return data as Product[];
+    },
+  });
+};
+
+// Hook for admin - fetches all products regardless of status
+export const useAllProducts = () => {
+  return useQuery({
+    queryKey: ["products-all"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .order("sort_order", { ascending: true });
 
       if (error) throw error;
       return data as Product[];

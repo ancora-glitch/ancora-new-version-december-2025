@@ -30,6 +30,7 @@ export type Database = {
           price: string
           size: string | null
           slug: string | null
+          sort_order: number | null
           status: Database["public"]["Enums"]["product_status"]
           updated_at: string
         }
@@ -48,6 +49,7 @@ export type Database = {
           price: string
           size?: string | null
           slug?: string | null
+          sort_order?: number | null
           status?: Database["public"]["Enums"]["product_status"]
           updated_at?: string
         }
@@ -66,6 +68,7 @@ export type Database = {
           price?: string
           size?: string | null
           slug?: string | null
+          sort_order?: number | null
           status?: Database["public"]["Enums"]["product_status"]
           updated_at?: string
         }
