@@ -1,8 +1,25 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { X, Image as ImageIcon, RefreshCw, ChevronDown, Folder } from "lucide-react";
+import { X, Image as ImageIcon, RefreshCw, ChevronDown, Folder, GripVertical, Star } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface StorageFile {
   name: string;
@@ -18,6 +35,91 @@ interface StorageImagePickerProps {
   singleImage?: boolean;
 }
 
+interface SortableImageProps {
+  url: string;
+  index: number;
+  isMain: boolean;
+  onRemove: () => void;
+  onSetMain: () => void;
+  singleImage: boolean;
+}
+
+const SortableImage = ({ url, index, isMain, onRemove, onSetMain, singleImage }: SortableImageProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: url });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "relative aspect-square group rounded-sm overflow-hidden border bg-muted",
+        isDragging ? "z-50 opacity-80 border-primary shadow-lg" : "border-border",
+        isMain && "ring-2 ring-primary"
+      )}
+    >
+      {/* Drag handle */}
+      {!singleImage && (
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="absolute top-1 right-1 z-10 p-1 bg-background/90 rounded cursor-grab active:cursor-grabbing hover:bg-background transition-colors"
+        >
+          <GripVertical className="w-3 h-3 text-muted-foreground" />
+        </button>
+      )}
+
+      <img
+        src={url}
+        alt={`Image ${index + 1}`}
+        className="w-full h-full object-cover"
+      />
+      
+      {/* Main badge */}
+      {!singleImage && isMain && (
+        <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
+          <Star className="w-2.5 h-2.5 fill-current" />
+          Main
+        </div>
+      )}
+
+      {/* Hover actions */}
+      <div className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+        {!singleImage && !isMain && (
+          <button
+            type="button"
+            onClick={onSetMain}
+            className="p-1.5 bg-primary text-primary-foreground rounded hover:bg-primary/80 transition-colors"
+            title="Set as main image"
+          >
+            <Star className="w-3 h-3" />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onRemove}
+          className="p-1.5 bg-destructive text-destructive-foreground rounded hover:bg-destructive/80 transition-colors"
+          title="Remove"
+        >
+          <X className="w-3 h-3" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 export const StorageImagePicker = ({
   images,
   onImagesChange,
@@ -32,6 +134,17 @@ export const StorageImagePicker = ({
   const [loadingStorage, setLoadingStorage] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [showFolderDropdown, setShowFolderDropdown] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const fetchFolders = async () => {
     try {
@@ -144,6 +257,17 @@ export const StorageImagePicker = ({
     toast.success("Set as main image");
   };
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = images.indexOf(active.id as string);
+      const newIndex = images.indexOf(over.id as string);
+      const newImages = arrayMove(images, oldIndex, newIndex);
+      onImagesChange(newImages);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Storage picker toggle */}
@@ -249,51 +373,39 @@ export const StorageImagePicker = ({
         </div>
       )}
 
-      {/* Preview grid */}
+      {/* Preview grid with drag-and-drop */}
       {images.length > 0 && (
-        <div className={cn(
-          "grid gap-3",
-          singleImage ? "grid-cols-1 max-w-[120px]" : "grid-cols-3 md:grid-cols-5"
-        )}>
-          {images.map((url, index) => (
-            <div
-              key={url}
-              className="relative aspect-square group rounded-sm overflow-hidden border border-border bg-muted"
-            >
-              <img
-                src={url}
-                alt={`Image ${index + 1}`}
-                className="w-full h-full object-cover"
-              />
-              
-              {!singleImage && index === 0 && (
-                <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded">
-                  Main
-                </div>
-              )}
-
-              <div className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                {!singleImage && index !== 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setAsMain(index)}
-                    className="p-1.5 bg-primary text-primary-foreground rounded hover:bg-primary/80 transition-colors"
-                    title="Set as main"
-                  >
-                    <ImageIcon className="w-3 h-3" />
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => removeImage(index)}
-                  className="p-1.5 bg-destructive text-destructive-foreground rounded hover:bg-destructive/80 transition-colors"
-                  title="Remove"
-                >
-                  <X className="w-3 h-3" />
-                </button>
+        <div className="space-y-2">
+          {!singleImage && images.length > 1 && (
+            <p className="text-xs text-muted-foreground">
+              Drag images to reorder. First image is the main product image.
+            </p>
+          )}
+          
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={images} strategy={rectSortingStrategy}>
+              <div className={cn(
+                "grid gap-3",
+                singleImage ? "grid-cols-1 max-w-[120px]" : "grid-cols-3 md:grid-cols-5"
+              )}>
+                {images.map((url, index) => (
+                  <SortableImage
+                    key={url}
+                    url={url}
+                    index={index}
+                    isMain={index === 0}
+                    onRemove={() => removeImage(index)}
+                    onSetMain={() => setAsMain(index)}
+                    singleImage={singleImage}
+                  />
+                ))}
               </div>
-            </div>
-          ))}
+            </SortableContext>
+          </DndContext>
         </div>
       )}
     </div>
