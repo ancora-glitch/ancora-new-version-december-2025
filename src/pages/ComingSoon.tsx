@@ -39,7 +39,7 @@ const ComingSoon = () => {
         {/* Logo */}
         <Link to="/home" className="mb-16 md:mb-24">
           <h1 
-            className="font-logo text-5xl md:text-6xl lg:text-7xl tracking-[0.14em] uppercase font-black text-center text-primary"
+            className="font-logo text-5xl md:text-6xl lg:text-7xl tracking-[0.16em] uppercase font-bold text-center text-primary/95"
           >
             ANCORA
           </h1>
