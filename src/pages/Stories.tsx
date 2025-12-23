@@ -28,7 +28,11 @@ const Stories = () => {
             ) : styleGuides && styleGuides.length > 0 ? (
               styleGuides.map((guide) => (
                 <article key={guide.id} className="group">
-                  <Link to={`/style-guides/${guide.slug}`} className="block">
+                  <Link 
+                    to={`/style-guides/${guide.slug}`} 
+                    className="block"
+                    aria-label={`Read: ${guide.title}`}
+                  >
                     <div className="relative aspect-[4/3] overflow-hidden mb-5">
                       <img 
                         src={guide.image} 
@@ -37,20 +41,17 @@ const Stories = () => {
                       />
                       <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/15 transition-colors duration-300" />
                     </div>
-                  </Link>
-                  <h2 className="font-serif text-xl md:text-2xl text-foreground mb-3 leading-snug">
-                    <Link to={`/style-guides/${guide.slug}`} className="hover:text-primary transition-colors">
+                    <h2 className="font-serif text-xl md:text-2xl text-foreground mb-3 leading-snug group-hover:text-primary transition-colors">
                       {guide.title}
-                    </Link>
-                  </h2>
-                  <p className="text-muted-foreground text-sm md:text-base mb-5 line-clamp-2">
-                    {guide.intro_text}
-                  </p>
-                  <Link 
-                    to={`/style-guides/${guide.slug}`}
-                    className="inline-block py-3 px-6 bg-primary text-primary-foreground text-xs tracking-widest uppercase hover:bg-primary/90 transition-colors duration-200"
-                  >
-                    Read story
+                    </h2>
+                    <p className="text-muted-foreground text-sm md:text-base mb-5 line-clamp-2">
+                      {guide.intro_text}
+                    </p>
+                    <span 
+                      className="inline-block py-3 px-6 bg-primary text-primary-foreground text-xs tracking-widest uppercase group-hover:bg-primary/90 transition-colors duration-200"
+                    >
+                      Read story
+                    </span>
                   </Link>
                 </article>
               ))
