@@ -29,17 +29,17 @@ const Index = () => {
           <div className="absolute inset-0 flex items-end md:items-center justify-center px-4 md:px-8 pb-12 md:pb-0">
             <div className="bg-black/15 md:bg-black/25 backdrop-blur-sm rounded-lg p-6 md:p-10 lg:p-12 max-w-2xl text-center">
               <h1 className="text-3xl md:text-4xl lg:text-5xl mb-4 md:mb-6 leading-tight text-white font-serif">
-                Curated second hand. Carefully edited.
+                Curated secondhand. Carefully edited.
               </h1>
               <p className="text-base md:text-lg lg:text-xl mb-8 md:mb-10 leading-relaxed text-white/90">
-                Weekly drops, thoughtful stories, and a new way to shop pre-loved.
+                Weekly edits and considered stories — a new way to shop pre-loved.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button className="font-medium text-sm tracking-wide px-8 py-4 h-auto" onClick={() => navigate('/edits')}>
-                  Shop the edit
+                  Explore the edit
                 </Button>
                 <Button className="font-medium text-sm tracking-wide px-8 py-4 h-auto" onClick={() => navigate('/stories')}>
-                  Read stories
+                  Read the stories
                 </Button>
               </div>
             </div>
