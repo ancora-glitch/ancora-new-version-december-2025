@@ -34,7 +34,7 @@ export const Footer = () => {
           {/* Right Column */}
           <nav className="flex flex-col gap-4">
             <Link to="/about" className="text-sm tracking-wide hover:opacity-70 transition-opacity duration-200">
-              About ANCORA
+              About Ancora
             </Link>
             <Link to="/contact" className="text-sm tracking-wide hover:opacity-70 transition-opacity duration-200">
               Contact

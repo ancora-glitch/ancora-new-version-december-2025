@@ -38,17 +38,17 @@ const StyleGuide = () => {
         <main className="pt-24 pb-16">
           <div className="max-w-[700px] mx-auto px-6 text-center">
             <h1 className="font-serif text-3xl md:text-4xl text-primary mb-4">
-              Style Guide Not Found
+              Story not found
             </h1>
             <p className="text-muted-foreground mb-8">
-              The style guide you're looking for doesn't exist or has been removed.
+              The story you're looking for doesn't exist or has been removed.
             </p>
             <Link 
-              to="/" 
+              to="/home" 
               className="inline-flex items-center gap-2 text-primary hover:underline"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to Home
+              Back to home
             </Link>
           </div>
         </main>
@@ -76,11 +76,11 @@ const StyleGuide = () => {
         <article className="max-w-[700px] mx-auto px-6 py-12 md:py-16">
           {/* Back Link */}
           <Link 
-            to="/" 
+            to="/home" 
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-8 text-sm tracking-wider uppercase font-sans"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Home
+            Back to home
           </Link>
 
           {/* Title */}

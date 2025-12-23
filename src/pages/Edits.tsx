@@ -14,7 +14,7 @@ const Edits = () => {
         {/* Page Header */}
         <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto mb-12 md:mb-16">
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-serif text-primary text-center mb-4">
-            The Edit
+            The edit
           </h1>
           <p className="text-center text-muted-foreground max-w-2xl mx-auto">
             A carefully curated selection of pre-loved pieces, chosen for their quality, timelessness, and story.
