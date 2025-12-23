@@ -38,7 +38,7 @@ export function Header() {
 
         {/* Logo */}
         <Link to="/home" className="absolute left-1/2 -translate-x-1/2">
-          <h1 className="tracking-[0.12em] text-primary font-black font-logo text-2xl md:text-3xl uppercase">
+          <h1 className="tracking-[0.16em] text-primary/95 font-bold font-logo text-2xl md:text-3xl uppercase">
             ANCORA
           </h1>
         </Link>
