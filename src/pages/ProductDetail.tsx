@@ -47,14 +47,14 @@ const ProductDetail = () => {
         <Header />
         <main className="pt-24 pb-16 px-4 md:px-8 lg:px-12">
           <div className="max-w-7xl mx-auto text-center py-20">
-            <h1 className="text-2xl md:text-3xl mb-4 font-serif text-primary">Product Not Found</h1>
+            <h1 className="text-2xl md:text-3xl mb-4 font-serif text-primary">Product not found</h1>
             <p className="text-muted-foreground mb-8">This item may no longer be available.</p>
             <Link 
               to="/home" 
               className="inline-flex items-center gap-2 text-primary hover:underline underline-offset-4"
             >
               <ArrowLeft size={18} />
-              Back to Home
+              Back to home
             </Link>
           </div>
         </main>
@@ -89,7 +89,7 @@ const ProductDetail = () => {
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm"
           >
             <ArrowLeft size={16} />
-            Back to Edits
+            Back to edit
           </Link>
         </div>
 
@@ -225,7 +225,7 @@ const ProductDetail = () => {
                     rel="noopener noreferrer"
                     className="group flex items-center justify-center gap-3 w-full py-4 px-6 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors rounded-sm"
                   >
-                    <span className="font-medium tracking-wide">Buy Now</span>
+                    <span className="font-medium tracking-wide">Buy now</span>
                   </a>
                 ) : (
                   <>

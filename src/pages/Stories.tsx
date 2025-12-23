@@ -50,7 +50,7 @@ const Stories = () => {
                     to={`/style-guides/${guide.slug}`}
                     className="inline-block py-3 px-6 bg-primary text-primary-foreground text-xs tracking-widest uppercase hover:bg-primary/90 transition-colors duration-200"
                   >
-                    Read more
+                    Read story
                   </Link>
                 </article>
               ))

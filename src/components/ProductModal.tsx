@@ -128,12 +128,12 @@ export const ProductModal = ({
           {/* Price */}
           <p className="font-sans text-2xl font-bold text-foreground">{price}</p>
 
-          {/* Buy Now Button */}
+          {/* Buy now Button */}
           <Button
             onClick={onBuyNow}
             className="w-full h-14 text-base font-semibold uppercase tracking-wide"
           >
-            Buy Now
+            Buy now
           </Button>
         </div>
       </div>
