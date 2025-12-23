@@ -39,8 +39,7 @@ const ComingSoon = () => {
         {/* Logo */}
         <Link to="/home" className="mb-16 md:mb-24">
           <h1 
-            className="font-logo text-5xl md:text-6xl lg:text-7xl tracking-[0.14em] uppercase font-black text-center"
-            style={{ color: '#661B1C' }}
+            className="font-logo text-5xl md:text-6xl lg:text-7xl tracking-[0.14em] uppercase font-black text-center text-primary"
           >
             ANCORA
           </h1>
@@ -58,14 +57,12 @@ const ComingSoon = () => {
         {/* Content */}
         <div className="w-full max-w-[600px] text-center mb-14 md:mb-20">
           <h2 
-            className="font-serif text-3xl md:text-4xl lg:text-[2.75rem] leading-tight tracking-[0.02em] mb-8 md:mb-10"
-            style={{ color: '#661B1C' }}
+            className="font-serif text-3xl md:text-4xl lg:text-[2.75rem] leading-tight tracking-[0.02em] mb-8 md:mb-10 text-primary"
           >
             Ancora is coming soon
           </h2>
           <p 
-            className="text-base md:text-lg leading-[1.8] max-w-[500px] mx-auto"
-            style={{ color: '#661B1C' }}
+            className="text-base md:text-lg leading-[1.8] max-w-[500px] mx-auto text-primary"
           >
             We're building a new way to shop pre-loved – curated, inspiring, smooth and stylish.
             <br />
@@ -77,7 +74,7 @@ const ComingSoon = () => {
         {/* Form */}
         <div className="w-full max-w-[480px]">
           {isSubmitted ? (
-            <p className="font-medium text-lg text-center" style={{ color: '#661B1C' }}>
+            <p className="font-medium text-lg text-center text-primary">
               Thank you! You're on the list.
             </p>
           ) : (
