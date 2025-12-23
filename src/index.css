@@ -19,35 +19,35 @@
     --popover: 35 30% 97%;
     --popover-foreground: 0 0% 8%;
 
-    --primary: 350 55% 27%; /* #6B1F2B deep burgundy */
+    --primary: 0 49% 32%; /* #7A2A2A warm burgundy */
     --primary-foreground: 35 33% 95%;
 
     --secondary: 35 25% 92%;
-    --secondary-foreground: 350 55% 27%;
+    --secondary-foreground: 0 49% 32%;
 
     --muted: 35 18% 88%;
     --muted-foreground: 0 0% 35%;
 
     --accent: 35 25% 90%;
-    --accent-foreground: 350 55% 27%;
+    --accent-foreground: 0 49% 32%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 35 18% 82%;
     --input: 35 18% 85%;
-    --ring: 350 55% 27%;
+    --ring: 0 49% 32%;
 
     --radius: 0.25rem;
 
     --sidebar-background: 35 30% 97%;
     --sidebar-foreground: 0 0% 20%;
-    --sidebar-primary: 350 55% 27%;
+    --sidebar-primary: 0 49% 32%;
     --sidebar-primary-foreground: 35 33% 95%;
     --sidebar-accent: 35 25% 92%;
-    --sidebar-accent-foreground: 350 55% 27%;
+    --sidebar-accent-foreground: 0 49% 32%;
     --sidebar-border: 35 18% 82%;
-    --sidebar-ring: 350 55% 27%;
+    --sidebar-ring: 0 49% 32%;
   }
 
   .dark {
@@ -184,7 +184,7 @@
   line-height: 0.8;
   padding-right: 0.75rem;
   padding-top: 0.25rem;
-  color: hsl(350 55% 27%); /* Primary burgundy */
+  color: hsl(0 49% 32%); /* Primary burgundy */
   font-weight: 400;
 }
 
@@ -195,7 +195,7 @@
   line-height: 1.4;
   font-style: italic;
   text-align: center;
-  color: hsl(350 55% 27%); /* Primary burgundy */
+  color: hsl(0 49% 32%); /* Primary burgundy */
   padding: 2.5rem 1.5rem;
   margin: 3rem auto;
   max-width: 650px;
@@ -210,7 +210,7 @@
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  color: hsl(350 55% 27% / 0.3);
+  color: hsl(0 49% 32% / 0.3);
   font-family: 'Playfair Display', serif;
 }
 
@@ -274,8 +274,8 @@
   font-family: 'Playfair Display', serif;
   font-style: italic;
   font-size: 1.25rem;
-  color: hsl(350 55% 27%) !important;
-  border-left: 3px solid hsl(350 55% 27%);
+  color: hsl(0 49% 32%) !important;
+  border-left: 3px solid hsl(0 49% 32%);
   padding-left: 1.5rem;
   margin: 2rem 0;
 }
