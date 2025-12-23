@@ -31,7 +31,8 @@ const Edits = () => {
                 <Link
                   key={product.id}
                   to={`/product/${product.slug || product.id}`}
-                  className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 transition-colors"
+                  className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 transition-colors min-h-[44px]"
+                  aria-label={`View ${product.brand} ${product.name}`}
                 >
                   {/* Image Container */}
                   <div className="relative aspect-[4/5] overflow-hidden bg-secondary/30">
