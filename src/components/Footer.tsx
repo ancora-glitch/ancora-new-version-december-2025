@@ -7,11 +7,11 @@ export const Footer = () => {
       <div className="max-w-7xl mx-auto px-6 md:px-8 lg:px-12 py-16 md:py-24">
         <div className="flex flex-col md:flex-row justify-between gap-14 md:gap-8">
           {/* Left Column - Editorial Copy */}
-          <div className="space-y-6 max-w-xs">
-            <p className="text-base md:text-lg font-serif leading-relaxed">
+          <div className="space-y-6">
+            <p className="text-base md:text-lg font-serif leading-relaxed md:whitespace-nowrap">
               Curated secondhand. Considered stories.
             </p>
-            <p className="text-sm md:text-base text-primary-foreground/80 leading-relaxed">
+            <p className="text-sm md:text-base text-primary-foreground/80 leading-relaxed md:whitespace-nowrap">
               Ancora edits what's worth keeping.
             </p>
             <div className="flex gap-4 pt-2">
