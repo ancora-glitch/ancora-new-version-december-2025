@@ -106,8 +106,9 @@ const StyleGuide = () => {
               prose-strong:text-foreground prose-strong:font-semibold
               prose-a:text-primary prose-a:no-underline hover:prose-a:underline
               prose-blockquote:border-l-primary prose-blockquote:border-l-2 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-primary
-              prose-ul:text-foreground prose-ol:text-foreground
-              prose-li:mb-2
+              prose-ul:text-foreground prose-ul:list-none prose-ul:pl-0 prose-ul:space-y-4
+              prose-ol:text-foreground prose-ol:list-none prose-ol:pl-0 prose-ol:space-y-4
+              prose-li:mb-4 prose-li:pl-0 prose-li:leading-relaxed
               prose-img:rounded-lg prose-img:shadow-md"
             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(guide.body) }}
           />
