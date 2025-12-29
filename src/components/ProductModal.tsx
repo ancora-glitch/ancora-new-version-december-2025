@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { X, Heart, ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { X, Heart, ChevronLeft, ChevronRight, Instagram } from "lucide-react";
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -11,7 +10,6 @@ interface ProductModalProps {
   price: string;
   isWishlisted?: boolean;
   onWishlistToggle?: () => void;
-  onBuyNow?: () => void;
 }
 
 export const ProductModal = ({
@@ -23,7 +21,6 @@ export const ProductModal = ({
   price,
   isWishlisted = false,
   onWishlistToggle,
-  onBuyNow,
 }: ProductModalProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -128,13 +125,16 @@ export const ProductModal = ({
           {/* Price */}
           <p className="font-sans text-2xl font-bold text-foreground">{price}</p>
 
-          {/* Buy now Button */}
-          <Button
-            onClick={onBuyNow}
-            className="w-full h-14 text-base font-semibold uppercase tracking-wide"
+          {/* Purchase CTA */}
+          <a
+            href="https://www.instagram.com/ancora_edit/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 text-foreground hover:text-primary transition-colors pt-2"
           >
-            Buy now
-          </Button>
+            <Instagram size={18} />
+            <span className="underline underline-offset-4">To purchase, DM us on Instagram.</span>
+          </a>
         </div>
       </div>
     </div>
