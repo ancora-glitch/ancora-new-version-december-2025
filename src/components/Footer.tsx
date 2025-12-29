@@ -44,9 +44,6 @@ export const Footer = () => {
             <Link to="/contact" className="text-sm tracking-wide hover:opacity-70 transition-opacity duration-200">
               Contact
             </Link>
-            <Link to="/admin-portal" className="text-xs tracking-wide text-primary-foreground/40 hover:text-primary-foreground/60 transition-opacity duration-200">
-              Admin
-            </Link>
           </nav>
         </div>
       </div>
