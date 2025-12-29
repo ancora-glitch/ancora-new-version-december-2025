@@ -48,9 +48,11 @@ const Index = () => {
 
         {/* This Week's Edit Section */}
         <section className="px-4 md:px-8 lg:px-12 py-20 md:py-28 lg:py-32 bg-secondary/40">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl mb-4 text-center font-normal">
-            Latest edit
-          </h2>
+          <Link to="/edits" className="block text-center mb-4 hover:opacity-80 transition-opacity">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-normal">
+              Latest edit
+            </h2>
+          </Link>
           <p className="text-center text-muted-foreground mb-14 md:mb-16 text-base md:text-lg">Curated secondhand pieces, selected exclusively.</p>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-6 lg:gap-8 max-w-7xl mx-auto">
             {isLoading ? (
