@@ -102,7 +102,7 @@ const StyleGuide = () => {
               prose-headings:font-heading prose-headings:text-primary prose-headings:font-semibold
               prose-h2:text-xl prose-h2:md:text-2xl prose-h2:mt-12 prose-h2:mb-6
               prose-h3:text-lg prose-h3:md:text-xl prose-h3:mt-8 prose-h3:mb-4
-              prose-p:text-foreground prose-p:leading-relaxed prose-p:mb-6
+              prose-p:text-foreground prose-p:leading-relaxed prose-p:mb-8
               prose-strong:text-foreground prose-strong:font-semibold
               prose-a:text-primary prose-a:no-underline hover:prose-a:underline
               prose-blockquote:border-l-primary prose-blockquote:border-l-2 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-primary
