@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Search } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MenuItem {
@@ -43,13 +43,8 @@ export function Header() {
           </h1>
         </Link>
 
-        {/* Search Icon */}
-        <button 
-          className="p-2 -mr-2 text-foreground hover:text-primary transition-colors duration-200" 
-          aria-label="Search"
-        >
-          <Search size={20} strokeWidth={1.5} />
-        </button>
+        {/* Spacer for balance */}
+        <div className="w-[38px]" />
       </div>
 
       {/* Dropdown Menu */}
