@@ -10,18 +10,19 @@ const Stories = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="pt-16">
-        {/* Hero Section */}
-        <section className="bg-primary py-20 md:py-28">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif text-primary-foreground">
-              Stories
-            </h1>
-          </div>
-        </section>
+      <main className="pt-24 md:pt-28 pb-16 md:pb-24">
+        {/* Page Header */}
+        <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto mb-12 md:mb-16">
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-serif text-primary text-center mb-4">
+            Stories
+          </h1>
+          <p className="text-center text-muted-foreground max-w-2xl mx-auto">
+            Considered stories on style, sustainability, and the art of dressing well.
+          </p>
+        </div>
 
         {/* Articles Grid */}
-        <section className="px-4 md:px-8 lg:px-12 py-16 md:py-24">
+        <section className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 max-w-5xl mx-auto">
             {isLoading ? (
               <p className="col-span-full text-center text-muted-foreground">Loading stories...</p>

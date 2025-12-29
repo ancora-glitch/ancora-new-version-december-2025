@@ -6,19 +6,19 @@ const Contact = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
-      {/* Hero Section */}
-      <section className="bg-primary pt-20 pb-16 md:py-24">
-        <div className="max-w-4xl mx-auto px-6 md:px-8">
-          <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl text-primary-foreground text-center">
+      <main className="pt-24 md:pt-28 pb-16 md:pb-24">
+        {/* Page Header */}
+        <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto mb-12 md:mb-16">
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-serif text-primary text-center mb-4">
             Contact
           </h1>
+          <p className="text-center text-muted-foreground max-w-2xl mx-auto">
+            We'd love to hear from you.
+          </p>
         </div>
-      </section>
 
-      {/* Contact Information */}
-      <section className="py-16 md:py-24">
-        <div className="max-w-2xl mx-auto px-6 md:px-8">
+        {/* Contact Information */}
+        <section className="max-w-2xl mx-auto px-6 md:px-8">
           <div className="space-y-12">
             {/* Email */}
             <div className="border-b border-primary/10 pb-8">
@@ -60,13 +60,8 @@ const Contact = () => {
               </a>
             </div>
           </div>
-
-          {/* Footer Note */}
-          <p className="text-center text-muted-foreground italic mt-16 font-serif">
-            We'd love to hear from you.
-          </p>
-        </div>
-      </section>
+        </section>
+      </main>
 
       <Footer />
     </div>
