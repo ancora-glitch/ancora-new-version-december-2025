@@ -44,11 +44,11 @@ const StyleGuide = () => {
               The story you're looking for doesn't exist or has been removed.
             </p>
             <Link 
-              to="/home" 
+              to="/stories" 
               className="inline-flex items-center gap-2 text-primary hover:underline"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to home
+              Back to Stories
             </Link>
           </div>
         </main>
@@ -76,11 +76,11 @@ const StyleGuide = () => {
         <article className="max-w-[700px] mx-auto px-6 py-12 md:py-16">
           {/* Back Link */}
           <Link 
-            to="/home" 
+            to="/stories" 
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-8 text-sm tracking-wider uppercase font-sans"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to home
+            Back to Stories
           </Link>
 
           {/* Title */}
