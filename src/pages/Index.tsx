@@ -31,9 +31,7 @@ const Index = () => {
               <h1 className="text-3xl md:text-4xl lg:text-5xl mb-4 md:mb-6 leading-tight text-white font-serif">
                 Curated second hand. Carefully edited.
               </h1>
-              <p className="text-base md:text-lg lg:text-xl mb-8 md:mb-10 leading-relaxed text-white/90">
-                Weekly edits and considered stories — a new way to shop pre-loved.
-              </p>
+              <p className="text-base md:text-lg lg:text-xl mb-8 md:mb-10 leading-relaxed text-white/90">Weekly edits and considered stories — a new way to shop second hand.</p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button className="font-medium text-sm tracking-wide px-8 py-4 h-auto" onClick={() => navigate('/edits')}>
                   Explore the edit
@@ -55,16 +53,7 @@ const Index = () => {
           </Link>
           <p className="text-center text-muted-foreground mb-14 md:mb-16 text-base md:text-lg">Curated second hand pieces, selected exclusively.</p>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-6 lg:gap-8 max-w-7xl mx-auto">
-            {isLoading ? (
-              <p className="col-span-full text-center text-muted-foreground">Loading products...</p>
-            ) : products && products.length > 0 ? (
-              products.slice(0, 8).map(product => (
-                <Link 
-                  key={product.id} 
-                  to={`/product/${product.slug || product.id}`} 
-                  className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 transition-colors min-h-[44px]"
-                  aria-label={`View ${product.brand} ${product.name}`}
-                >
+            {isLoading ? <p className="col-span-full text-center text-muted-foreground">Loading products...</p> : products && products.length > 0 ? products.slice(0, 8).map(product => <Link key={product.id} to={`/product/${product.slug || product.id}`} className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 transition-colors min-h-[44px]" aria-label={`View ${product.brand} ${product.name}`}>
                   <div className="relative aspect-[4/5] overflow-hidden bg-secondary/30">
                     <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" />
                   </div>
@@ -79,11 +68,7 @@ const Index = () => {
                       {formatPrice(product.price)}
                     </p>
                   </div>
-                </Link>
-              ))
-            ) : (
-              <p className="col-span-full text-center text-muted-foreground">No products available</p>
-            )}
+                </Link>) : <p className="col-span-full text-center text-muted-foreground">No products available</p>}
           </div>
           <div className="text-center mt-12">
             <Button variant="outline" className="px-10 py-4 h-auto uppercase tracking-wide" onClick={() => navigate('/edits')}>
