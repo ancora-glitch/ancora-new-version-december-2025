@@ -29,7 +29,7 @@ const Index = () => {
           <div className="absolute inset-0 flex items-end md:items-center justify-center px-4 md:px-8 pb-12 md:pb-0">
             <div className="bg-black/15 md:bg-black/25 backdrop-blur-sm rounded-lg p-6 md:p-10 lg:p-12 max-w-2xl text-center">
               <h1 className="text-3xl md:text-4xl lg:text-5xl mb-4 md:mb-6 leading-tight text-white font-serif">
-                Curated secondhand. Carefully edited.
+                Curated second hand. Carefully edited.
               </h1>
               <p className="text-base md:text-lg lg:text-xl mb-8 md:mb-10 leading-relaxed text-white/90">
                 Weekly edits and considered stories — a new way to shop pre-loved.
@@ -53,7 +53,7 @@ const Index = () => {
               Latest edit
             </h2>
           </Link>
-          <p className="text-center text-muted-foreground mb-14 md:mb-16 text-base md:text-lg">Curated secondhand pieces, selected exclusively.</p>
+          <p className="text-center text-muted-foreground mb-14 md:mb-16 text-base md:text-lg">Curated second hand pieces, selected exclusively.</p>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-6 lg:gap-8 max-w-7xl mx-auto">
             {isLoading ? (
               <p className="col-span-full text-center text-muted-foreground">Loading products...</p>

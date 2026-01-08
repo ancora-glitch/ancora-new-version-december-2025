@@ -9,7 +9,7 @@ export const Footer = () => {
           {/* Left Column - Editorial Copy */}
           <div className="space-y-6">
             <p className="text-base md:text-lg font-serif leading-relaxed md:whitespace-nowrap">
-              Curated secondhand. Considered stories.
+              Curated second hand. Considered stories.
             </p>
             <p className="text-sm md:text-base text-primary-foreground/80 leading-relaxed md:whitespace-nowrap">
               Ancora edits what's worth keeping.
