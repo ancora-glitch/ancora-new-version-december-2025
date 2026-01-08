@@ -218,15 +218,26 @@ const ProductDetail = () => {
                 <div className="border-t border-border" />
 
                 {/* Purchase CTA */}
-                <a
-                  href="https://www.instagram.com/ancora_edit/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-2 text-foreground hover:text-primary transition-colors"
-                >
-                  <Instagram size={18} />
-                  <span className="underline underline-offset-4">To purchase, DM us on Instagram.</span>
-                </a>
+                {product.affiliate_url && product.marketplace ? (
+                  <a
+                    href={product.affiliate_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center px-8 py-3 bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors"
+                  >
+                    Buy now on {product.marketplace}
+                  </a>
+                ) : (
+                  <a
+                    href="https://www.instagram.com/ancora_edit/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group inline-flex items-center gap-2 text-foreground hover:text-primary transition-colors"
+                  >
+                    <Instagram size={18} />
+                    <span className="underline underline-offset-4">To purchase, DM us on Instagram.</span>
+                  </a>
+                )}
               </div>
             </div>
           </div>
