@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import StyleGuide from "./pages/StyleGuide";
 import Stories from "./pages/Stories";
-import ComingSoon from "./pages/ComingSoon";
+
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
@@ -24,9 +24,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/coming-soon" replace />} />
-          <Route path="/coming-soon" element={<ComingSoon />} />
-          <Route path="/home" element={<Index />} />
+          <Route path="/" element={<Index />} />
+          <Route path="/home" element={<Navigate to="/" replace />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/stories" element={<Stories />} />
