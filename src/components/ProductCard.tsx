@@ -43,7 +43,7 @@ export const ProductCard = ({
     <>
       <Link
         to={`/product/${slug || id}`}
-        className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 transition-colors"
+        className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 hover:bg-secondary/10 transition-all duration-300"
       >
         {/* Image Container */}
         <div className="relative aspect-[4/5] overflow-hidden bg-secondary/30">
@@ -52,6 +52,7 @@ export const ProductCard = ({
             alt={name}
             className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
           />
+          <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/10 transition-colors duration-300" />
         </div>
 
         {/* Card Content */}
