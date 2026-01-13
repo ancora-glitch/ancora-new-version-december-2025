@@ -7,10 +7,10 @@ import DOMPurify from "dompurify";
 
 // Convert markdown-style formatting to HTML
 const convertMarkdownFormatting = (text: string): string => {
-  // Convert **bold** to <strong>
-  let result = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  // Convert *italic* to <em> (but not inside already converted strong tags)
-  result = result.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
+  // Convert **bold** to <strong> first (greedy match for double asterisks)
+  let result = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Convert *italic* to <em> (after bold is processed, only single asterisks remain)
+  result = result.replace(/\*(.+?)\*/g, '<em>$1</em>');
   return result;
 };
 
