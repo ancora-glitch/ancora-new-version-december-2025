@@ -41,7 +41,7 @@ const Edits = () => {
                 <Link
                   key={product.id}
                   to={`/product/${product.slug || product.id}`}
-                  className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 transition-colors min-h-[44px]"
+                  className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 hover:bg-secondary/10 transition-all duration-300 min-h-[44px]"
                   aria-label={`View ${product.brand} ${product.name}`}
                 >
                   {/* Image Container */}
@@ -51,6 +51,7 @@ const Edits = () => {
                       alt={product.name}
                       className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                     />
+                    <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/10 transition-colors duration-300" />
                   </div>
 
                   {/* Card Content */}
