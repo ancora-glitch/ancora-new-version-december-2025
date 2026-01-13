@@ -12,7 +12,7 @@ import { useAllProducts } from "@/hooks/useProducts";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Trash2, Pencil, X, GripVertical } from "lucide-react";
+import { Trash2, Pencil, X, GripVertical, Bold, Italic } from "lucide-react";
 import { StorageImagePicker } from "@/components/StorageImagePicker";
 import {
   DndContext,
@@ -595,7 +595,60 @@ const AdminPortal = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="storyBody">Body *</Label>
-                  <Textarea id="storyBody" value={storyBody} onChange={(e) => setStoryBody(e.target.value)} placeholder="The full story content..." className="bg-background border-border min-h-[200px]" />
+                  <div className="flex gap-1 mb-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const textarea = document.getElementById("storyBody") as HTMLTextAreaElement;
+                        if (textarea) {
+                          const start = textarea.selectionStart;
+                          const end = textarea.selectionEnd;
+                          const text = storyBody;
+                          const selectedText = text.substring(start, end);
+                          const newText = text.substring(0, start) + "**" + selectedText + "**" + text.substring(end);
+                          setStoryBody(newText);
+                          setTimeout(() => {
+                            textarea.focus();
+                            textarea.setSelectionRange(start + 2, end + 2);
+                          }, 0);
+                        }
+                      }}
+                      className="gap-1"
+                    >
+                      <Bold className="w-4 h-4" />
+                      Bold
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const textarea = document.getElementById("storyBody") as HTMLTextAreaElement;
+                        if (textarea) {
+                          const start = textarea.selectionStart;
+                          const end = textarea.selectionEnd;
+                          const text = storyBody;
+                          const selectedText = text.substring(start, end);
+                          const newText = text.substring(0, start) + "*" + selectedText + "*" + text.substring(end);
+                          setStoryBody(newText);
+                          setTimeout(() => {
+                            textarea.focus();
+                            textarea.setSelectionRange(start + 1, end + 1);
+                          }, 0);
+                        }
+                      }}
+                      className="gap-1"
+                    >
+                      <Italic className="w-4 h-4" />
+                      Italic
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Use **text** for bold and *text* for italic
+                  </p>
+                  <Textarea id="storyBody" value={storyBody} onChange={(e) => setStoryBody(e.target.value)} placeholder="The full story content..." className="bg-background border-border min-h-[200px] font-mono text-sm" />
                 </div>
 
                 <Button type="submit" disabled={savingStory} className="w-full">
