@@ -100,16 +100,16 @@ const StyleGuide = () => {
           <div 
             className="prose prose-lg max-w-none prose-editorial
               prose-headings:font-heading prose-headings:text-primary prose-headings:font-semibold
-              prose-h2:text-xl prose-h2:md:text-2xl prose-h2:mt-12 prose-h2:mb-6
-              prose-h3:text-lg prose-h3:md:text-xl prose-h3:mt-8 prose-h3:mb-4
-              prose-p:text-foreground prose-p:leading-relaxed prose-p:mb-8
+              prose-h2:text-xl prose-h2:md:text-2xl prose-h2:mt-14 prose-h2:mb-8
+              prose-h3:text-lg prose-h3:md:text-xl prose-h3:mt-10 prose-h3:mb-5
+              prose-p:text-foreground prose-p:leading-[1.85] prose-p:mb-10 prose-p:text-[17px]
               prose-strong:text-foreground prose-strong:font-semibold
               prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-              prose-blockquote:border-l-primary prose-blockquote:border-l-2 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-primary
-              prose-ul:text-foreground prose-ul:list-none prose-ul:pl-0 prose-ul:space-y-4
-              prose-ol:text-foreground prose-ol:list-none prose-ol:pl-0 prose-ol:space-y-4
-              prose-li:mb-4 prose-li:pl-0 prose-li:leading-relaxed
-              prose-img:rounded-lg prose-img:shadow-md"
+              prose-blockquote:border-l-primary prose-blockquote:border-l-2 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-primary prose-blockquote:my-10
+              prose-ul:text-foreground prose-ul:list-none prose-ul:pl-0 prose-ul:space-y-5 prose-ul:my-10
+              prose-ol:text-foreground prose-ol:list-none prose-ol:pl-0 prose-ol:space-y-5 prose-ol:my-10
+              prose-li:mb-5 prose-li:pl-0 prose-li:leading-[1.8] prose-li:text-[17px]
+              prose-img:rounded-lg prose-img:shadow-md prose-img:my-10"
             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(guide.body) }}
           />
         </article>
