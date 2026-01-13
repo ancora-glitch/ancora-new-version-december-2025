@@ -139,6 +139,7 @@ const AdminPortal = () => {
   const queryClient = useQueryClient();
 
   // Story form state
+  const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
   const [storyTitle, setStoryTitle] = useState("");
   const [storyImage, setStoryImage] = useState<string[]>([]);
   const [storyIntroText, setStoryIntroText] = useState("");
@@ -161,11 +162,34 @@ const AdminPortal = () => {
   const [productStatus, setProductStatus] = useState<"active" | "sold">("active");
   const [savingProduct, setSavingProduct] = useState(false);
 
-  // Auto-generate slug from title
+  // Auto-generate slug from title (only when creating new story)
   const handleStoryTitleChange = (value: string) => {
     setStoryTitle(value);
-    const slug = value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-    setStorySlug(slug);
+    if (!editingStoryId) {
+      const slug = value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      setStorySlug(slug);
+    }
+  };
+
+  const resetStoryForm = () => {
+    setEditingStoryId(null);
+    setStoryTitle("");
+    setStoryImage([]);
+    setStoryIntroText("");
+    setStoryBody("");
+    setStorySlug("");
+  };
+
+  const handleEditStory = (story: { id: string; title: string; image: string; intro_text: string; body: string; slug: string }) => {
+    setEditingStoryId(story.id);
+    setStoryTitle(story.title);
+    setStoryImage([story.image]);
+    setStoryIntroText(story.intro_text);
+    setStoryBody(story.body);
+    setStorySlug(story.slug);
+    
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const resetProductForm = () => {
@@ -210,23 +234,34 @@ const AdminPortal = () => {
     }
     setSavingStory(true);
     
-    const { error } = await supabase.from("style_guides").insert([{
+    const storyData = {
       title: storyTitle.trim(),
       image: storyImage[0],
       intro_text: storyIntroText.trim(),
       body: storyBody.trim(),
       slug: storySlug.trim() || storyTitle.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
-    }]);
+    };
+
+    let error;
+
+    if (editingStoryId) {
+      // Update existing story
+      const result = await supabase
+        .from("style_guides")
+        .update(storyData)
+        .eq("id", editingStoryId);
+      error = result.error;
+    } else {
+      // Insert new story
+      const result = await supabase.from("style_guides").insert([storyData]);
+      error = result.error;
+    }
     
     if (error) {
-      toast.error("Failed to save story: " + error.message);
+      toast.error(`Failed to ${editingStoryId ? 'update' : 'save'} story: ` + error.message);
     } else {
-      toast.success("Story saved");
-      setStoryTitle("");
-      setStoryImage([]);
-      setStoryIntroText("");
-      setStoryBody("");
-      setStorySlug("");
+      toast.success(editingStoryId ? "Story updated" : "Story saved");
+      resetStoryForm();
       queryClient.invalidateQueries({ queryKey: ["style-guides"] });
     }
     setSavingStory(false);
@@ -239,6 +274,9 @@ const AdminPortal = () => {
       toast.error("Failed to delete: " + error.message);
     } else {
       toast.success("Story deleted");
+      if (editingStoryId === id) {
+        resetStoryForm();
+      }
       queryClient.invalidateQueries({ queryKey: ["style-guides"] });
     }
   };
@@ -512,7 +550,23 @@ const AdminPortal = () => {
             {/* STORIES TAB */}
             <TabsContent value="stories" className="space-y-10">
               <form onSubmit={handleSaveStory} className="space-y-5 p-6 border border-border rounded-sm bg-card">
-                <h2 className="font-display text-lg text-primary mb-4">Add New Story</h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="font-display text-lg text-primary">
+                    {editingStoryId ? "Edit Story" : "Add New Story"}
+                  </h2>
+                  {editingStoryId && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={resetStoryForm}
+                      className="text-muted-foreground"
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Cancel Edit
+                    </Button>
+                  )}
+                </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="storyTitle">Title *</Label>
@@ -545,7 +599,7 @@ const AdminPortal = () => {
                 </div>
 
                 <Button type="submit" disabled={savingStory} className="w-full">
-                  {savingStory ? "Saving..." : "Save Story"}
+                  {savingStory ? "Saving..." : editingStoryId ? "Update Story" : "Save Story"}
                 </Button>
               </form>
 
@@ -557,7 +611,15 @@ const AdminPortal = () => {
                 ) : stories && stories.length > 0 ? (
                   <div className="space-y-3">
                     {stories.map((story) => (
-                      <div key={story.id} className="flex items-center justify-between p-4 border border-border rounded-sm bg-card">
+                      <div 
+                        key={story.id} 
+                        className={`flex items-center justify-between p-4 border rounded-sm bg-card cursor-pointer transition-colors ${
+                          editingStoryId === story.id
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                        onClick={() => handleEditStory(story)}
+                      >
                         <div className="flex items-center gap-4 min-w-0">
                           {story.image && (
                             <img src={story.image} alt={story.title} className="w-12 h-12 object-cover rounded-sm flex-shrink-0" />
@@ -567,9 +629,30 @@ const AdminPortal = () => {
                             <p className="text-muted-foreground text-sm truncate">{story.intro_text}</p>
                           </div>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteStory(story.id, story.title)} className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditStory(story);
+                            }}
+                            className="text-primary hover:bg-primary/10"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteStory(story.id, story.title);
+                            }} 
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
