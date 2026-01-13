@@ -12,20 +12,42 @@ const formatBodyContent = (body: string): string => {
     return body;
   }
   
-  // Split by double line breaks for paragraphs, preserve single line breaks within paragraphs
-  const paragraphs = body.split(/\n\n+/);
+  // Split by any line break first
+  const lines = body.split(/\n/);
+  const result: string[] = [];
+  let currentParagraph: string[] = [];
   
-  return paragraphs
-    .map(para => {
-      const trimmed = para.trim();
-      if (!trimmed) return '';
-      
-      // Convert single line breaks to <br> within paragraphs
-      const withBreaks = trimmed.replace(/\n/g, '<br>');
-      return `<p>${withBreaks}</p>`;
-    })
-    .filter(Boolean)
-    .join('\n');
+  const flushParagraph = () => {
+    if (currentParagraph.length > 0) {
+      result.push(`<p>${currentParagraph.join('<br>')}</p>`);
+      currentParagraph = [];
+    }
+  };
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    
+    // Empty line = paragraph break
+    if (!trimmed) {
+      flushParagraph();
+      continue;
+    }
+    
+    // Numbered line (e.g. "1.", "2.", "10.") = separate paragraph with spacing
+    if (/^\d+\.\s/.test(trimmed)) {
+      flushParagraph();
+      result.push(`<p>${trimmed}</p>`);
+      continue;
+    }
+    
+    // Regular line - accumulate into current paragraph
+    currentParagraph.push(trimmed);
+  }
+  
+  // Flush any remaining content
+  flushParagraph();
+  
+  return result.join('\n');
 };
 
 const StyleGuide = () => {
