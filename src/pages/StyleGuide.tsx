@@ -160,7 +160,8 @@ const StyleGuide = () => {
               prose-h2:text-xl prose-h2:md:text-2xl prose-h2:mt-14 prose-h2:mb-8
               prose-h3:text-lg prose-h3:md:text-xl prose-h3:mt-10 prose-h3:mb-5
               prose-p:text-foreground prose-p:leading-[1.85] prose-p:mb-10 prose-p:text-[17px]
-              prose-strong:text-foreground prose-strong:font-semibold
+              prose-strong:text-foreground prose-strong:font-semibold prose-strong:text-[inherit] prose-strong:not-italic
+              prose-em:text-foreground prose-em:italic prose-em:text-[inherit]
               prose-a:text-primary prose-a:no-underline hover:prose-a:underline
               prose-blockquote:border-l-primary prose-blockquote:border-l-2 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-primary prose-blockquote:my-10
               prose-ul:text-foreground prose-ul:list-disc prose-ul:pl-6 prose-ul:space-y-4 prose-ul:my-10
