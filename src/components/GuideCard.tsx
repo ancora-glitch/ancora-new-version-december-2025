@@ -19,7 +19,7 @@ export const GuideCard = ({
     <Link 
       to={linkTarget}
       onClick={onGoToGuide}
-      className="group block min-h-[44px]"
+      className="group block min-h-[44px] transition-all duration-300"
       aria-label={`Read: ${title}`}
     >
       {/* Image with Title Overlay */}
