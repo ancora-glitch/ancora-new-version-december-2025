@@ -5,11 +5,21 @@ import { useStyleGuide } from "@/hooks/useStyleGuides";
 import { ArrowLeft } from "lucide-react";
 import DOMPurify from "dompurify";
 
+// Convert markdown-style formatting to HTML
+const convertMarkdownFormatting = (text: string): string => {
+  // Convert **bold** to <strong>
+  let result = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  // Convert *italic* to <em> (but not inside already converted strong tags)
+  result = result.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
+  return result;
+};
+
 // Convert plain text line breaks to HTML paragraphs
 const formatBodyContent = (body: string): string => {
   // If content already contains HTML block elements, return as-is
   if (/<(p|div|h[1-6]|ul|ol|li|blockquote)[^>]*>/i.test(body)) {
-    return body;
+    // Still apply markdown formatting to existing HTML
+    return convertMarkdownFormatting(body);
   }
   
   // Split by any line break first
@@ -19,7 +29,8 @@ const formatBodyContent = (body: string): string => {
   
   const flushParagraph = () => {
     if (currentParagraph.length > 0) {
-      result.push(`<p>${currentParagraph.join('<br>')}</p>`);
+      const content = convertMarkdownFormatting(currentParagraph.join('<br>'));
+      result.push(`<p>${content}</p>`);
       currentParagraph = [];
     }
   };
@@ -36,7 +47,8 @@ const formatBodyContent = (body: string): string => {
     // Numbered line (e.g. "1.", "2.", "10.") = separate paragraph with spacing
     if (/^\d+\.\s/.test(trimmed)) {
       flushParagraph();
-      result.push(`<p>${trimmed}</p>`);
+      const content = convertMarkdownFormatting(trimmed);
+      result.push(`<p>${content}</p>`);
       continue;
     }
     
