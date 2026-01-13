@@ -5,6 +5,29 @@ import { useStyleGuide } from "@/hooks/useStyleGuides";
 import { ArrowLeft } from "lucide-react";
 import DOMPurify from "dompurify";
 
+// Convert plain text line breaks to HTML paragraphs
+const formatBodyContent = (body: string): string => {
+  // If content already contains HTML block elements, return as-is
+  if (/<(p|div|h[1-6]|ul|ol|li|blockquote)[^>]*>/i.test(body)) {
+    return body;
+  }
+  
+  // Split by double line breaks for paragraphs, preserve single line breaks within paragraphs
+  const paragraphs = body.split(/\n\n+/);
+  
+  return paragraphs
+    .map(para => {
+      const trimmed = para.trim();
+      if (!trimmed) return '';
+      
+      // Convert single line breaks to <br> within paragraphs
+      const withBreaks = trimmed.replace(/\n/g, '<br>');
+      return `<p>${withBreaks}</p>`;
+    })
+    .filter(Boolean)
+    .join('\n');
+};
+
 const StyleGuide = () => {
   const { slug } = useParams<{ slug: string }>();
   const { data: guide, isLoading, error } = useStyleGuide(slug || "");
@@ -110,7 +133,7 @@ const StyleGuide = () => {
               prose-ol:text-foreground prose-ol:list-decimal prose-ol:pl-6 prose-ol:space-y-4 prose-ol:my-10
               prose-li:mb-4 prose-li:pl-2 prose-li:leading-[1.8] prose-li:text-[17px] prose-li:marker:text-primary prose-li:marker:font-semibold
               prose-img:rounded-lg prose-img:shadow-md prose-img:my-10"
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(guide.body) }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatBodyContent(guide.body)) }}
           />
         </article>
       </main>
