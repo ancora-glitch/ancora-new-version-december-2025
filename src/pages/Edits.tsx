@@ -11,6 +11,16 @@ const Edits = () => {
       <Header />
       
       <main className="pt-24 md:pt-28 pb-16 md:pb-24">
+        {/* Back Navigation */}
+        <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto mb-6">
+          <Link 
+            to="/" 
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            ← Back to home
+          </Link>
+        </div>
+
         {/* Page Header */}
         <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto mb-12 md:mb-16">
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-serif text-primary text-center mb-4">
