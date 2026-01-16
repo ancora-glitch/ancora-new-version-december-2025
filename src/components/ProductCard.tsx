@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Heart } from "lucide-react";
-import { Link } from "react-router-dom";
 import { ProductModal } from "./ProductModal";
 
 interface ProductCardProps {
@@ -39,11 +38,15 @@ export const ProductCard = ({
     onWishlistToggle?.(newState);
   };
 
+  const handleCardClick = () => {
+    setIsModalOpen(true);
+  };
+
   return (
     <>
-      <Link
-        to={`/product/${slug || id}`}
-        className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 hover:bg-secondary/10 transition-all duration-300"
+      <div
+        onClick={handleCardClick}
+        className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 hover:bg-secondary/10 transition-all duration-300 cursor-pointer"
       >
         {/* Image Container */}
         <div className="relative aspect-[4/5] overflow-hidden bg-secondary/30">
@@ -83,7 +86,7 @@ export const ProductCard = ({
             <span className="text-base font-semibold text-foreground">{price}</span>
           </div>
         </div>
-      </Link>
+      </div>
 
       <ProductModal
         isOpen={isModalOpen}
