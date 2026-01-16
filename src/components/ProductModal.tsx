@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { X, Heart, ChevronLeft, ChevronRight, Instagram } from "lucide-react";
+import { X, Heart, ChevronLeft, ChevronRight } from "lucide-react";
+import { RedirectModal } from "./RedirectModal";
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -8,6 +9,8 @@ interface ProductModalProps {
   brand: string;
   name: string;
   price: string;
+  affiliateUrl?: string;
+  marketplace?: string;
   isWishlisted?: boolean;
   onWishlistToggle?: () => void;
 }
@@ -19,10 +22,18 @@ export const ProductModal = ({
   brand,
   name,
   price,
+  affiliateUrl,
+  marketplace,
   isWishlisted = false,
   onWishlistToggle,
 }: ProductModalProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isRedirectModalOpen, setIsRedirectModalOpen] = useState(false);
+
+  // Determine destination - affiliate URL or Instagram
+  const redirectUrl = affiliateUrl || "https://www.instagram.com/ancora_edit/";
+  const destinationName = marketplace || "Instagram";
+  const destinationLogo = marketplace ? undefined : "https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png";
 
   if (!isOpen) return null;
 
@@ -126,17 +137,23 @@ export const ProductModal = ({
           <p className="font-sans text-2xl font-bold text-foreground">{price}</p>
 
           {/* Purchase CTA */}
-          <a
-            href="https://www.instagram.com/ancora_edit/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 text-foreground hover:text-primary transition-colors pt-2"
+          <button
+            onClick={() => setIsRedirectModalOpen(true)}
+            className="w-full py-3 bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors"
           >
-            <Instagram size={18} />
-            <span className="underline underline-offset-4">To purchase, DM us on Instagram.</span>
-          </a>
+            Buy now
+          </button>
         </div>
       </div>
+
+      {/* Redirect Confirmation Modal */}
+      <RedirectModal
+        isOpen={isRedirectModalOpen}
+        onClose={() => setIsRedirectModalOpen(false)}
+        redirectUrl={redirectUrl}
+        marketplaceName={destinationName}
+        marketplaceLogo={destinationLogo}
+      />
     </div>
   );
 };

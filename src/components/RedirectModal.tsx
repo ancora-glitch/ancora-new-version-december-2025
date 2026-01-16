@@ -42,7 +42,7 @@ export const RedirectModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-b from-secondary via-background to-secondary animate-fade-up">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-b from-secondary via-background to-secondary">
       {/* Close Button */}
       <button
         onClick={onClose}
@@ -83,9 +83,31 @@ export const RedirectModal = ({
           )}
         </div>
 
+        {/* Action Buttons */}
+        <div className="mt-8 flex flex-col gap-3 w-full max-w-xs animate-fade-up" style={{ animationDelay: "0.4s" }}>
+          {/* Continue Button - Primary CTA */}
+          <button
+            onClick={() => {
+              window.open(redirectUrl, "_blank");
+              onClose();
+            }}
+            className="w-full py-3 bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors"
+          >
+            Continue
+          </button>
+
+          {/* Go Back Button - Secondary */}
+          <button
+            onClick={onClose}
+            className="w-full py-3 text-muted-foreground hover:text-foreground transition-colors text-sm"
+          >
+            Go back
+          </button>
+        </div>
+
         {/* Countdown indicator */}
-        <p className="mt-8 font-sans text-sm text-muted-foreground animate-pulse">
-          Redirecting in {countdown}s...
+        <p className="mt-4 font-sans text-xs text-muted-foreground/70">
+          Auto-redirecting in {countdown}s...
         </p>
       </div>
     </div>

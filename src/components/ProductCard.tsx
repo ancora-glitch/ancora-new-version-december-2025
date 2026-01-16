@@ -92,6 +92,8 @@ export const ProductCard = ({
         brand={brand}
         name={name}
         price={price}
+        affiliateUrl={affiliateUrl}
+        marketplace={marketplace}
         isWishlisted={isWishlisted}
         onWishlistToggle={() => {
           const newState = !isWishlisted;
