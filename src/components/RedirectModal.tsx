@@ -58,7 +58,7 @@ export const RedirectModal = ({
           You are now leaving
         </p>
 
-        <h1 className="font-serif text-5xl md:text-6xl font-semibold text-primary tracking-tight">
+        <h1 className="font-logo text-5xl md:text-6xl font-bold text-primary/95 tracking-[0.16em]">
           ANCORA
         </h1>
 
