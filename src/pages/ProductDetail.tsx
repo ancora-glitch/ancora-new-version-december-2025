@@ -2,14 +2,16 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { ArrowLeft, ChevronLeft, ChevronRight, Instagram } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/hooks/useProducts";
+import { RedirectModal } from "@/components/RedirectModal";
 
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isRedirectModalOpen, setIsRedirectModalOpen] = useState(false);
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", slug],
@@ -218,31 +220,26 @@ const ProductDetail = () => {
                 <div className="border-t border-border" />
 
                 {/* Purchase CTA */}
-                {product.affiliate_url && product.marketplace ? (
-                  <a
-                    href={product.affiliate_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center px-8 py-3 bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors"
-                  >
-                    Buy now on {product.marketplace}
-                  </a>
-                ) : (
-                  <a
-                    href="https://www.instagram.com/ancora_edit/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group inline-flex items-center gap-2 text-foreground hover:text-primary transition-colors"
-                  >
-                    <Instagram size={18} />
-                    <span className="underline underline-offset-4">To purchase, DM us on Instagram.</span>
-                  </a>
-                )}
+                <button
+                  onClick={() => setIsRedirectModalOpen(true)}
+                  className="inline-flex items-center justify-center px-8 py-3 bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors"
+                >
+                  Buy now
+                </button>
               </div>
             </div>
           </div>
         </div>
       </main>
+
+      {/* Redirect Confirmation Modal */}
+      <RedirectModal
+        isOpen={isRedirectModalOpen}
+        onClose={() => setIsRedirectModalOpen(false)}
+        redirectUrl={product.affiliate_url || "https://www.instagram.com/ancora_edit/"}
+        marketplaceName={product.marketplace || "Instagram"}
+        marketplaceLogo={product.marketplace ? undefined : "https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png"}
+      />
 
       <Footer />
     </div>
