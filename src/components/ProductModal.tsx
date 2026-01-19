@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { RedirectModal } from "./RedirectModal";
+import { trackClick } from "@/hooks/useAnalytics";
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -9,6 +10,7 @@ interface ProductModalProps {
   brand: string;
   name: string;
   price: string;
+  productId?: string;
   affiliateUrl?: string;
   marketplace?: string;
   isWishlisted?: boolean;
@@ -22,6 +24,7 @@ export const ProductModal = ({
   brand,
   name,
   price,
+  productId,
   affiliateUrl,
   marketplace,
   isWishlisted = false,
@@ -43,6 +46,19 @@ export const ProductModal = ({
 
   const handleNextImage = () => {
     setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+  };
+
+  const handleBuyNowClick = () => {
+    // Track the Buy Now click for purchase intent
+    trackClick("/buy-now", {
+      product_id: productId,
+      product_name: name,
+      brand: brand,
+      price: price,
+      destination: destinationName,
+      type: "buy_now_click"
+    });
+    setIsRedirectModalOpen(true);
   };
 
   return (
@@ -141,7 +157,7 @@ export const ProductModal = ({
 
           {/* Purchase CTA */}
           <button
-            onClick={() => setIsRedirectModalOpen(true)}
+            onClick={handleBuyNowClick}
             className="w-full py-3 bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors"
           >
             Buy now
