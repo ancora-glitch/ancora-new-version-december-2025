@@ -105,6 +105,7 @@ const ProductDetail = () => {
                 <img
                   src={allImages[currentImageIndex]}
                   alt={`${product.name} - Image ${currentImageIndex + 1}`}
+                  loading="lazy"
                   className="w-full h-full object-cover"
                 />
 
@@ -163,6 +164,7 @@ const ProductDetail = () => {
                       <img
                         src={image}
                         alt={`${product.name} thumbnail ${index + 1}`}
+                        loading="lazy"
                         className="w-full h-full object-cover"
                       />
                     </button>

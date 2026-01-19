@@ -27,6 +27,7 @@ export const GuideCard = ({
         <img 
           src={image} 
           alt={title} 
+          loading="lazy"
           className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]" 
         />
         {/* Hover Overlay */}
