@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
@@ -32,36 +32,51 @@ export const trackClick = async (pagePath: string, metadata?: Json) => {
 // Hook to automatically track page views on route changes
 export const usePageViewTracking = () => {
   const location = useLocation();
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const checkAdminStatus = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase.rpc("has_role", {
-          _user_id: user.id,
-          _role: "admin",
-        });
-        setIsAdmin(!!data);
-      } else {
-        setIsAdmin(false);
+    let cancelled = false;
+
+    const trackIfNotAdmin = async () => {
+      // Don't track admin pages
+      if (location.pathname.startsWith("/admin")) {
+        return;
+      }
+
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (cancelled) return;
+
+        if (user) {
+          const { data: isAdmin } = await supabase.rpc("has_role", {
+            _user_id: user.id,
+            _role: "admin",
+          });
+          
+          if (cancelled) return;
+          
+          // Only track if not admin
+          if (!isAdmin) {
+            trackPageView(location.pathname);
+          }
+        } else {
+          // No user logged in, track the page view
+          trackPageView(location.pathname);
+        }
+      } catch (error) {
+        // On error, still track the page view
+        if (!cancelled) {
+          trackPageView(location.pathname);
+        }
       }
     };
-    checkAdminStatus();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      checkAdminStatus();
-    });
+    trackIfNotAdmin();
 
-    return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    // Don't track if admin or on admin pages
-    if (isAdmin === false && !location.pathname.startsWith("/admin")) {
-      trackPageView(location.pathname);
-    }
-  }, [location.pathname, isAdmin]);
+    return () => {
+      cancelled = true;
+    };
+  }, [location.pathname]);
 };
 
 // Hook to get a click tracker function
