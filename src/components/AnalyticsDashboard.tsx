@@ -1,7 +1,11 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Eye, MousePointer, TrendingUp, BarChart3 } from "lucide-react";
+import { Eye, MousePointer, TrendingUp, BarChart3, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+
+type DateRange = "7days" | "30days" | "all";
 
 interface AnalyticsSummary {
   totalViews: number;
@@ -10,27 +14,72 @@ interface AnalyticsSummary {
   recentActivity: { date: string; views: number; clicks: number }[];
 }
 
+const getDateRangeStart = (range: DateRange): Date | null => {
+  if (range === "all") return null;
+  
+  const date = new Date();
+  if (range === "7days") {
+    date.setDate(date.getDate() - 7);
+  } else if (range === "30days") {
+    date.setDate(date.getDate() - 30);
+  }
+  return date;
+};
+
+const getDateRangeLabel = (range: DateRange): string => {
+  switch (range) {
+    case "7days":
+      return "Last 7 days";
+    case "30days":
+      return "Last 30 days";
+    case "all":
+      return "All time";
+  }
+};
+
 export const AnalyticsDashboard = () => {
+  const [dateRange, setDateRange] = useState<DateRange>("7days");
+
   const { data: analytics, isLoading } = useQuery<AnalyticsSummary>({
-    queryKey: ["site-analytics"],
+    queryKey: ["site-analytics", dateRange],
     queryFn: async () => {
-      // Get total page views
-      const { count: totalViews } = await supabase
+      const rangeStart = getDateRangeStart(dateRange);
+
+      // Build base query for page views
+      let viewsQuery = supabase
         .from("site_analytics")
         .select("*", { count: "exact", head: true })
         .eq("event_type", "page_view");
+      
+      if (rangeStart) {
+        viewsQuery = viewsQuery.gte("created_at", rangeStart.toISOString());
+      }
+      
+      const { count: totalViews } = await viewsQuery;
 
-      // Get total clicks
-      const { count: totalClicks } = await supabase
+      // Build base query for clicks
+      let clicksQuery = supabase
         .from("site_analytics")
         .select("*", { count: "exact", head: true })
         .eq("event_type", "click");
+      
+      if (rangeStart) {
+        clicksQuery = clicksQuery.gte("created_at", rangeStart.toISOString());
+      }
+      
+      const { count: totalClicks } = await clicksQuery;
 
       // Get popular pages
-      const { data: pageViews } = await supabase
+      let pagesQuery = supabase
         .from("site_analytics")
         .select("page_path")
         .eq("event_type", "page_view");
+      
+      if (rangeStart) {
+        pagesQuery = pagesQuery.gte("created_at", rangeStart.toISOString());
+      }
+      
+      const { data: pageViews } = await pagesQuery;
 
       // Count occurrences of each page
       const pageCounts: Record<string, number> = {};
@@ -43,14 +92,15 @@ export const AnalyticsDashboard = () => {
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
 
-      // Get activity for last 7 days
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      // Get activity for the chart (always show based on selected range, max 30 days for chart)
+      const chartDays = dateRange === "7days" ? 7 : dateRange === "30days" ? 30 : 30;
+      const chartStart = new Date();
+      chartStart.setDate(chartStart.getDate() - chartDays);
 
       const { data: recentEvents } = await supabase
         .from("site_analytics")
         .select("event_type, created_at")
-        .gte("created_at", sevenDaysAgo.toISOString());
+        .gte("created_at", chartStart.toISOString());
 
       // Group by date
       const activityByDate: Record<string, { views: number; clicks: number }> = {};
@@ -71,7 +121,7 @@ export const AnalyticsDashboard = () => {
 
       const recentActivity = Object.entries(activityByDate)
         .map(([date, data]) => ({ date, ...data }))
-        .slice(-7);
+        .slice(-chartDays);
 
       return {
         totalViews: totalViews || 0,
@@ -80,13 +130,18 @@ export const AnalyticsDashboard = () => {
         recentActivity,
       };
     },
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 30000,
   });
 
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <h2 className="text-xl font-semibold text-foreground">Statistics</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+            <BarChart3 size={20} className="text-primary" />
+            Statistics
+          </h2>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
             <Card key={i} className="animate-pulse">
@@ -109,15 +164,38 @@ export const AnalyticsDashboard = () => {
       .replace(/\b\w/g, (c) => c.toUpperCase()) || path;
   };
 
-  // Calculate max for bar chart scaling
   const maxPageCount = Math.max(...(analytics?.popularPages.map((p) => p.count) || [1]));
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-        <BarChart3 size={20} className="text-primary" />
-        Statistics
-      </h2>
+      {/* Header with Date Filter */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+          <BarChart3 size={20} className="text-primary" />
+          Statistics
+        </h2>
+        
+        <div className="flex items-center gap-2">
+          <Calendar size={16} className="text-muted-foreground" />
+          <div className="flex rounded-md border border-border overflow-hidden">
+            {(["7days", "30days", "all"] as DateRange[]).map((range) => (
+              <Button
+                key={range}
+                variant="ghost"
+                size="sm"
+                onClick={() => setDateRange(range)}
+                className={`rounded-none px-3 py-1.5 text-xs font-medium transition-colors ${
+                  dateRange === range
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "hover:bg-secondary"
+                }`}
+              >
+                {range === "7days" ? "7 days" : range === "30days" ? "30 days" : "All time"}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -133,7 +211,7 @@ export const AnalyticsDashboard = () => {
             <p className="text-3xl font-bold text-foreground">
               {analytics?.totalViews.toLocaleString()}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">All time</p>
+            <p className="text-xs text-muted-foreground mt-1">{getDateRangeLabel(dateRange)}</p>
           </CardContent>
         </Card>
 
@@ -149,7 +227,7 @@ export const AnalyticsDashboard = () => {
             <p className="text-3xl font-bold text-foreground">
               {analytics?.totalClicks.toLocaleString()}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">All time</p>
+            <p className="text-xs text-muted-foreground mt-1">{getDateRangeLabel(dateRange)}</p>
           </CardContent>
         </Card>
 
@@ -213,11 +291,11 @@ export const AnalyticsDashboard = () => {
         <Card className="border-border/30">
           <CardHeader>
             <CardTitle className="text-base font-medium text-foreground">
-              Last 7 Days
+              {dateRange === "7days" ? "Last 7 Days" : dateRange === "30days" ? "Last 30 Days" : "Recent Activity"}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-end justify-between gap-2 h-32">
+            <div className="flex items-end justify-between gap-1 h-32 overflow-x-auto">
               {analytics.recentActivity.map((day) => {
                 const maxValue = Math.max(
                   ...analytics.recentActivity.map((d) => d.views + d.clicks),
@@ -227,14 +305,16 @@ export const AnalyticsDashboard = () => {
                 return (
                   <div
                     key={day.date}
-                    className="flex-1 flex flex-col items-center gap-1"
+                    className="flex-1 min-w-[20px] flex flex-col items-center gap-1"
                   >
                     <div
                       className="w-full bg-primary/60 rounded-t transition-all duration-300 hover:bg-primary/80"
                       style={{ height: `${height}%`, minHeight: "4px" }}
                       title={`${day.views} views, ${day.clicks} clicks`}
                     />
-                    <span className="text-xs text-muted-foreground">{day.date}</span>
+                    <span className="text-[10px] text-muted-foreground truncate max-w-full">
+                      {dateRange === "30days" ? day.date.split(" ")[1] : day.date}
+                    </span>
                   </div>
                 );
               })}
