@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Heart } from "lucide-react";
 import { ProductModal } from "./ProductModal";
+import { trackClick } from "@/hooks/useAnalytics";
 
 interface ProductCardProps {
   id: string;
@@ -39,6 +40,13 @@ export const ProductCard = ({
   };
 
   const handleCardClick = () => {
+    // Track the product click
+    trackClick("/products", { 
+      product_id: id, 
+      product_name: name, 
+      brand: brand,
+      type: "product_card" 
+    });
     setIsModalOpen(true);
   };
 
