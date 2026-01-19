@@ -14,6 +14,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Trash2, Pencil, X, GripVertical, Bold, Italic } from "lucide-react";
 import { StorageImagePicker } from "@/components/StorageImagePicker";
+import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import {
   DndContext,
   closestCenter,
@@ -414,11 +415,17 @@ const AdminPortal = () => {
             Manage your content
           </p>
 
-          <Tabs defaultValue="products" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-8">
+          <Tabs defaultValue="statistics" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-8">
+              <TabsTrigger value="statistics">Statistics</TabsTrigger>
               <TabsTrigger value="products">Products</TabsTrigger>
               <TabsTrigger value="stories">Stories</TabsTrigger>
             </TabsList>
+
+            {/* STATISTICS TAB */}
+            <TabsContent value="statistics">
+              <AnalyticsDashboard />
+            </TabsContent>
 
             {/* PRODUCTS TAB */}
             <TabsContent value="products" className="space-y-10">

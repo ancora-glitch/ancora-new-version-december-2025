@@ -16,6 +16,7 @@ import AdminPortal from "./pages/AdminPortal";
 import Auth from "./pages/Auth";
 import RequireAdmin from "./components/RequireAdmin";
 import ScrollToTop from "./components/ScrollToTop";
+import { PageViewTracker } from "./components/PageViewTracker";
 
 const queryClient = new QueryClient();
 
@@ -26,27 +27,29 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <ScrollToTop />
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/home" element={<Navigate to="/" replace />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/stories" element={<Stories />} />
-          <Route path="/style-guides/:slug" element={<StyleGuide />} />
-          <Route path="/product/:slug" element={<ProductDetail />} />
-          <Route path="/edits" element={<Edits />} />
-          <Route
-            path="/admin-portal"
-            element={
-              <RequireAdmin>
-                <AdminPortal />
-              </RequireAdmin>
-            }
-          />
-          <Route path="/auth" element={<Auth />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <PageViewTracker>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/home" element={<Navigate to="/" replace />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/stories" element={<Stories />} />
+            <Route path="/style-guides/:slug" element={<StyleGuide />} />
+            <Route path="/product/:slug" element={<ProductDetail />} />
+            <Route path="/edits" element={<Edits />} />
+            <Route
+              path="/admin-portal"
+              element={
+                <RequireAdmin>
+                  <AdminPortal />
+                </RequireAdmin>
+              }
+            />
+            <Route path="/auth" element={<Auth />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </PageViewTracker>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

@@ -104,6 +104,30 @@ export type Database = {
         }
         Relationships: []
       }
+      site_analytics: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          page_path: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          page_path: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          page_path?: string
+        }
+        Relationships: []
+      }
       style_guides: {
         Row: {
           body: string
