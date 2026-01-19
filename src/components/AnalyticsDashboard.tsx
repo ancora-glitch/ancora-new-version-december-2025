@@ -232,7 +232,7 @@ export const AnalyticsDashboard = () => {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-foreground">
-              {analytics?.totalViews.toLocaleString()}
+              {(analytics?.totalViews ?? 0).toLocaleString()}
             </p>
             <p className="text-xs text-muted-foreground mt-1">{getDateRangeLabel(dateRange)}</p>
           </CardContent>
@@ -248,7 +248,7 @@ export const AnalyticsDashboard = () => {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-foreground">
-              {analytics?.totalClicks.toLocaleString()}
+              {(analytics?.totalClicks ?? 0).toLocaleString()}
             </p>
             <p className="text-xs text-muted-foreground mt-1">{getDateRangeLabel(dateRange)}</p>
           </CardContent>
@@ -264,7 +264,7 @@ export const AnalyticsDashboard = () => {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-primary">
-              {analytics?.buyNowClicks.toLocaleString()}
+              {(analytics?.buyNowClicks ?? 0).toLocaleString()}
             </p>
             <p className="text-xs text-muted-foreground mt-1">Purchase intent</p>
           </CardContent>
