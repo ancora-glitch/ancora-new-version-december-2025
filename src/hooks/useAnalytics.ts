@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
@@ -32,13 +32,36 @@ export const trackClick = async (pagePath: string, metadata?: Json) => {
 // Hook to automatically track page views on route changes
 export const usePageViewTracking = () => {
   const location = useLocation();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Don't track admin portal views
-    if (!location.pathname.startsWith("/admin")) {
+    const checkAdminStatus = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.rpc("has_role", {
+          _user_id: user.id,
+          _role: "admin",
+        });
+        setIsAdmin(!!data);
+      } else {
+        setIsAdmin(false);
+      }
+    };
+    checkAdminStatus();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      checkAdminStatus();
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    // Don't track if admin or on admin pages
+    if (isAdmin === false && !location.pathname.startsWith("/admin")) {
       trackPageView(location.pathname);
     }
-  }, [location.pathname]);
+  }, [location.pathname, isAdmin]);
 };
 
 // Hook to get a click tracker function
