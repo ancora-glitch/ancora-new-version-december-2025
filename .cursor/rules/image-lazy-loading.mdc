@@ -1,0 +1,27 @@
+# Image Lazy Loading Standard
+
+All images in this project MUST use native browser lazy loading for performance optimization.
+
+## Required Attribute
+
+Add `loading="lazy"` to all `<img>` elements:
+
+```tsx
+<img
+  src={imageSrc}
+  alt="Description"
+  loading="lazy"
+  className="..."
+/>
+```
+
+## Exception
+
+The **hero image** on the homepage (`/`) should NOT use lazy loading to preserve optimal Largest Contentful Paint (LCP) performance. This is the only above-the-fold critical image.
+
+## Benefits
+
+- Reduces initial page load time
+- Defers off-screen image loading until user scrolls
+- Native browser support (no JavaScript required)
+- Improves Core Web Vitals scores
