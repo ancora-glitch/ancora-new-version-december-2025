@@ -125,6 +125,8 @@ const StyleGuide = () => {
             src={guide.image}
             alt={guide.title}
             loading="lazy"
+            width={1920}
+            height={823}
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />

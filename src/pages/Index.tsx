@@ -24,7 +24,7 @@ const Index = () => {
       <main className="pt-16">
         {/* Hero Section */}
         <section className="relative w-full h-[80vh] min-h-[600px]">
-          <img alt="Fashion editorial featuring elegant clothing" fetchPriority="high" className="absolute inset-0 w-full h-full object-cover object-[center_top] md:object-[50%_25%]" src="/lovable-uploads/f5d5719e-ed29-45f3-b4c6-f3849a6e259f.jpg" />
+          <img alt="Fashion editorial featuring elegant clothing" fetchPriority="high" width={1920} height={1080} className="absolute inset-0 w-full h-full object-cover object-[center_top] md:object-[50%_25%]" src="/lovable-uploads/f5d5719e-ed29-45f3-b4c6-f3849a6e259f.jpg" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
           <div className="absolute inset-0 flex items-end md:items-center justify-center px-4 md:px-8 pb-12 md:pb-0">
             <div className="bg-black/15 md:bg-black/25 backdrop-blur-sm rounded-lg p-6 md:p-10 lg:p-12 max-w-2xl text-center">
@@ -55,7 +55,7 @@ const Index = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-6 lg:gap-8 max-w-7xl mx-auto">
             {isLoading ? <p className="col-span-full text-center text-muted-foreground">Loading products...</p> : products && products.length > 0 ? products.slice(0, 8).map(product => <Link key={product.id} to={`/product/${product.slug || product.id}`} className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 hover:bg-secondary/10 transition-all duration-300 min-h-[44px]" aria-label={`View ${product.brand} ${product.name}`}>
                   <div className="relative aspect-[4/5] overflow-hidden bg-secondary/30">
-                    <img src={product.image} alt={product.name} loading="lazy" className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" />
+                    <img src={product.image} alt={product.name} loading="lazy" width={400} height={500} className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" />
                     <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/10 transition-colors duration-300" />
                   </div>
                   <div className="p-4 space-y-1.5">

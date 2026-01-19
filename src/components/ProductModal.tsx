@@ -70,6 +70,8 @@ export const ProductModal = ({
             src={images[currentImageIndex]}
             alt={`${name} - Image ${currentImageIndex + 1}`}
             loading="lazy"
+            width={400}
+            height={500}
             className="w-full h-full object-cover"
           />
 
