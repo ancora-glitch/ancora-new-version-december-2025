@@ -106,6 +106,7 @@ export const ProductCard = ({
         brand={brand}
         name={name}
         price={price}
+        productId={id}
         affiliateUrl={affiliateUrl}
         marketplace={marketplace}
         isWishlisted={isWishlisted}

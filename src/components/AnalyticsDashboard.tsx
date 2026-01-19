@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Eye, MousePointer, TrendingUp, BarChart3, Calendar } from "lucide-react";
+import { Eye, MousePointer, TrendingUp, BarChart3, Calendar, ShoppingBag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -10,8 +10,9 @@ type DateRange = "7days" | "30days" | "all";
 interface AnalyticsSummary {
   totalViews: number;
   totalClicks: number;
+  buyNowClicks: number;
   popularPages: { page_path: string; count: number }[];
-  recentActivity: { date: string; views: number; clicks: number }[];
+  recentActivity: { date: string; views: number; clicks: number; buyNow: number }[];
 }
 
 const getDateRangeStart = (range: DateRange): Date | null => {
@@ -57,17 +58,31 @@ export const AnalyticsDashboard = () => {
       
       const { count: totalViews } = await viewsQuery;
 
-      // Build base query for clicks
+      // Build base query for product clicks (excludes buy-now)
       let clicksQuery = supabase
         .from("site_analytics")
         .select("*", { count: "exact", head: true })
-        .eq("event_type", "click");
+        .eq("event_type", "click")
+        .eq("page_path", "/products");
       
       if (rangeStart) {
         clicksQuery = clicksQuery.gte("created_at", rangeStart.toISOString());
       }
       
       const { count: totalClicks } = await clicksQuery;
+
+      // Build query for Buy Now clicks
+      let buyNowQuery = supabase
+        .from("site_analytics")
+        .select("*", { count: "exact", head: true })
+        .eq("event_type", "click")
+        .eq("page_path", "/buy-now");
+      
+      if (rangeStart) {
+        buyNowQuery = buyNowQuery.gte("created_at", rangeStart.toISOString());
+      }
+      
+      const { count: buyNowClicks } = await buyNowQuery;
 
       // Get popular pages
       let pagesQuery = supabase
@@ -92,28 +107,30 @@ export const AnalyticsDashboard = () => {
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
 
-      // Get activity for the chart (always show based on selected range, max 30 days for chart)
+      // Get activity for the chart
       const chartDays = dateRange === "7days" ? 7 : dateRange === "30days" ? 30 : 30;
       const chartStart = new Date();
       chartStart.setDate(chartStart.getDate() - chartDays);
 
       const { data: recentEvents } = await supabase
         .from("site_analytics")
-        .select("event_type, created_at")
+        .select("event_type, page_path, created_at")
         .gte("created_at", chartStart.toISOString());
 
       // Group by date
-      const activityByDate: Record<string, { views: number; clicks: number }> = {};
+      const activityByDate: Record<string, { views: number; clicks: number; buyNow: number }> = {};
       recentEvents?.forEach((event) => {
         const date = new Date(event.created_at).toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
         });
         if (!activityByDate[date]) {
-          activityByDate[date] = { views: 0, clicks: 0 };
+          activityByDate[date] = { views: 0, clicks: 0, buyNow: 0 };
         }
         if (event.event_type === "page_view") {
           activityByDate[date].views++;
+        } else if (event.page_path === "/buy-now") {
+          activityByDate[date].buyNow++;
         } else {
           activityByDate[date].clicks++;
         }
@@ -126,6 +143,7 @@ export const AnalyticsDashboard = () => {
       return {
         totalViews: totalViews || 0,
         totalClicks: totalClicks || 0,
+        buyNowClicks: buyNowClicks || 0,
         popularPages,
         recentActivity,
       };
@@ -142,8 +160,8 @@ export const AnalyticsDashboard = () => {
             Statistics
           </h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
             <Card key={i} className="animate-pulse">
               <CardContent className="pt-6">
                 <div className="h-16 bg-muted rounded" />
@@ -165,6 +183,11 @@ export const AnalyticsDashboard = () => {
   };
 
   const maxPageCount = Math.max(...(analytics?.popularPages.map((p) => p.count) || [1]));
+
+  // Calculate conversion rate (Buy Now clicks / Product clicks)
+  const conversionRate = analytics && analytics.totalClicks > 0
+    ? ((analytics.buyNowClicks / analytics.totalClicks) * 100).toFixed(1)
+    : "0";
 
   return (
     <div className="space-y-6">
@@ -198,13 +221,13 @@ export const AnalyticsDashboard = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Views */}
         <Card className="bg-gradient-to-br from-secondary/50 to-background border-border/30">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Eye size={16} className="text-primary" />
-              Total Page Views
+              Page Views
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -215,7 +238,7 @@ export const AnalyticsDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Total Clicks */}
+        {/* Product Clicks */}
         <Card className="bg-gradient-to-br from-secondary/50 to-background border-border/30">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -231,22 +254,35 @@ export const AnalyticsDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Engagement Rate */}
+        {/* Buy Now Clicks */}
+        <Card className="bg-gradient-to-br from-primary/10 to-background border-primary/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <ShoppingBag size={16} className="text-primary" />
+              Buy Now Clicks
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-primary">
+              {analytics?.buyNowClicks.toLocaleString()}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">Purchase intent</p>
+          </CardContent>
+        </Card>
+
+        {/* Conversion Rate */}
         <Card className="bg-gradient-to-br from-secondary/50 to-background border-border/30">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <TrendingUp size={16} className="text-primary" />
-              Engagement Rate
+              Conversion Rate
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-foreground">
-              {analytics && analytics.totalViews > 0
-                ? ((analytics.totalClicks / analytics.totalViews) * 100).toFixed(1)
-                : "0"}
-              %
+              {conversionRate}%
             </p>
-            <p className="text-xs text-muted-foreground mt-1">Clicks / Views</p>
+            <p className="text-xs text-muted-foreground mt-1">Buy Now / Product Clicks</p>
           </CardContent>
         </Card>
       </div>
@@ -298,20 +334,29 @@ export const AnalyticsDashboard = () => {
             <div className="flex items-end justify-between gap-1 h-32 overflow-x-auto">
               {analytics.recentActivity.map((day) => {
                 const maxValue = Math.max(
-                  ...analytics.recentActivity.map((d) => d.views + d.clicks),
+                  ...analytics.recentActivity.map((d) => d.views + d.clicks + d.buyNow),
                   1
                 );
-                const height = ((day.views + day.clicks) / maxValue) * 100;
+                const totalHeight = ((day.views + day.clicks + day.buyNow) / maxValue) * 100;
+                const buyNowHeight = (day.buyNow / (day.views + day.clicks + day.buyNow || 1)) * totalHeight;
                 return (
                   <div
                     key={day.date}
                     className="flex-1 min-w-[20px] flex flex-col items-center gap-1"
                   >
                     <div
-                      className="w-full bg-primary/60 rounded-t transition-all duration-300 hover:bg-primary/80"
-                      style={{ height: `${height}%`, minHeight: "4px" }}
-                      title={`${day.views} views, ${day.clicks} clicks`}
-                    />
+                      className="w-full flex flex-col justify-end rounded-t overflow-hidden"
+                      style={{ height: `${totalHeight}%`, minHeight: "4px" }}
+                      title={`${day.views} views, ${day.clicks} clicks, ${day.buyNow} buy now`}
+                    >
+                      <div 
+                        className="w-full bg-primary/90"
+                        style={{ height: `${buyNowHeight}%`, minHeight: day.buyNow > 0 ? "2px" : "0" }}
+                      />
+                      <div 
+                        className="w-full bg-primary/40 flex-1"
+                      />
+                    </div>
                     <span className="text-[10px] text-muted-foreground truncate max-w-full">
                       {dateRange === "30days" ? day.date.split(" ")[1] : day.date}
                     </span>
@@ -321,7 +366,10 @@ export const AnalyticsDashboard = () => {
             </div>
             <div className="flex items-center justify-center gap-6 mt-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
-                <div className="w-3 h-3 bg-primary/60 rounded" /> Activity
+                <div className="w-3 h-3 bg-primary/40 rounded" /> Views & Clicks
+              </span>
+              <span className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-primary/90 rounded" /> Buy Now
               </span>
             </div>
           </CardContent>
