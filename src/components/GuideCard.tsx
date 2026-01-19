@@ -28,6 +28,8 @@ export const GuideCard = ({
           src={image} 
           alt={title} 
           loading="lazy"
+          width={600}
+          height={800}
           className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]" 
         />
         {/* Hover Overlay */}

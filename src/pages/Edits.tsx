@@ -50,6 +50,8 @@ const Edits = () => {
                       src={product.image}
                       alt={product.name}
                       loading="lazy"
+                      width={400}
+                      height={500}
                       className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/10 transition-colors duration-300" />
