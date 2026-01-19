@@ -48,6 +48,7 @@ const Stories = () => {
                       <img 
                         src={guide.image} 
                         alt={guide.title} 
+                        loading="lazy"
                         className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
                       />
                       <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/15 transition-colors duration-300" />
