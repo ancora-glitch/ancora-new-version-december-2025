@@ -118,9 +118,9 @@ const StyleGuide = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="pt-20">
-        {/* Hero Image */}
-        <div className="relative w-full aspect-[16/9] md:aspect-[21/9] overflow-hidden">
+      <main className="pt-20 md:pt-24">
+        {/* Mobile/Tablet: Full-width hero image */}
+        <div className="lg:hidden relative w-full aspect-[16/9] md:aspect-[21/9] overflow-hidden">
           <img
             src={guide.image}
             alt={guide.title}
@@ -132,48 +132,67 @@ const StyleGuide = () => {
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
         </div>
 
-        {/* Content */}
-        <article className="max-w-[700px] mx-auto px-6 py-12 md:py-16">
-          {/* Back Link */}
-          <Link 
-            to="/stories" 
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-8 text-sm tracking-wider uppercase font-sans"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Stories
-          </Link>
+        {/* Desktop: Two-column editorial layout */}
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
+          <div className="lg:grid lg:grid-cols-[minmax(0,680px)_1fr] lg:gap-16 xl:gap-20">
+            {/* Left Column: Text Content */}
+            <article className="py-12 md:py-16 lg:py-20">
+              {/* Back Link */}
+              <Link 
+                to="/stories" 
+                className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-8 text-sm tracking-wider uppercase font-sans"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to Stories
+              </Link>
 
-          {/* Title */}
-          <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl text-primary leading-tight mb-10">
-            {guide.title}
-          </h1>
+              {/* Title */}
+              <h1 className="font-serif text-3xl md:text-5xl lg:text-[3.25rem] xl:text-[3.5rem] text-primary leading-tight mb-10">
+                {guide.title}
+              </h1>
 
-          {/* Intro Text */}
-          <p className="article-intro">
-            {guide.intro_text}
-          </p>
+              {/* Intro Text */}
+              <p className="article-intro">
+                {guide.intro_text}
+              </p>
 
-          {/* Divider */}
-          <div className="w-16 h-px bg-primary/30 mb-12" />
+              {/* Divider */}
+              <div className="w-16 h-px bg-primary/30 mb-12" />
 
-          {/* Body Content (Rich Text) */}
-          <div 
-            className="prose prose-lg max-w-none prose-editorial
-              prose-headings:font-heading prose-headings:text-primary prose-headings:font-semibold
-              prose-h2:text-xl prose-h2:md:text-2xl prose-h2:mt-14 prose-h2:mb-8
-              prose-h3:text-lg prose-h3:md:text-xl prose-h3:mt-10 prose-h3:mb-5
-              prose-p:text-foreground prose-p:leading-[1.85] prose-p:mb-10 prose-p:text-[17px]
-              prose-strong:text-foreground prose-strong:font-semibold prose-strong:text-[inherit] prose-strong:not-italic
-              prose-em:text-foreground prose-em:italic prose-em:text-[inherit]
-              prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-              prose-blockquote:border-l-primary prose-blockquote:border-l-2 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-primary prose-blockquote:my-10
-              prose-ul:text-foreground prose-ul:list-disc prose-ul:pl-6 prose-ul:space-y-4 prose-ul:my-10
-              prose-ol:text-foreground prose-ol:list-decimal prose-ol:pl-6 prose-ol:space-y-4 prose-ol:my-10
-              prose-li:mb-4 prose-li:pl-2 prose-li:leading-[1.8] prose-li:text-[17px] prose-li:marker:text-primary prose-li:marker:font-semibold
-              prose-img:rounded-lg prose-img:shadow-md prose-img:my-10"
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatBodyContent(guide.body)) }}
-          />
-        </article>
+              {/* Body Content (Rich Text) */}
+              <div 
+                className="prose prose-lg max-w-none prose-editorial
+                  prose-headings:font-heading prose-headings:text-primary prose-headings:font-semibold
+                  prose-h2:text-xl prose-h2:md:text-2xl prose-h2:mt-14 prose-h2:mb-8
+                  prose-h3:text-lg prose-h3:md:text-xl prose-h3:mt-10 prose-h3:mb-5
+                  prose-p:text-foreground prose-p:leading-[1.85] prose-p:mb-10 prose-p:text-[17px]
+                  prose-strong:text-foreground prose-strong:font-semibold prose-strong:text-[inherit] prose-strong:not-italic
+                  prose-em:text-foreground prose-em:italic prose-em:text-[inherit]
+                  prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+                  prose-blockquote:border-l-primary prose-blockquote:border-l-2 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-primary prose-blockquote:my-10
+                  prose-ul:text-foreground prose-ul:list-disc prose-ul:pl-6 prose-ul:space-y-4 prose-ul:my-10
+                  prose-ol:text-foreground prose-ol:list-decimal prose-ol:pl-6 prose-ol:space-y-4 prose-ol:my-10
+                  prose-li:mb-4 prose-li:pl-2 prose-li:leading-[1.8] prose-li:text-[17px] prose-li:marker:text-primary prose-li:marker:font-semibold
+                  prose-img:rounded-lg prose-img:shadow-md prose-img:my-10"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatBodyContent(guide.body)) }}
+              />
+            </article>
+
+            {/* Right Column: Featured Image (Desktop only) */}
+            <aside className="hidden lg:block pt-20 sticky top-24 self-start">
+              <div className="relative overflow-hidden">
+                <img
+                  src={guide.image}
+                  alt={guide.title}
+                  loading="lazy"
+                  width={600}
+                  height={800}
+                  className="w-full h-auto object-cover"
+                />
+              </div>
+            </aside>
+          </div>
+        </div>
       </main>
 
       <Footer />
