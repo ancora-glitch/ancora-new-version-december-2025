@@ -30,7 +30,7 @@ export const GuideCard = ({
           loading="lazy"
           width={600}
           height={800}
-          className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]" 
+          className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-[1.03]" 
         />
         {/* Hover Overlay */}
         <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/20 transition-colors duration-300" />
