@@ -117,19 +117,63 @@ interface TraderaItemDetail {
   attributes: Record<string, string>;
 }
 
+// Filter out thumbnail/low-res image URLs and keep only originals
+function filterHighResImages(urls: string[]): string[] {
+  const lowResPatterns = [
+    /thumb/i,
+    /thumbnail/i,
+    /small/i,
+    /tiny/i,
+    /mini/i,
+    /preview/i,
+    /_s\./i,
+    /_t\./i,
+    /_xs\./i,
+    /_m\./i,
+    /\/s\//i,
+    /\/t\//i,
+    /size=small/i,
+    /size=thumb/i,
+  ];
+
+  const filtered = urls.filter(url => {
+    // Check if URL contains any low-res patterns
+    const isLowRes = lowResPatterns.some(pattern => pattern.test(url));
+    if (isLowRes) {
+      console.log('Filtering out low-res image:', url);
+    }
+    return !isLowRes;
+  });
+
+  // Deduplicate by normalizing URLs (remove query params for comparison)
+  const seen = new Set<string>();
+  const unique: string[] = [];
+  
+  for (const url of filtered) {
+    const normalized = url.split('?')[0].toLowerCase();
+    if (!seen.has(normalized)) {
+      seen.add(normalized);
+      unique.push(url);
+    }
+  }
+
+  console.log(`Filtered images: ${urls.length} -> ${unique.length}`);
+  return unique;
+}
+
 function parseItemDetails(xml: string): TraderaItemDetail | null {
   try {
     const id = extractNumber(xml, 'Id');
     if (!id) return null;
 
     // Extract all image URLs
-    const imageLinks: string[] = [];
+    const rawImageLinks: string[] = [];
     const imageMatches = xml.match(/<Url>(.*?)<\/Url>/g);
     if (imageMatches) {
       for (const match of imageMatches) {
         const url = match.replace(/<\/?Url>/g, '');
         if (url && url.startsWith('http')) {
-          imageLinks.push(url);
+          rawImageLinks.push(url);
         }
       }
     }
@@ -139,11 +183,14 @@ function parseItemDetails(xml: string): TraderaItemDetail | null {
     if (imageLinkMatches) {
       for (const match of imageLinkMatches) {
         const url = match.replace(/<\/?ImageLink>/g, '');
-        if (url && url.startsWith('http') && !imageLinks.includes(url)) {
-          imageLinks.push(url);
+        if (url && url.startsWith('http') && !rawImageLinks.includes(url)) {
+          rawImageLinks.push(url);
         }
       }
     }
+
+    // Filter to only keep high-res/original images
+    const imageLinks = filterHighResImages(rawImageLinks);
 
     // Extract attributes
     const attributes: Record<string, string> = {};
