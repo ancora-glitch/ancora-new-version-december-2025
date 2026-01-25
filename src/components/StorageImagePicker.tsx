@@ -192,23 +192,26 @@ export const StorageImagePicker = ({
           return;
         }
 
-        console.log(`[StorageImagePicker] Found ${data?.length || 0} items in ${path || '(root)'}`);
+        console.log(`[StorageImagePicker] Found ${data?.length || 0} items in ${path || '(root)'}`, data);
 
         for (const item of data || []) {
           if (item.name === '.emptyFolderPlaceholder') continue;
           
           const fullPath = path ? `${path}/${item.name}` : item.name;
           
-          // Check if it's an image file by extension OR has metadata (indicating it's a file, not folder)
-          const hasFileMetadata = item.metadata && Object.keys(item.metadata).length > 0;
+          // Supabase storage: files have an 'id' field, folders don't
+          // Also check metadata for additional confirmation
+          const isFile = item.id !== null && item.id !== undefined;
           const looksLikeImage = isImageFile(item.name);
           
-          if (hasFileMetadata || looksLikeImage) {
-            // It's a file - add it to the list
+          console.log(`[StorageImagePicker] Item: ${item.name}, id: ${item.id}, isFile: ${isFile}, looksLikeImage: ${looksLikeImage}`);
+          
+          if (isFile) {
+            // It's a file - add it to the list (even without image extension for guide-images)
             const { data: urlData } = supabase.storage.from(targetBucket).getPublicUrl(fullPath);
             allFiles.push({ name: item.name, url: urlData.publicUrl });
-          } else if (!item.metadata) {
-            // It's likely a folder - recurse into it
+          } else {
+            // It's a folder - recurse into it
             await fetchFromPath(fullPath);
           }
         }
