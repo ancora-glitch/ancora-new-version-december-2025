@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.tradera-item]
 verify_jwt = false
+
+[functions.tradera-sync]
+verify_jwt = false
