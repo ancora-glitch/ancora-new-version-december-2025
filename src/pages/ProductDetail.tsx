@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/hooks/useProducts";
 import { RedirectModal } from "@/components/RedirectModal";
-import { trackClick } from "@/hooks/useAnalytics";
+import { trackBuyNowClick } from "@/hooks/useAnalytics";
 import { deduplicateImages } from "@/lib/imageUtils";
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -249,14 +249,13 @@ const ProductDetail = () => {
                 <button
                   onClick={() => {
                     // Track the Buy Now click for purchase intent
-                    trackClick("/buy-now", {
-                      product_id: product.id,
-                      product_name: product.name,
-                      brand: product.brand,
-                      price: product.price,
-                      destination: product.marketplace || "Instagram",
-                      type: "buy_now_click"
-                    });
+                    trackBuyNowClick(
+                      product.id, 
+                      product.name, 
+                      product.brand, 
+                      product.price, 
+                      product.marketplace || "Instagram"
+                    );
                     setIsRedirectModalOpen(true);
                   }}
                   className="inline-flex items-center justify-center px-8 py-3 bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors"

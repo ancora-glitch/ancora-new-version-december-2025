@@ -58,12 +58,11 @@ export const AnalyticsDashboard = () => {
       
       const { count: totalViews } = await viewsQuery;
 
-      // Build base query for product clicks (excludes buy-now)
+      // Build base query for product clicks
       let clicksQuery = supabase
         .from("site_analytics")
         .select("*", { count: "exact", head: true })
-        .eq("event_type", "click")
-        .eq("page_path", "/products");
+        .eq("event_type", "product_click");
       
       if (rangeStart) {
         clicksQuery = clicksQuery.gte("created_at", rangeStart.toISOString());
@@ -75,8 +74,7 @@ export const AnalyticsDashboard = () => {
       let buyNowQuery = supabase
         .from("site_analytics")
         .select("*", { count: "exact", head: true })
-        .eq("event_type", "click")
-        .eq("page_path", "/buy-now");
+        .eq("event_type", "buy_now_click");
       
       if (rangeStart) {
         buyNowQuery = buyNowQuery.gte("created_at", rangeStart.toISOString());
@@ -129,9 +127,9 @@ export const AnalyticsDashboard = () => {
         }
         if (event.event_type === "page_view") {
           activityByDate[date].views++;
-        } else if (event.page_path === "/buy-now") {
+        } else if (event.event_type === "buy_now_click") {
           activityByDate[date].buyNow++;
-        } else {
+        } else if (event.event_type === "product_click") {
           activityByDate[date].clicks++;
         }
       });
