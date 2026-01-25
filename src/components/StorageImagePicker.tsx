@@ -167,6 +167,12 @@ export const StorageImagePicker = ({
     }
   };
 
+  // Helper to check if a file is an image based on extension
+  const isImageFile = (name: string): boolean => {
+    const imageExtensions = /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)$/i;
+    return imageExtensions.test(name);
+  };
+
   const fetchStorageFiles = async (targetFolder: string = selectedFolder) => {
     setLoadingStorage(true);
     try {
@@ -188,11 +194,17 @@ export const StorageImagePicker = ({
           
           const fullPath = path ? `${path}/${item.name}` : item.name;
           
-          if (!item.metadata) {
-            await fetchFromPath(fullPath);
-          } else {
+          // Check if it's an image file by extension OR has metadata (indicating it's a file, not folder)
+          const hasFileMetadata = item.metadata && Object.keys(item.metadata).length > 0;
+          const looksLikeImage = isImageFile(item.name);
+          
+          if (hasFileMetadata || looksLikeImage) {
+            // It's a file - add it to the list
             const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fullPath);
             allFiles.push({ name: item.name, url: urlData.publicUrl });
+          } else if (!item.metadata) {
+            // It's likely a folder - recurse into it
+            await fetchFromPath(fullPath);
           }
         }
       };
