@@ -127,7 +127,7 @@ const StyleGuide = () => {
             loading="lazy"
             width={1920}
             height={823}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-top"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
         </div>
@@ -187,7 +187,7 @@ const StyleGuide = () => {
                   loading="lazy"
                   width={600}
                   height={800}
-                  className="w-full h-auto object-cover"
+                  className="w-full h-auto object-cover object-top"
                 />
               </div>
             </aside>
