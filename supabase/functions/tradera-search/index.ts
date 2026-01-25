@@ -8,11 +8,8 @@ const corsHeaders = {
 interface TraderaSearchParams {
   keywords?: string;
   categoryId?: number;
-  brandId?: number;
-  itemStatus?: number;
   priceMin?: number;
   priceMax?: number;
-  orderBy?: number;
 }
 
 interface TraderaItem {
@@ -51,11 +48,12 @@ serve(async (req) => {
       );
     }
 
-    const { keywords, categoryId, priceMin, priceMax } = await req.json() as TraderaSearchParams;
+    const { keywords, categoryId } = await req.json() as TraderaSearchParams;
 
-    console.log('Searching Tradera with params:', { keywords, categoryId, priceMin, priceMax });
+    console.log('=== TRADERA SEARCH V4 ===');
+    console.log('Params:', { keywords, categoryId });
 
-    // Build the SOAP request for SearchAdvanced
+    // Use the Search method with correct enum orderBy value
     const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" 
                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
@@ -67,57 +65,67 @@ serve(async (req) => {
     </AuthenticationHeader>
   </soap:Header>
   <soap:Body>
-    <SearchAdvanced xmlns="http://api.tradera.com">
-      <request>
-        <SearchWords>${keywords || ''}</SearchWords>
-        ${categoryId ? `<CategoryId>${categoryId}</CategoryId>` : '<CategoryId>0</CategoryId>'}
-        <ItemStatus>1</ItemStatus>
-        <ItemType>0</ItemType>
-        ${priceMin ? `<PriceMinimum>${priceMin}</PriceMinimum>` : ''}
-        ${priceMax ? `<PriceMaximum>${priceMax}</PriceMaximum>` : ''}
-        <OrderBy>1</OrderBy>
-        <PageNumber>1</PageNumber>
-        <PageSize>50</PageSize>
-      </request>
-    </SearchAdvanced>
+    <Search xmlns="http://api.tradera.com">
+      <query>${escapeXml(keywords || '')}</query>
+      <categoryId>${categoryId || 0}</categoryId>
+      <pageNumber>1</pageNumber>
+      <orderBy>Relevance</orderBy>
+    </Search>
   </soap:Body>
 </soap:Envelope>`;
 
-    console.log('Making SOAP request to Tradera SearchService');
+    console.log('Making SOAP request to Search...');
 
     const response = await fetch('https://api.tradera.com/v3/SearchService.asmx', {
       method: 'POST',
       headers: {
         'Content-Type': 'text/xml; charset=utf-8',
-        'SOAPAction': 'http://api.tradera.com/SearchAdvanced',
+        'SOAPAction': 'http://api.tradera.com/Search',
       },
       body: soapEnvelope,
     });
 
+    const xmlText = await response.text();
+    
+    console.log('Response status:', response.status);
+    console.log('Response length:', xmlText.length);
+    console.log('First 2000 chars:', xmlText.substring(0, 2000));
+
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Tradera API error:', response.status, errorText);
+      console.error('API error');
       return new Response(
-        JSON.stringify({ error: 'Tradera API error', details: errorText }),
+        JSON.stringify({ error: 'Tradera API error', details: xmlText.substring(0, 500) }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const xmlText = await response.text();
-    console.log('Received XML response, parsing...');
+    // Check for errors in response
+    if (xmlText.includes('<Errors>')) {
+      const errorCode = extractText(xmlText, 'Code');
+      const errorMessage = extractText(xmlText, 'Message');
+      console.error('API error:', errorCode, errorMessage);
+      return new Response(
+        JSON.stringify({ error: errorMessage || 'Tradera API error', code: errorCode }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Parse the XML response
     const items = parseTraderaResponse(xmlText);
     
-    console.log(`Parsed ${items.length} items from Tradera`);
+    console.log(`Parsed ${items.length} items`);
 
     return new Response(
-      JSON.stringify({ items, total: items.length }),
+      JSON.stringify({ 
+        items, 
+        total: items.length,
+        debug: xmlText.substring(0, 1000)
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Error in tradera-search:', error);
+    console.error('Error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -125,27 +133,47 @@ serve(async (req) => {
   }
 });
 
+function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 function parseTraderaResponse(xml: string): TraderaItem[] {
   const items: TraderaItem[] = [];
   
-  // Extract all Item elements
-  const itemMatches = xml.match(/<Item>([\s\S]*?)<\/Item>/g);
+  const totalItems = extractText(xml, 'TotalNumberOfItems');
+  console.log('TotalNumberOfItems:', totalItems);
   
-  if (!itemMatches) {
-    console.log('No items found in response');
-    return items;
-  }
-
-  for (const itemXml of itemMatches) {
+  // Split by <Items> to get each item block
+  const parts = xml.split('<Items>').slice(1);
+  console.log(`Found ${parts.length} items via split`);
+  
+  for (const part of parts) {
+    const endIdx = part.indexOf('</Items>');
+    if (endIdx === -1) continue;
+    const itemXml = part.substring(0, endIdx);
+    
     try {
+      const id = extractNumber(itemXml, 'Id') || 0;
+      const shortDesc = extractText(itemXml, 'ShortDescription') || '';
+      
+      if (!id || !shortDesc) continue;
+
       const item: TraderaItem = {
-        id: extractNumber(itemXml, 'Id') || 0,
-        shortDescription: extractText(itemXml, 'ShortDescription') || '',
+        id,
+        shortDescription: shortDesc,
         longDescription: extractText(itemXml, 'LongDescription'),
-        price: extractNumber(itemXml, 'MaxBid') || extractNumber(itemXml, 'Price') || 0,
+        price: extractNumber(itemXml, 'MaxBid') || 
+               extractNumber(itemXml, 'NextBid') ||
+               extractNumber(itemXml, 'BuyItNowPrice') || 0,
         buyItNowPrice: extractNumber(itemXml, 'BuyItNowPrice'),
-        thumbnailLink: extractText(itemXml, 'ThumbnailLink') || extractText(itemXml, 'ImageLink'),
-        itemLink: `https://www.tradera.com/item/${extractNumber(itemXml, 'Id')}`,
+        thumbnailLink: extractText(itemXml, 'ThumbnailLink') || 
+                       extractText(itemXml, 'ImageLink'),
+        itemLink: `https://www.tradera.com/item/${id}`,
         categoryId: extractNumber(itemXml, 'CategoryId') || 0,
         sellerId: extractNumber(itemXml, 'SellerId') || 0,
         sellerAlias: extractText(itemXml, 'SellerAlias'),
@@ -155,15 +183,7 @@ function parseTraderaResponse(xml: string): TraderaItem[] {
         brandName: extractText(itemXml, 'Brand'),
       };
 
-      // Try to extract multiple images
-      const imageMatches = itemXml.match(/<ImageLink>(.*?)<\/ImageLink>/g);
-      if (imageMatches) {
-        item.imageLinks = imageMatches.map(m => m.replace(/<\/?ImageLink>/g, ''));
-      }
-
-      if (item.id && item.shortDescription) {
-        items.push(item);
-      }
+      items.push(item);
     } catch (e) {
       console.error('Error parsing item:', e);
     }
@@ -173,7 +193,7 @@ function parseTraderaResponse(xml: string): TraderaItem[] {
 }
 
 function extractText(xml: string, tag: string): string | undefined {
-  const match = xml.match(new RegExp(`<${tag}>(.*?)<\/${tag}>`, 's'));
+  const match = xml.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, 'i'));
   return match ? match[1].trim() : undefined;
 }
 
