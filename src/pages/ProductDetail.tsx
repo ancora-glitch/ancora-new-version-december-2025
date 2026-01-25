@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/hooks/useProducts";
 import { RedirectModal } from "@/components/RedirectModal";
 import { trackClick } from "@/hooks/useAnalytics";
-
+import { deduplicateImages } from "@/lib/imageUtils";
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -29,6 +29,23 @@ const ProductDetail = () => {
     },
     enabled: !!slug,
   });
+
+  // Deduplicate and prioritize high-quality images - must be before early returns
+  const allImages = useMemo(() => {
+    if (!product) return [];
+    const additionalImages = Array.isArray(product.additional_images) 
+      ? (product.additional_images as string[]) 
+      : [];
+    return deduplicateImages(product.image, additionalImages);
+  }, [product]);
+
+  const handlePrevImage = () => {
+    setCurrentImageIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1));
+  };
+
+  const handleNextImage = () => {
+    setCurrentImageIndex((prev) => (prev === allImages.length - 1 ? 0 : prev + 1));
+  };
 
   if (isLoading) {
     return (
@@ -65,20 +82,6 @@ const ProductDetail = () => {
       </div>
     );
   }
-
-  // Combine main image with additional images
-  const additionalImages = Array.isArray(product.additional_images) 
-    ? (product.additional_images as string[]) 
-    : [];
-  const allImages: string[] = [product.image, ...additionalImages].filter(Boolean) as string[];
-
-  const handlePrevImage = () => {
-    setCurrentImageIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1));
-  };
-
-  const handleNextImage = () => {
-    setCurrentImageIndex((prev) => (prev === allImages.length - 1 ? 0 : prev + 1));
-  };
 
   return (
     <div className="min-h-screen bg-background">

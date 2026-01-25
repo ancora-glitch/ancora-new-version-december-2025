@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Heart } from "lucide-react";
 import { ProductModal } from "./ProductModal";
 import { trackClick } from "@/hooks/useAnalytics";
-
+import { deduplicateImages } from "@/lib/imageUtils";
 interface ProductCardProps {
   id: string;
   slug?: string;
@@ -30,6 +30,12 @@ export const ProductCard = ({
 }: ProductCardProps) => {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Deduplicate and prioritize high-quality images
+  const uniqueImages = useMemo(() => 
+    deduplicateImages(image, additionalImages),
+    [image, additionalImages]
+  );
 
   const handleWishlistClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -59,7 +65,7 @@ export const ProductCard = ({
         {/* Image Container */}
         <div className="relative aspect-[4/5] overflow-hidden bg-secondary/30">
           <img
-            src={image}
+            src={uniqueImages[0] || image}
             alt={name}
             loading="lazy"
             width={400}
@@ -102,7 +108,7 @@ export const ProductCard = ({
       <ProductModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        images={[image, ...additionalImages]}
+        images={uniqueImages}
         brand={brand}
         name={name}
         price={price}
