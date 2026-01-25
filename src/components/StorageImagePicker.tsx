@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { X, Image as ImageIcon, RefreshCw, ChevronDown, Folder, GripVertical, Star } from "lucide-react";
 import { toast } from "sonner";
@@ -146,10 +146,17 @@ export const StorageImagePicker = ({
     })
   );
 
-  const fetchFolders = async () => {
+  // Helper to check if a file is an image based on extension
+  const isImageFile = useCallback((name: string): boolean => {
+    const imageExtensions = /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)$/i;
+    return imageExtensions.test(name);
+  }, []);
+
+  const fetchFolders = useCallback(async (targetBucket: string) => {
+    console.log(`[StorageImagePicker] Fetching folders from bucket: ${targetBucket}`);
     try {
       const { data, error } = await supabase.storage
-        .from(bucket)
+        .from(targetBucket)
         .list(folder || undefined, { limit: 100 });
 
       if (error) {
@@ -165,29 +172,27 @@ export const StorageImagePicker = ({
     } catch (err) {
       console.error("Error:", err);
     }
-  };
+  }, [folder]);
 
-  // Helper to check if a file is an image based on extension
-  const isImageFile = (name: string): boolean => {
-    const imageExtensions = /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)$/i;
-    return imageExtensions.test(name);
-  };
-
-  const fetchStorageFiles = async (targetFolder: string = selectedFolder) => {
+  const fetchStorageFiles = useCallback(async (targetBucket: string, targetFolder: string = "") => {
+    console.log(`[StorageImagePicker] Fetching files from bucket: ${targetBucket}, folder: ${targetFolder || '(root)'}`);
     setLoadingStorage(true);
     try {
       const allFiles: StorageFile[] = [];
       const basePath = folder ? (targetFolder ? `${folder}/${targetFolder}` : folder) : targetFolder;
       
       const fetchFromPath = async (path: string) => {
+        console.log(`[StorageImagePicker] Listing path: ${path || '(root)'} in bucket: ${targetBucket}`);
         const { data, error } = await supabase.storage
-          .from(bucket)
+          .from(targetBucket)
           .list(path || undefined, { limit: 100, sortBy: { column: 'created_at', order: 'desc' } });
 
         if (error) {
           console.error("Error fetching storage files:", error);
           return;
         }
+
+        console.log(`[StorageImagePicker] Found ${data?.length || 0} items in ${path || '(root)'}`);
 
         for (const item of data || []) {
           if (item.name === '.emptyFolderPlaceholder') continue;
@@ -200,7 +205,7 @@ export const StorageImagePicker = ({
           
           if (hasFileMetadata || looksLikeImage) {
             // It's a file - add it to the list
-            const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fullPath);
+            const { data: urlData } = supabase.storage.from(targetBucket).getPublicUrl(fullPath);
             allFiles.push({ name: item.name, url: urlData.publicUrl });
           } else if (!item.metadata) {
             // It's likely a folder - recurse into it
@@ -210,26 +215,28 @@ export const StorageImagePicker = ({
       };
 
       await fetchFromPath(basePath);
+      console.log(`[StorageImagePicker] Total files found: ${allFiles.length}`);
       setStorageFiles(allFiles);
     } catch (err) {
       console.error("Error:", err);
     } finally {
       setLoadingStorage(false);
     }
-  };
+  }, [folder, isImageFile]);
 
   useEffect(() => {
     if (showPicker) {
-      fetchFolders();
-      fetchStorageFiles();
+      console.log(`[StorageImagePicker] Picker opened, bucket prop is: ${bucket}`);
+      fetchFolders(bucket);
+      fetchStorageFiles(bucket, selectedFolder);
     }
-  }, [showPicker, bucket, folder]);
+  }, [showPicker, bucket, folder, fetchFolders, fetchStorageFiles, selectedFolder]);
 
   useEffect(() => {
-    if (showPicker) {
-      fetchStorageFiles(selectedFolder);
+    if (showPicker && selectedFolder !== "") {
+      fetchStorageFiles(bucket, selectedFolder);
     }
-  }, [selectedFolder]);
+  }, [selectedFolder, showPicker, bucket, fetchStorageFiles]);
 
   const handleFolderSelect = (folderName: string) => {
     setSelectedFolder(folderName);
@@ -350,7 +357,7 @@ export const StorageImagePicker = ({
             
             <button
               type="button"
-              onClick={() => fetchStorageFiles(selectedFolder)}
+              onClick={() => fetchStorageFiles(bucket, selectedFolder)}
               disabled={loadingStorage}
               className="p-1 hover:bg-muted rounded transition-colors"
             >
