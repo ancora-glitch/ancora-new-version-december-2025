@@ -12,7 +12,7 @@ import { useAllProducts } from "@/hooks/useProducts";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Trash2, Pencil, X, GripVertical, Bold, Italic } from "lucide-react";
+import { Trash2, Pencil, X, GripVertical, Bold, Italic, RefreshCw, Loader2 } from "lucide-react";
 import { StorageImagePicker } from "@/components/StorageImagePicker";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import TraderaSearch from "@/components/TraderaSearch";
@@ -139,6 +139,7 @@ const AdminPortal = () => {
   const { data: stories, isLoading: storiesLoading } = useStyleGuides();
   const { data: products, isLoading: productsLoading } = useAllProducts();
   const queryClient = useQueryClient();
+  const [isSyncingPrices, setIsSyncingPrices] = useState(false);
 
   // Story form state
   const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
@@ -430,7 +431,58 @@ const AdminPortal = () => {
             </TabsContent>
 
             {/* TRADERA TAB */}
-            <TabsContent value="tradera">
+            <TabsContent value="tradera" className="space-y-6">
+              {/* Sync Prices Button */}
+              <div className="p-4 border border-border rounded-sm bg-card flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium text-primary">Price Synchronization</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Update prices for all active Tradera products
+                  </p>
+                </div>
+                <Button
+                  onClick={async () => {
+                    setIsSyncingPrices(true);
+                    try {
+                      const { data, error } = await supabase.functions.invoke('tradera-sync');
+                      if (error) {
+                        toast.error('Sync failed: ' + error.message);
+                        return;
+                      }
+                      if (data.error) {
+                        toast.error('Sync failed: ' + data.error);
+                        return;
+                      }
+                      const { summary } = data;
+                      toast.success(
+                        `Sync complete: ${summary.updated} updated, ${summary.ended} ended, ${summary.unchanged} unchanged`
+                      );
+                      queryClient.invalidateQueries({ queryKey: ['products'] });
+                      queryClient.invalidateQueries({ queryKey: ['products-all'] });
+                    } catch (e) {
+                      toast.error('Sync failed');
+                      console.error(e);
+                    } finally {
+                      setIsSyncingPrices(false);
+                    }
+                  }}
+                  disabled={isSyncingPrices}
+                  variant="outline"
+                >
+                  {isSyncingPrices ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Sync Prices Now
+                    </>
+                  )}
+                </Button>
+              </div>
+              
               <TraderaSearch />
             </TabsContent>
 
