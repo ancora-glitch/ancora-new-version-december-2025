@@ -6,27 +6,67 @@ import type { Json } from "@/integrations/supabase/types";
 // Track a page view
 export const trackPageView = async (pagePath: string) => {
   try {
-    await supabase.from("site_analytics").insert([{
+    const { error } = await supabase.from("site_analytics").insert([{
       event_type: "page_view",
       page_path: pagePath,
     }]);
+    if (error) {
+      console.error("Analytics page view error:", error);
+    }
   } catch (error) {
     // Silently fail - analytics should not break the app
     console.error("Analytics error:", error);
   }
 };
 
-// Track a click event
-export const trackClick = async (pagePath: string, metadata?: Json) => {
+// Track a click event (product clicks, buy now clicks, etc.)
+export const trackClick = async (eventType: string, pagePath: string, metadata?: Json) => {
   try {
-    await supabase.from("site_analytics").insert([{
-      event_type: "click",
+    // Don't track clicks on admin pages
+    if (window.location.pathname.startsWith("/admin")) {
+      return;
+    }
+    
+    const { error } = await supabase.from("site_analytics").insert([{
+      event_type: eventType,
       page_path: pagePath,
       metadata: metadata || {},
     }]);
+    
+    if (error) {
+      console.error("Analytics click error:", error);
+    }
   } catch (error) {
     console.error("Analytics error:", error);
   }
+};
+
+// Convenience function for tracking product card clicks
+export const trackProductClick = async (productId: string, productName: string, brand: string) => {
+  return trackClick("product_click", "/products", {
+    product_id: productId,
+    product_name: productName,
+    brand: brand,
+    type: "product_card"
+  });
+};
+
+// Convenience function for tracking Buy Now button clicks
+export const trackBuyNowClick = async (
+  productId: string, 
+  productName: string, 
+  brand: string, 
+  price: string,
+  destination: string
+) => {
+  return trackClick("buy_now_click", "/buy-now", {
+    product_id: productId,
+    product_name: productName,
+    brand: brand,
+    price: price,
+    destination: destination,
+    type: "buy_now_click"
+  });
 };
 
 // Hook to automatically track page views on route changes
@@ -81,13 +121,13 @@ export const usePageViewTracking = () => {
 
 // Hook to get a click tracker function
 export const useClickTracker = () => {
-  const trackProjectClick = useCallback((projectName: string) => {
-    trackClick("/projects", { project_name: projectName, type: "project_card" });
+  const trackProjectClickFn = useCallback((projectName: string) => {
+    trackClick("click", "/projects", { project_name: projectName, type: "project_card" });
   }, []);
 
-  const trackProductClick = useCallback((productName: string, productId: string) => {
-    trackClick("/products", { product_name: productName, product_id: productId, type: "product_card" });
+  const trackProductClickFn = useCallback((productName: string, productId: string, brand: string) => {
+    trackProductClick(productId, productName, brand);
   }, []);
 
-  return { trackProjectClick, trackProductClick };
+  return { trackProjectClick: trackProjectClickFn, trackProductClick: trackProductClickFn };
 };

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { X, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { RedirectModal } from "./RedirectModal";
-import { trackClick } from "@/hooks/useAnalytics";
+import { trackBuyNowClick } from "@/hooks/useAnalytics";
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -50,14 +50,9 @@ export const ProductModal = ({
 
   const handleBuyNowClick = () => {
     // Track the Buy Now click for purchase intent
-    trackClick("/buy-now", {
-      product_id: productId,
-      product_name: name,
-      brand: brand,
-      price: price,
-      destination: destinationName,
-      type: "buy_now_click"
-    });
+    if (productId) {
+      trackBuyNowClick(productId, name, brand, price, destinationName);
+    }
     setIsRedirectModalOpen(true);
   };
 
