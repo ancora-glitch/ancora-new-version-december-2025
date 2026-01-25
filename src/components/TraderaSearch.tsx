@@ -286,14 +286,17 @@ const TraderaSearch = () => {
                 className="border border-border rounded-sm bg-card overflow-hidden group"
               >
                 {/* Image */}
-                <div className="aspect-square relative bg-muted">
+                <div className="aspect-[3/4] relative bg-muted overflow-hidden">
                   {item.thumbnailLink ? (
-                    <img
-                      src={item.thumbnailLink}
-                      alt={item.shortDescription}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
+                    <>
+                      <img
+                        src={item.thumbnailLink}
+                        alt={item.shortDescription}
+                        className="w-full h-full object-cover object-[center_25%]"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-black/10" />
+                    </>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                       No image
