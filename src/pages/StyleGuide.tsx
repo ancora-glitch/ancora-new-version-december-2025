@@ -4,6 +4,7 @@ import { Footer } from "@/components/Footer";
 import { useStyleGuide } from "@/hooks/useStyleGuides";
 import { ArrowLeft } from "lucide-react";
 import DOMPurify from "dompurify";
+import { SmartCropImage } from "@/components/SmartCropImage";
 
 // Convert markdown-style formatting to HTML
 const convertMarkdownFormatting = (text: string): string => {
@@ -119,17 +120,19 @@ const StyleGuide = () => {
       <Header />
       
       <main className="pt-20 md:pt-24">
-        {/* Mobile/Tablet: Full-width hero image */}
+        {/* Mobile/Tablet: Full-width hero image with smart cropping */}
         <div className="lg:hidden relative w-full aspect-[16/9] md:aspect-[21/9] overflow-hidden">
-          <img
+          <SmartCropImage
             src={guide.image}
             alt={guide.title}
             loading="lazy"
             width={1920}
             height={823}
-            className="w-full h-full object-cover object-top"
+            containerClassName="w-full h-full"
+            className="w-full h-full object-cover"
+            fallbackPosition="50% 25%"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
         </div>
 
         {/* Desktop: Two-column editorial layout */}
@@ -180,16 +183,16 @@ const StyleGuide = () => {
 
             {/* Right Column: Featured Image (Desktop only) */}
             <aside className="hidden lg:block pt-20 sticky top-24 self-start">
-              <div className="relative overflow-hidden">
-                <img
-                  src={guide.image}
-                  alt={guide.title}
-                  loading="lazy"
-                  width={600}
-                  height={800}
-                  className="w-full h-auto object-cover object-top"
-                />
-              </div>
+              <SmartCropImage
+                src={guide.image}
+                alt={guide.title}
+                loading="lazy"
+                width={600}
+                height={800}
+                containerClassName="relative overflow-hidden"
+                className="w-full h-auto object-cover"
+                fallbackPosition="50% 25%"
+              />
             </aside>
           </div>
         </div>
