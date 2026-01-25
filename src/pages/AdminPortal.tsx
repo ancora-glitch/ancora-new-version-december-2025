@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Trash2, Pencil, X, GripVertical, Bold, Italic } from "lucide-react";
 import { StorageImagePicker } from "@/components/StorageImagePicker";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
+import TraderaSearch from "@/components/TraderaSearch";
 import {
   DndContext,
   closestCenter,
@@ -416,8 +417,9 @@ const AdminPortal = () => {
           </p>
 
           <Tabs defaultValue="statistics" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-8">
+            <TabsList className="grid w-full grid-cols-4 mb-8">
               <TabsTrigger value="statistics">Statistics</TabsTrigger>
+              <TabsTrigger value="tradera">Tradera</TabsTrigger>
               <TabsTrigger value="products">Products</TabsTrigger>
               <TabsTrigger value="stories">Stories</TabsTrigger>
             </TabsList>
@@ -425,6 +427,11 @@ const AdminPortal = () => {
             {/* STATISTICS TAB */}
             <TabsContent value="statistics">
               <AnalyticsDashboard />
+            </TabsContent>
+
+            {/* TRADERA TAB */}
+            <TabsContent value="tradera">
+              <TraderaSearch />
             </TabsContent>
 
             {/* PRODUCTS TAB */}

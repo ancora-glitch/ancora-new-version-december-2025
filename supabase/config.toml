@@ -1,1 +1,7 @@
 project_id = "bxfciyyzgidrvhuelncp"
+
+[functions.tradera-search]
+verify_jwt = false
+
+[functions.tradera-item]
+verify_jwt = false
