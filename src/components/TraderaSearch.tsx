@@ -279,89 +279,89 @@ const TraderaSearch = () => {
           <h2 className="font-display text-lg text-primary mb-4">
             Results ({results.length})
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {results.map((item) => (
-              <div
-                key={item.id}
-                className="border border-border rounded-sm bg-card overflow-hidden group"
-              >
-                {/* Image */}
-                <div className="aspect-[3/4] relative bg-muted overflow-hidden">
-                  {item.thumbnailLink ? (
-                    <>
-                      <img
-                        src={item.thumbnailLink}
-                        alt={item.shortDescription}
-                        className="w-full h-full object-cover object-[center_25%]"
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0 bg-black/10" />
-                    </>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                      No image
-                    </div>
-                  )}
-                  {/* External link overlay */}
-                  <a
-                    href={item.itemLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="absolute top-2 right-2 p-2 bg-background/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                </div>
-
-                {/* Content */}
-                <div className="p-4 space-y-3">
-                  <div>
-                    {item.brandName && (
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                        {item.brandName}
-                      </p>
-                    )}
-                    <h3 className="font-medium text-primary line-clamp-2 text-sm">
-                      {item.shortDescription}
-                    </h3>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="font-display text-lg">
-                      {Math.round(item.price)} SEK
-                    </span>
-                    {item.bids !== undefined && (
-                      <span className="text-xs text-muted-foreground">
-                        {item.bids} bud
-                      </span>
-                    )}
-                  </div>
-
-                  <Button
-                    onClick={() => handleImport(item)}
-                    disabled={importingIds.has(item.id) || importedIds.has(item.id)}
-                    variant={importedIds.has(item.id) ? "secondary" : "default"}
-                    className="w-full"
-                    size="sm"
-                  >
-                    {importingIds.has(item.id) ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+            {results.map((item) => {
+              // Prefer high-res image, fall back to thumbnail
+              const imageUrl = item.imageLinks?.[0] || item.thumbnailLink;
+              
+              return (
+                <div
+                  key={item.id}
+                  className="border border-border rounded-sm bg-card overflow-hidden group"
+                >
+                  {/* Image - Fixed 120x120 square */}
+                  <div className="relative bg-muted overflow-hidden" style={{ width: '100%', aspectRatio: '1/1' }}>
+                    {imageUrl ? (
                       <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Importing...
-                      </>
-                    ) : importedIds.has(item.id) ? (
-                      <>
-                        <Check className="w-4 h-4 mr-2" />
-                        Added
+                        <img
+                          src={imageUrl}
+                          alt={item.shortDescription}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          style={{ maxWidth: '100%', maxHeight: '100%' }}
+                        />
+                        <div className="absolute inset-0 bg-black/5" />
                       </>
                     ) : (
-                      "Import to Ancora"
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                        No image
+                      </div>
                     )}
-                  </Button>
+                    {/* External link overlay */}
+                    <a
+                      href={item.itemLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="absolute top-1 right-1 p-1.5 bg-background/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+
+                  {/* Content - Compact */}
+                  <div className="p-2 space-y-1.5">
+                    <div>
+                      {item.brandName && (
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide truncate">
+                          {item.brandName}
+                        </p>
+                      )}
+                      <h3 className="font-medium text-primary line-clamp-1 text-xs">
+                        {item.shortDescription}
+                      </h3>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="font-display text-sm">
+                        {Math.round(item.price)} SEK
+                      </span>
+                      {item.bids !== undefined && (
+                        <span className="text-[10px] text-muted-foreground">
+                          {item.bids} bud
+                        </span>
+                      )}
+                    </div>
+
+                    <Button
+                      onClick={() => handleImport(item)}
+                      disabled={importingIds.has(item.id) || importedIds.has(item.id)}
+                      variant={importedIds.has(item.id) ? "secondary" : "default"}
+                      className="w-full h-7 text-xs"
+                      size="sm"
+                    >
+                      {importingIds.has(item.id) ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : importedIds.has(item.id) ? (
+                        <Check className="w-3 h-3" />
+                      ) : (
+                        "Import"
+                      )}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

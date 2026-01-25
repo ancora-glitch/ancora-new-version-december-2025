@@ -163,6 +163,15 @@ function parseTraderaResponse(xml: string): TraderaItem[] {
       
       if (!id || !shortDesc) continue;
 
+      // Extract all image links - prefer higher resolution
+      const imageLinks: string[] = [];
+      const imageLink = extractText(itemXml, 'ImageLink');
+      const thumbnailLink = extractText(itemXml, 'ThumbnailLink');
+      
+      // ImageLink is typically higher resolution than ThumbnailLink
+      if (imageLink) imageLinks.push(imageLink);
+      if (thumbnailLink && thumbnailLink !== imageLink) imageLinks.push(thumbnailLink);
+
       const item: TraderaItem = {
         id,
         shortDescription: shortDesc,
@@ -171,8 +180,8 @@ function parseTraderaResponse(xml: string): TraderaItem[] {
                extractNumber(itemXml, 'NextBid') ||
                extractNumber(itemXml, 'BuyItNowPrice') || 0,
         buyItNowPrice: extractNumber(itemXml, 'BuyItNowPrice'),
-        thumbnailLink: extractText(itemXml, 'ThumbnailLink') || 
-                       extractText(itemXml, 'ImageLink'),
+        thumbnailLink: thumbnailLink || imageLink,
+        imageLinks: imageLinks.length > 0 ? imageLinks : undefined,
         itemLink: `https://www.tradera.com/item/${id}`,
         categoryId: extractNumber(itemXml, 'CategoryId') || 0,
         sellerId: extractNumber(itemXml, 'SellerId') || 0,
