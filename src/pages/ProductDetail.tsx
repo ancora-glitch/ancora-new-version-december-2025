@@ -225,9 +225,9 @@ const ProductDetail = () => {
 
                 {/* Marketplace */}
                 {product.marketplace && (
-                  <p className="text-sm text-muted-foreground">
-                    Available on <span className="font-medium text-foreground">{product.marketplace}</span>
-                  </p>
+                  <span className="inline-flex items-center px-3 py-1 text-xs uppercase tracking-wider text-muted-foreground bg-muted rounded-full">
+                    {product.marketplace}
+                  </span>
                 )}
 
                 {/* Divider */}
