@@ -163,14 +163,40 @@ function parseTraderaResponse(xml: string): TraderaItem[] {
       
       if (!id || !shortDesc) continue;
 
-      // Extract all image links - prefer higher resolution
+      // Extract all image URLs from ImageLinks section
       const imageLinks: string[] = [];
-      const imageLink = extractText(itemXml, 'ImageLink');
-      const thumbnailLink = extractText(itemXml, 'ThumbnailLink');
+      const imageLinksMatch = itemXml.match(/<ImageLinks>([\s\S]*?)<\/ImageLinks>/i);
+      if (imageLinksMatch) {
+        const imageLinksXml = imageLinksMatch[1];
+        // Extract all <Url> values
+        const urlMatches = imageLinksXml.matchAll(/<Url>([^<]+)<\/Url>/gi);
+        for (const match of urlMatches) {
+          const url = match[1].trim();
+          if (url) {
+            // Ensure HTTPS
+            imageLinks.push(url.replace(/^http:\/\//i, 'https://'));
+          }
+        }
+      }
       
-      // ImageLink is typically higher resolution than ThumbnailLink
-      if (imageLink) imageLinks.push(imageLink);
-      if (thumbnailLink && thumbnailLink !== imageLink) imageLinks.push(thumbnailLink);
+      // Get thumbnail as fallback
+      let thumbnailLink = extractText(itemXml, 'ThumbnailLink');
+      if (thumbnailLink) {
+        thumbnailLink = thumbnailLink.replace(/^http:\/\//i, 'https://');
+      }
+      
+      // Find the best image: prefer 'normal' or 'images' (highest res), then 'medium', then thumbnail
+      let bestImage = thumbnailLink;
+      for (const url of imageLinks) {
+        if (url.includes('/images/') || url.includes('/normal/')) {
+          bestImage = url;
+          break;
+        } else if (url.includes('/medium/') && !bestImage?.includes('/images/')) {
+          bestImage = url;
+        }
+      }
+      
+      console.log(`Item ${id} - Best image: ${bestImage}, All images: ${imageLinks.length}`);
 
       const item: TraderaItem = {
         id,
@@ -180,7 +206,7 @@ function parseTraderaResponse(xml: string): TraderaItem[] {
                extractNumber(itemXml, 'NextBid') ||
                extractNumber(itemXml, 'BuyItNowPrice') || 0,
         buyItNowPrice: extractNumber(itemXml, 'BuyItNowPrice'),
-        thumbnailLink: thumbnailLink || imageLink,
+        thumbnailLink: bestImage || thumbnailLink,
         imageLinks: imageLinks.length > 0 ? imageLinks : undefined,
         itemLink: `https://www.tradera.com/item/${id}`,
         categoryId: extractNumber(itemXml, 'CategoryId') || 0,

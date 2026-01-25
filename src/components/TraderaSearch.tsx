@@ -281,16 +281,22 @@ const TraderaSearch = () => {
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             {results.map((item) => {
-              // Prefer high-res image, fall back to thumbnail
-              const imageUrl = item.imageLinks?.[0] || item.thumbnailLink;
+              // Use thumbnailLink which now contains the best available image
+              const imageUrl = item.thumbnailLink;
+              
+              // Debug log
+              console.log(`Tradera item ${item.id}:`, { 
+                thumbnailLink: item.thumbnailLink, 
+                imageLinks: item.imageLinks 
+              });
               
               return (
                 <div
                   key={item.id}
                   className="border border-border rounded-sm bg-card overflow-hidden group"
                 >
-                  {/* Image - Fixed 120x120 square */}
-                  <div className="relative bg-muted overflow-hidden" style={{ width: '100%', aspectRatio: '1/1' }}>
+                  {/* Image - Fixed square with 1:1 aspect ratio */}
+                  <div className="relative bg-muted overflow-hidden aspect-square">
                     {imageUrl ? (
                       <>
                         <img
@@ -298,8 +304,16 @@ const TraderaSearch = () => {
                           alt={item.shortDescription}
                           className="w-full h-full object-cover"
                           loading="lazy"
-                          style={{ maxWidth: '100%', maxHeight: '100%' }}
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            console.error(`Image failed to load: ${imageUrl}`);
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            (e.target as HTMLImageElement).parentElement!.querySelector('.error-placeholder')?.classList.remove('hidden');
+                          }}
                         />
+                        <div className="error-placeholder hidden w-full h-full flex items-center justify-center text-muted-foreground text-xs absolute inset-0 bg-muted">
+                          Image missing
+                        </div>
                         <div className="absolute inset-0 bg-black/5" />
                       </>
                     ) : (
