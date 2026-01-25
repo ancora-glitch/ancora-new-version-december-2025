@@ -223,6 +223,13 @@ const ProductDetail = () => {
                   </p>
                 )}
 
+                {/* Marketplace */}
+                {product.marketplace && (
+                  <p className="text-sm text-muted-foreground">
+                    Available on <span className="font-medium text-foreground">{product.marketplace}</span>
+                  </p>
+                )}
+
                 {/* Divider */}
                 <div className="border-t border-border" />
 
