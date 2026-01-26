@@ -6,10 +6,21 @@ import { ArrowLeft } from "lucide-react";
 import DOMPurify from "dompurify";
 import { SmartCropImage } from "@/components/SmartCropImage";
 
+// Convert markdown-style image syntax to HTML figure elements
+const convertInlineImages = (text: string): string => {
+  // Match ![caption](url) syntax - caption is optional
+  return text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, caption, url) => {
+    const captionHtml = caption ? `<figcaption class="article-image-caption">${caption}</figcaption>` : '';
+    return `</p><figure class="article-inline-image"><img src="${url}" alt="${caption || 'Article image'}" loading="lazy" />${captionHtml}</figure><p>`;
+  });
+};
+
 // Convert markdown-style formatting to HTML
 const convertMarkdownFormatting = (text: string): string => {
-  // Convert **bold** to <strong> first (greedy match for double asterisks)
-  let result = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // First convert inline images
+  let result = convertInlineImages(text);
+  // Convert **bold** to <strong> (greedy match for double asterisks)
+  result = result.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   // Convert *italic* to <em> (after bold is processed, only single asterisks remain)
   result = result.replace(/\*(.+?)\*/g, '<em>$1</em>');
   return result;
