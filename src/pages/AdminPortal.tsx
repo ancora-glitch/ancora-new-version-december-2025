@@ -12,7 +12,8 @@ import { useAllProducts } from "@/hooks/useProducts";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Trash2, Pencil, X, GripVertical, Bold, Italic, RefreshCw, Loader2 } from "lucide-react";
+import { Trash2, Pencil, X, GripVertical, Bold, Italic, RefreshCw, Loader2, Image as ImageIcon } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StorageImagePicker } from "@/components/StorageImagePicker";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import TraderaSearch from "@/components/TraderaSearch";
@@ -149,6 +150,9 @@ const AdminPortal = () => {
   const [storyBody, setStoryBody] = useState("");
   const [storySlug, setStorySlug] = useState("");
   const [savingStory, setSavingStory] = useState(false);
+  const [showInlineImagePicker, setShowInlineImagePicker] = useState(false);
+  const [inlineImageCaption, setInlineImageCaption] = useState("");
+  const [selectedInlineImage, setSelectedInlineImage] = useState<string[]>([]);
 
   // Product form state
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
@@ -710,9 +714,21 @@ const AdminPortal = () => {
                       <Italic className="w-4 h-4" />
                       Italic
                     </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setShowInlineImagePicker(true);
+                      }}
+                      className="gap-1"
+                    >
+                      <ImageIcon className="w-4 h-4" />
+                      Insert Image
+                    </Button>
                   </div>
                   <p className="text-xs text-muted-foreground mb-2">
-                    Use **text** for bold and *text* for italic
+                    Use **text** for bold, *text* for italic, and ![caption](url) for images
                   </p>
                   <Textarea id="storyBody" value={storyBody} onChange={(e) => setStoryBody(e.target.value)} placeholder="The full story content..." className="bg-background border-border min-h-[200px] font-mono text-sm" />
                 </div>
@@ -721,6 +737,81 @@ const AdminPortal = () => {
                   {savingStory ? "Saving..." : editingStoryId ? "Update Story" : "Save Story"}
                 </Button>
               </form>
+
+              {/* Inline Image Picker Dialog */}
+              <Dialog open={showInlineImagePicker} onOpenChange={setShowInlineImagePicker}>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>Insert Image in Article</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Select Image</Label>
+                      <StorageImagePicker 
+                        images={selectedInlineImage} 
+                        onImagesChange={setSelectedInlineImage} 
+                        bucket="guide-images" 
+                        singleImage={true}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="inlineCaption">Caption (optional)</Label>
+                      <Input 
+                        id="inlineCaption" 
+                        value={inlineImageCaption} 
+                        onChange={(e) => setInlineImageCaption(e.target.value)} 
+                        placeholder="Describe the image..."
+                        className="bg-background border-border"
+                      />
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => {
+                          setShowInlineImagePicker(false);
+                          setSelectedInlineImage([]);
+                          setInlineImageCaption("");
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        type="button" 
+                        disabled={selectedInlineImage.length === 0}
+                        onClick={() => {
+                          if (selectedInlineImage.length > 0) {
+                            const textarea = document.getElementById("storyBody") as HTMLTextAreaElement;
+                            const imageMarkdown = `![${inlineImageCaption}](${selectedInlineImage[0]})`;
+                            
+                            if (textarea) {
+                              const start = textarea.selectionStart;
+                              const text = storyBody;
+                              // Insert on a new line for better formatting
+                              const before = text.substring(0, start);
+                              const after = text.substring(start);
+                              const needsNewlineBefore = before.length > 0 && !before.endsWith('\n');
+                              const needsNewlineAfter = after.length > 0 && !after.startsWith('\n');
+                              const newText = before + (needsNewlineBefore ? '\n\n' : '') + imageMarkdown + (needsNewlineAfter ? '\n\n' : '') + after;
+                              setStoryBody(newText);
+                            } else {
+                              // Fallback: append to end
+                              setStoryBody(storyBody + '\n\n' + imageMarkdown + '\n\n');
+                            }
+                            
+                            setShowInlineImagePicker(false);
+                            setSelectedInlineImage([]);
+                            setInlineImageCaption("");
+                            toast.success("Image inserted");
+                          }
+                        }}
+                      >
+                        Insert Image
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
 
               {/* Stories List */}
               <div>
