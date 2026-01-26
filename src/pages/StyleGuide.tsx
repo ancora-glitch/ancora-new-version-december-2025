@@ -182,7 +182,7 @@ const StyleGuide = () => {
             </article>
 
             {/* Right Column: Featured Image (Desktop only) */}
-            <aside className="hidden lg:block pt-20 sticky top-24 self-start">
+            <aside className="hidden lg:block pt-20">
               <SmartCropImage
                 src={guide.image}
                 alt={guide.title}
