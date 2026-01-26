@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Search, Loader2, Check, ExternalLink } from "lucide-react";
+import { Search, Loader2, Check, ExternalLink, Languages } from "lucide-react";
 
 interface TraderaItem {
   id: number;
@@ -41,6 +41,21 @@ interface TraderaItemDetail {
   size?: string;
   material?: string;
   attributes: Record<string, string>;
+}
+
+interface TranslationResult {
+  name: string;
+  description: string;
+  condition: string;
+  material: string;
+  size: string;
+  original: {
+    name: string;
+    description: string;
+    condition: string;
+    material: string;
+    size: string;
+  };
 }
 
 const TraderaSearch = () => {
@@ -135,6 +150,48 @@ const TraderaSearch = () => {
     return "Good";
   };
 
+  const translateContent = async (
+    name: string,
+    description: string,
+    condition: string,
+    material: string,
+    size: string,
+    brand: string
+  ): Promise<TranslationResult> => {
+    try {
+      console.log('Translating Swedish content...');
+      const { data, error } = await supabase.functions.invoke("translate-swedish", {
+        body: { name, description, condition, material, size, brand },
+      });
+
+      if (error) {
+        console.error("Translation error:", error);
+        // Return original content if translation fails
+        return {
+          name,
+          description,
+          condition,
+          material,
+          size,
+          original: { name, description, condition, material, size },
+        };
+      }
+
+      console.log('Translation successful:', data);
+      return data as TranslationResult;
+    } catch (e) {
+      console.error("Translation error:", e);
+      return {
+        name,
+        description,
+        condition,
+        material,
+        size,
+        original: { name, description, condition, material, size },
+      };
+    }
+  };
+
   const createSlug = (brand: string, name: string): string => {
     const combined = `${brand}-${name}`;
     return combined
@@ -156,34 +213,53 @@ const TraderaSearch = () => {
       const details = await fetchItemDetails(item.id);
       
       // Use details if available, otherwise fall back to search result data
-      const brand = details?.brand || item.brandName || "Unknown";
-      const name = details?.shortDescription || item.shortDescription;
+      const brandName = details?.brand || item.brandName || "Unknown";
+      const originalName = details?.shortDescription || item.shortDescription;
       const price = `${Math.round(details?.price || item.price)} SEK`;
       const mainImage = details?.imageLinks?.[0] || item.thumbnailLink || "";
       const additionalImages = details?.imageLinks?.slice(1) || item.imageLinks?.slice(1) || [];
-      const description = details?.longDescription || item.longDescription || "";
-      const condition = mapCondition(details?.condition || item.condition);
-      const material = details?.material || "";
-      const size = details?.size || "";
+      const originalDescription = details?.longDescription || item.longDescription || "";
+      const originalCondition = details?.condition || item.condition || "";
+      const originalMaterial = details?.material || "";
+      const originalSize = details?.size || "";
       const affiliateUrl = details?.itemLink || item.itemLink;
-      const slug = createSlug(brand, name);
 
-      // Insert into products table
+      // Translate Swedish content to English
+      toast.info("Translating content...", { duration: 2000 });
+      const translated = await translateContent(
+        originalName,
+        originalDescription,
+        originalCondition,
+        originalMaterial,
+        originalSize,
+        brandName
+      );
+
+      // Map condition to standardized values
+      const mappedCondition = mapCondition(translated.condition);
+      const slug = createSlug(brandName, translated.name);
+
+      // Insert into products table with both translated and original Swedish content
       const { error } = await supabase.from("products").insert({
-        brand,
-        name,
+        brand: brandName,
+        name: translated.name,
+        name_sv: translated.original.name,
         price,
         image: mainImage,
         additional_images: additionalImages,
-        description,
-        condition,
-        material: material || null,
-        size: size || null,
+        description: translated.description,
+        description_sv: translated.original.description,
+        condition: mappedCondition,
+        condition_sv: translated.original.condition,
+        material: translated.material || null,
+        material_sv: translated.original.material || null,
+        size: translated.size || null,
+        size_sv: translated.original.size || null,
         affiliate_url: affiliateUrl,
         status: "active",
         marketplace: "Tradera",
         slug,
-      });
+      } as any);
 
       if (error) {
         console.error("Import error:", error);
@@ -196,7 +272,7 @@ const TraderaSearch = () => {
         return;
       }
 
-      toast.success("Product Added!");
+      toast.success("Product imported and translated!");
       setImportedIds((prev) => new Set(prev).add(item.id));
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["products-all"] });

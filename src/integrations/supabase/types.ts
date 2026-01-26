@@ -20,15 +20,20 @@ export type Database = {
           affiliate_url: string | null
           brand: string
           condition: string | null
+          condition_sv: string | null
           created_at: string
           description: string | null
+          description_sv: string | null
           id: string
           image: string
           marketplace: string | null
           material: string | null
+          material_sv: string | null
           name: string
+          name_sv: string | null
           price: string
           size: string | null
+          size_sv: string | null
           slug: string | null
           sort_order: number | null
           status: Database["public"]["Enums"]["product_status"]
@@ -39,15 +44,20 @@ export type Database = {
           affiliate_url?: string | null
           brand: string
           condition?: string | null
+          condition_sv?: string | null
           created_at?: string
           description?: string | null
+          description_sv?: string | null
           id?: string
           image: string
           marketplace?: string | null
           material?: string | null
+          material_sv?: string | null
           name: string
+          name_sv?: string | null
           price: string
           size?: string | null
+          size_sv?: string | null
           slug?: string | null
           sort_order?: number | null
           status?: Database["public"]["Enums"]["product_status"]
@@ -58,15 +68,20 @@ export type Database = {
           affiliate_url?: string | null
           brand?: string
           condition?: string | null
+          condition_sv?: string | null
           created_at?: string
           description?: string | null
+          description_sv?: string | null
           id?: string
           image?: string
           marketplace?: string | null
           material?: string | null
+          material_sv?: string | null
           name?: string
+          name_sv?: string | null
           price?: string
           size?: string | null
+          size_sv?: string | null
           slug?: string | null
           sort_order?: number | null
           status?: Database["public"]["Enums"]["product_status"]
