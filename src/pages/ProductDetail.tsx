@@ -55,7 +55,8 @@ const ProductDetail = () => {
         .from("products")
         .select("*")
         .eq("slug", slug)
-        .eq("status", "active")
+        // Support both legacy `published` and canonical `active` visible statuses
+        .in("status", ["active", "published"])
         .maybeSingle();
 
       if (error) throw error;

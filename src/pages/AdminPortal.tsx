@@ -54,18 +54,14 @@ interface Product {
   sort_order?: number | null;
 }
 
+const isPublishedStatus = (status: ProductStatus) => status === "active" || status === "published";
+
 // Status badge helper
 const getStatusBadge = (status: ProductStatus) => {
-  switch (status) {
-    case "published":
-      return <Badge className="bg-green-600 hover:bg-green-700 text-white">Published</Badge>;
-    case "draft":
-      return <Badge variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-200">Draft</Badge>;
-    case "sold":
-      return <Badge variant="outline" className="border-muted-foreground/50 text-muted-foreground">Sold</Badge>;
-    default:
-      return <Badge variant="outline">{status}</Badge>;
-  }
+  if (isPublishedStatus(status)) return <Badge>Published</Badge>;
+  if (status === "draft") return <Badge variant="secondary">Draft</Badge>;
+  if (status === "sold") return <Badge variant="outline">Sold</Badge>;
+  return <Badge variant="outline">{status}</Badge>;
 };
 
 // Sortable Product Item Component
@@ -137,9 +133,9 @@ const SortableProductItem = ({ product, editingProductId, onEdit, onDelete, onTo
               onTogglePublish(product);
             }}
             className="text-muted-foreground hover:text-primary hover:bg-primary/10"
-            title={product.status === "published" ? "Unpublish (move to draft)" : "Publish"}
+            title={isPublishedStatus(product.status) ? "Unpublish (move to draft)" : "Publish"}
           >
-            {product.status === "published" ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            {isPublishedStatus(product.status) ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </Button>
         )}
         <Button
@@ -202,7 +198,7 @@ const AdminPortal = () => {
   const [productMaterial, setProductMaterial] = useState("");
   const [productStatus, setProductStatus] = useState<ProductStatus>("draft");
   const [savingProduct, setSavingProduct] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<ProductStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "active" | "sold">("all");
 
   // Auto-generate slug from title (only when creating new story)
   const handleStoryTitleChange = (value: string) => {
@@ -264,7 +260,8 @@ const AdminPortal = () => {
     setProductMarketplace(product.marketplace || "");
     setProductCondition(product.condition || "");
     setProductMaterial(product.material || "");
-    setProductStatus(product.status);
+    // Normalize legacy 'published' to 'active' for the UI
+    setProductStatus(product.status === "published" ? "active" : product.status);
     
     // Scroll to form
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -396,7 +393,7 @@ const AdminPortal = () => {
   };
 
   const handleTogglePublish = async (product: Product) => {
-    const newStatus: ProductStatus = product.status === "published" ? "draft" : "published";
+    const newStatus: ProductStatus = isPublishedStatus(product.status) ? "draft" : "active";
     const { error } = await supabase
       .from("products")
       .update({ status: newStatus })
@@ -405,16 +402,18 @@ const AdminPortal = () => {
     if (error) {
       toast.error("Failed to update status: " + error.message);
     } else {
-      toast.success(newStatus === "published" ? "Product published" : "Product moved to drafts");
+      toast.success(newStatus === "active" ? "Product published" : "Product moved to drafts");
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["products-all"] });
     }
   };
 
   // Filter products based on status
-  const filteredProducts = products?.filter(p => 
-    statusFilter === "all" ? true : p.status === statusFilter
-  );
+  const filteredProducts = products?.filter((p) => {
+    if (statusFilter === "all") return true;
+    if (statusFilter === "active") return isPublishedStatus(p.status);
+    return p.status === statusFilter;
+  });
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -598,7 +597,7 @@ const AdminPortal = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="draft">Draft</SelectItem>
-                        <SelectItem value="published">Published</SelectItem>
+                        <SelectItem value="active">Published</SelectItem>
                         <SelectItem value="sold">Sold</SelectItem>
                       </SelectContent>
                     </Select>
@@ -650,14 +649,14 @@ const AdminPortal = () => {
                   </h2>
                   <div className="flex items-center gap-2">
                     <Filter className="w-4 h-4 text-muted-foreground" />
-                    <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as ProductStatus | "all")}>
+                    <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "all" | "draft" | "active" | "sold")}>
                       <SelectTrigger className="w-[140px] bg-background border-border">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All</SelectItem>
                         <SelectItem value="draft">Drafts</SelectItem>
-                        <SelectItem value="published">Published</SelectItem>
+                        <SelectItem value="active">Published</SelectItem>
                         <SelectItem value="sold">Sold</SelectItem>
                       </SelectContent>
                     </Select>
