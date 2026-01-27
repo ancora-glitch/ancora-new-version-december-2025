@@ -239,7 +239,8 @@ const TraderaSearch = () => {
       const mappedCondition = mapCondition(translated.condition);
       const slug = createSlug(brandName, translated.name);
 
-      // Insert into products table with both translated and original Swedish content
+      // Insert into products table with 'draft' status for manual review
+      // All Tradera imports start as drafts regardless of source data
       const { error } = await supabase.from("products").insert({
         brand: brandName,
         name: translated.name,
@@ -256,7 +257,7 @@ const TraderaSearch = () => {
         size: translated.size || null,
         size_sv: translated.original.size || null,
         affiliate_url: affiliateUrl,
-        status: "active",
+        status: "draft", // Always import as draft for manual review
         marketplace: "Tradera",
         slug,
       } as any);
@@ -272,7 +273,9 @@ const TraderaSearch = () => {
         return;
       }
 
-      toast.success("Product imported and translated!");
+      toast.success("Product imported as draft. Go to the Products tab to review and publish.", {
+        duration: 5000,
+      });
       setImportedIds((prev) => new Set(prev).add(item.id));
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["products-all"] });
