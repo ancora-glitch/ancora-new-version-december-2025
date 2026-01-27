@@ -7,12 +7,21 @@ import { Button } from "@/components/ui/button";
 
 type DateRange = "7days" | "30days" | "all";
 
+interface TopProduct {
+  product_id: string;
+  product_name: string;
+  brand: string;
+  clicks: number;
+  purchases: number;
+}
+
 interface AnalyticsSummary {
   totalViews: number;
   totalClicks: number;
   buyNowClicks: number;
   popularPages: { page_path: string; count: number }[];
   recentActivity: { date: string; views: number; clicks: number; buyNow: number }[];
+  topProducts: TopProduct[];
 }
 
 const getDateRangeStart = (range: DateRange): Date | null => {
@@ -138,12 +147,75 @@ export const AnalyticsDashboard = () => {
         .map(([date, data]) => ({ date, ...data }))
         .slice(-chartDays);
 
+      // Get top products by clicks and purchases
+      let productClicksQuery = supabase
+        .from("site_analytics")
+        .select("metadata")
+        .eq("event_type", "product_click");
+      
+      if (rangeStart) {
+        productClicksQuery = productClicksQuery.gte("created_at", rangeStart.toISOString());
+      }
+      
+      const { data: productClicks } = await productClicksQuery;
+
+      let purchaseClicksQuery = supabase
+        .from("site_analytics")
+        .select("metadata")
+        .eq("event_type", "buy_now_click");
+      
+      if (rangeStart) {
+        purchaseClicksQuery = purchaseClicksQuery.gte("created_at", rangeStart.toISOString());
+      }
+      
+      const { data: purchaseClicks } = await purchaseClicksQuery;
+
+      // Aggregate product data
+      const productStats: Record<string, TopProduct> = {};
+      
+      productClicks?.forEach((event) => {
+        const meta = event.metadata as { product_id?: string; product_name?: string; brand?: string } | null;
+        if (meta?.product_id) {
+          if (!productStats[meta.product_id]) {
+            productStats[meta.product_id] = {
+              product_id: meta.product_id,
+              product_name: meta.product_name || "Unknown",
+              brand: meta.brand || "Unknown",
+              clicks: 0,
+              purchases: 0,
+            };
+          }
+          productStats[meta.product_id].clicks++;
+        }
+      });
+
+      purchaseClicks?.forEach((event) => {
+        const meta = event.metadata as { product_id?: string; product_name?: string; brand?: string } | null;
+        if (meta?.product_id) {
+          if (!productStats[meta.product_id]) {
+            productStats[meta.product_id] = {
+              product_id: meta.product_id,
+              product_name: meta.product_name || "Unknown",
+              brand: meta.brand || "Unknown",
+              clicks: 0,
+              purchases: 0,
+            };
+          }
+          productStats[meta.product_id].purchases++;
+        }
+      });
+
+      const topProducts = Object.values(productStats)
+        .sort((a, b) => (b.clicks + b.purchases * 2) - (a.clicks + a.purchases * 2))
+        .slice(0, 5);
+
       return {
         totalViews: totalViews || 0,
         totalClicks: totalClicks || 0,
         buyNowClicks: buyNowClicks || 0,
         popularPages,
         recentActivity,
+        topProducts,
       };
     },
     refetchInterval: 30000,
@@ -281,9 +353,64 @@ export const AnalyticsDashboard = () => {
               {conversionRate}%
             </p>
             <p className="text-xs text-muted-foreground mt-1">Buy Now / Product Clicks</p>
-          </CardContent>
-        </Card>
-      </div>
+        </CardContent>
+      </Card>
+
+      {/* Top Products */}
+      <Card className="border-border/30">
+        <CardHeader>
+          <CardTitle className="text-base font-medium text-foreground flex items-center gap-2">
+            <ShoppingBag size={16} className="text-primary" />
+            Top Products
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!analytics?.topProducts?.length ? (
+            <p className="text-muted-foreground text-sm">No product data yet</p>
+          ) : (
+            <div className="space-y-4">
+              {analytics.topProducts.map((product, index) => (
+                <div key={product.product_id} className="flex items-start justify-between gap-4 pb-3 border-b border-border/30 last:border-0 last:pb-0">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-muted-foreground w-4">
+                        {index + 1}.
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {product.product_name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {product.brand}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 text-right shrink-0">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">
+                        {product.clicks}
+                      </p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                        Clicks
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-primary">
+                        {product.purchases}
+                      </p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                        Buy Now
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
 
       {/* Popular Pages */}
       <Card className="border-border/30">
