@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { X, Heart, ChevronLeft, ChevronRight } from "lucide-react";
-import { RedirectModal } from "./RedirectModal";
-import { trackBuyNowClick } from "@/hooks/useAnalytics";
+import { trackBuyNowClickBeacon } from "@/hooks/useAnalytics";
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -31,12 +30,31 @@ export const ProductModal = ({
   onWishlistToggle,
 }: ProductModalProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isRedirectModalOpen, setIsRedirectModalOpen] = useState(false);
 
-  // Determine destination - affiliate URL or Instagram
-  const redirectUrl = affiliateUrl || "https://www.instagram.com/ancora_edit/";
+  // Clean and validate URL - ensure https:// prefix and clean characters
+  const cleanUrl = (url: string | undefined): string => {
+    if (!url) return "https://www.instagram.com/ancora_edit/";
+    let cleaned = url.trim();
+    // Ensure URL starts with https://
+    if (!cleaned.startsWith("http://") && !cleaned.startsWith("https://")) {
+      cleaned = "https://" + cleaned;
+    }
+    // Convert http to https for security
+    if (cleaned.startsWith("http://")) {
+      cleaned = cleaned.replace("http://", "https://");
+    }
+    return cleaned;
+  };
+
+  const redirectUrl = cleanUrl(affiliateUrl);
   const destinationName = marketplace || "Instagram";
-  const destinationLogo = marketplace ? undefined : "https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png";
+
+  // Fire analytics on click (non-blocking, uses sendBeacon)
+  const handleBuyNowClick = () => {
+    if (productId) {
+      trackBuyNowClickBeacon(productId, name, brand, price, destinationName);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -46,14 +64,6 @@ export const ProductModal = ({
 
   const handleNextImage = () => {
     setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
-  };
-
-  const handleBuyNowClick = () => {
-    // Track the Buy Now click for purchase intent
-    if (productId) {
-      trackBuyNowClick(productId, name, brand, price, destinationName);
-    }
-    setIsRedirectModalOpen(true);
   };
 
   return (
@@ -150,24 +160,18 @@ export const ProductModal = ({
           {/* Price */}
           <p className="font-sans text-2xl font-bold text-foreground">{price}</p>
 
-          {/* Purchase CTA */}
-          <button
+          {/* Purchase CTA - Using <a> tag for reliable mobile redirects */}
+          <a
+            href={redirectUrl}
+            target="_blank"
+            rel="noopener noreferrer"
             onClick={handleBuyNowClick}
-            className="w-full py-3 bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors"
+            className="block w-full py-3 min-h-[44px] text-center bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors touch-manipulation"
           >
             Buy now
-          </button>
+          </a>
         </div>
       </div>
-
-      {/* Redirect Confirmation Modal */}
-      <RedirectModal
-        isOpen={isRedirectModalOpen}
-        onClose={() => setIsRedirectModalOpen(false)}
-        redirectUrl={redirectUrl}
-        marketplaceName={destinationName}
-        marketplaceLogo={destinationLogo}
-      />
     </div>
   );
 };
