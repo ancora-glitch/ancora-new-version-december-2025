@@ -403,6 +403,16 @@ export const AnalyticsDashboard = () => {
                         Buy Now
                       </p>
                     </div>
+                    <div className="min-w-[48px]">
+                      <p className="text-sm font-semibold text-foreground">
+                        {product.clicks > 0 
+                          ? `${((product.purchases / product.clicks) * 100).toFixed(1)}%`
+                          : "—"}
+                      </p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                        CTR
+                      </p>
+                    </div>
                   </div>
                 </div>
               ))}
