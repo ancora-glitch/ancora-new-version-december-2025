@@ -304,7 +304,7 @@ const ProductDetail = () => {
                   href={cleanUrl(product.affiliate_url)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={() => {
+                  onPointerDownCapture={() => {
                     // Fire analytics via sendBeacon (non-blocking)
                     trackBuyNowClickBeacon(
                       product.id, 
@@ -314,7 +314,7 @@ const ProductDetail = () => {
                       product.marketplace || "Instagram"
                     );
                   }}
-                  className="inline-flex items-center justify-center px-8 py-3 min-h-[44px] bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors touch-manipulation"
+                  className="relative z-20 pointer-events-auto inline-flex items-center justify-center px-8 py-3 min-h-[44px] min-w-[44px] bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors touch-manipulation"
                 >
                   Buy now
                 </a>

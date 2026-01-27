@@ -96,18 +96,26 @@ export const trackBuyNowClickBeacon = (
       }
     };
     
-    // Use sendBeacon for reliable fire-and-forget on navigation
+    // Use sendBeacon to our backend function so we don't depend on custom headers.
+    const backendBaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const url = `${backendBaseUrl}/functions/v1/analytics-beacon`;
+    const body = JSON.stringify(payload);
+
+    // Prefer text/plain to avoid CORS preflight in more mobile browsers.
+    const blob = new Blob([body], { type: "text/plain;charset=UTF-8" });
+
     if (navigator.sendBeacon) {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      const url = `${supabaseUrl}/rest/v1/site_analytics`;
-      
-      const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-      navigator.sendBeacon(url + `?apikey=${supabaseKey}`, blob);
-    } else {
-      // Fallback to async tracking (may not complete on navigation)
-      trackBuyNowClick(productId, productName, brand, price, destination);
+      const ok = navigator.sendBeacon(url, blob);
+      if (ok) return;
     }
+
+    // Fallback: keepalive fetch (still non-blocking; don't await)
+    void fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+      keepalive: true,
+    });
   } catch (error) {
     // Silently fail - analytics should never break navigation
     console.error("Analytics beacon error:", error);

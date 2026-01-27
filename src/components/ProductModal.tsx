@@ -49,8 +49,8 @@ export const ProductModal = ({
   const redirectUrl = cleanUrl(affiliateUrl);
   const destinationName = marketplace || "Instagram";
 
-  // Fire analytics on click (non-blocking, uses sendBeacon)
-  const handleBuyNowClick = () => {
+  // Fire analytics before navigation without interfering with the link.
+  const handleBuyNowPointerDown = () => {
     if (productId) {
       trackBuyNowClickBeacon(productId, name, brand, price, destinationName);
     }
@@ -165,8 +165,8 @@ export const ProductModal = ({
             href={redirectUrl}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={handleBuyNowClick}
-            className="block w-full py-3 min-h-[44px] text-center bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors touch-manipulation"
+            onPointerDownCapture={handleBuyNowPointerDown}
+            className="relative z-20 pointer-events-auto block w-full py-3 min-h-[44px] min-w-[44px] text-center bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors touch-manipulation"
           >
             Buy now
           </a>
