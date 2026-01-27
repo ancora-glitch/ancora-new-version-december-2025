@@ -14,7 +14,7 @@ const corsHeaders = {
 type AnalyticsBeaconPayload = {
   event_type: string;
   page_path: string;
-  metadata?: unknown;
+  metadata?: Record<string, unknown>;
 };
 
 function isNonEmptyString(v: unknown): v is string {
@@ -26,48 +26,63 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
-  }
-
   try {
-    // sendBeacon commonly uses text/plain, so parse from text.
-    const raw = await req.text();
-    const payload = JSON.parse(raw) as AnalyticsBeaconPayload;
+    let payload: AnalyticsBeaconPayload;
 
-    if (!isNonEmptyString(payload?.event_type) || !isNonEmptyString(payload?.page_path)) {
-      return new Response(
-        JSON.stringify({ error: "event_type and page_path are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    if (req.method === "GET") {
+      // Handle anchor ping via query params
+      const url = new URL(req.url);
+      const event_type = url.searchParams.get("event_type") || "";
+      const page_path = url.searchParams.get("page_path") || "/buy-now";
+      
+      // Build metadata from query params
+      const metadata: Record<string, string> = {};
+      const metaKeys = ["product_id", "product_name", "brand", "price", "destination", "type"];
+      for (const key of metaKeys) {
+        const val = url.searchParams.get(key);
+        if (val) metadata[key] = val;
+      }
+      
+      payload = { event_type, page_path, metadata };
+    } else if (req.method === "POST") {
+      // Handle sendBeacon POST (text/plain or application/json)
+      const raw = await req.text();
+      payload = JSON.parse(raw) as AnalyticsBeaconPayload;
+    } else {
+      return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+    }
+
+    if (!isNonEmptyString(payload?.event_type)) {
+      console.log("analytics-beacon: missing event_type, ignoring");
+      return new Response(null, { status: 204, headers: corsHeaders });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Don't block the response.
+    console.log("analytics-beacon: inserting", payload.event_type, payload.page_path);
+
+    // Don't block the response - insert in background
     EdgeRuntime.waitUntil(
       supabase
         .from("site_analytics")
         .insert([
           {
             event_type: payload.event_type,
-            page_path: payload.page_path,
+            page_path: payload.page_path || "/buy-now",
             metadata: payload.metadata ?? {},
           },
         ])
         .then(({ error }) => {
           if (error) console.error("analytics-beacon insert error:", error);
+          else console.log("analytics-beacon: insert success");
         }),
     );
 
     return new Response(null, { status: 204, headers: corsHeaders });
   } catch (error) {
     console.error("analytics-beacon error:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 });

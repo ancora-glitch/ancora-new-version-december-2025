@@ -1,5 +1,8 @@
 project_id = "bxfciyyzgidrvhuelncp"
 
+[functions.analytics-beacon]
+verify_jwt = false
+
 [functions.tradera-search]
 verify_jwt = false
 

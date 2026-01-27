@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { X, Heart, ChevronLeft, ChevronRight } from "lucide-react";
-import { trackBuyNowClickBeacon } from "@/hooks/useAnalytics";
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -35,11 +34,9 @@ export const ProductModal = ({
   const cleanUrl = (url: string | undefined): string => {
     if (!url) return "https://www.instagram.com/ancora_edit/";
     let cleaned = url.trim();
-    // Ensure URL starts with https://
     if (!cleaned.startsWith("http://") && !cleaned.startsWith("https://")) {
       cleaned = "https://" + cleaned;
     }
-    // Convert http to https for security
     if (cleaned.startsWith("http://")) {
       cleaned = cleaned.replace("http://", "https://");
     }
@@ -49,10 +46,39 @@ export const ProductModal = ({
   const redirectUrl = cleanUrl(affiliateUrl);
   const destinationName = marketplace || "Instagram";
 
-  // Fire analytics before navigation without interfering with the link.
-  const handleBuyNowPointerDown = () => {
-    if (productId) {
-      trackBuyNowClickBeacon(productId, name, brand, price, destinationName);
+  // Build ping URL for analytics (browser fires this automatically on link click)
+  const pingUrl =
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analytics-beacon` +
+    `?event_type=buy_now_click` +
+    `&page_path=${encodeURIComponent("/buy-now")}` +
+    `&product_id=${encodeURIComponent(productId || "")}` +
+    `&product_name=${encodeURIComponent(name)}` +
+    `&brand=${encodeURIComponent(brand)}` +
+    `&price=${encodeURIComponent(price)}` +
+    `&destination=${encodeURIComponent(destinationName)}` +
+    `&type=buy_now_click`;
+
+  // Fallback analytics for Safari/iOS which doesn't support ping attribute
+  const fireAnalyticsBeacon = () => {
+    try {
+      const payload = JSON.stringify({
+        event_type: "buy_now_click",
+        page_path: "/buy-now",
+        metadata: {
+          product_id: productId,
+          product_name: name,
+          brand,
+          price,
+          destination: destinationName,
+          type: "buy_now_click",
+        },
+      });
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analytics-beacon`;
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(url, payload);
+      }
+    } catch {
+      // Silently fail - analytics should never block navigation
     }
   };
 
@@ -160,13 +186,16 @@ export const ProductModal = ({
           {/* Price */}
           <p className="font-sans text-2xl font-bold text-foreground">{price}</p>
 
-          {/* Purchase CTA - Using <a> tag for reliable mobile redirects */}
+          {/* Purchase CTA - Pure anchor for bulletproof mobile redirect */}
           <a
             href={redirectUrl}
             target="_blank"
             rel="noopener noreferrer"
-            onPointerDownCapture={handleBuyNowPointerDown}
-            className="relative z-20 pointer-events-auto block w-full py-3 min-h-[44px] min-w-[44px] text-center bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors touch-manipulation"
+            ping={pingUrl}
+            onTouchStart={fireAnalyticsBeacon}
+            onMouseDown={fireAnalyticsBeacon}
+            className="relative z-50 pointer-events-auto block w-full py-3 min-h-[44px] min-w-[44px] text-center bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors touch-manipulation select-none"
+            style={{ WebkitTapHighlightColor: "transparent" }}
           >
             Buy now
           </a>

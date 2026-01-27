@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -6,9 +6,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/hooks/useProducts";
-import { trackBuyNowClickBeacon } from "@/hooks/useAnalytics";
 import { deduplicateImages } from "@/lib/imageUtils";
-import { useState } from "react";
 
 // Track product page view (excludes admins)
 const trackProductPageView = async (productId: string, productName: string, brand: string) => {
@@ -299,22 +297,62 @@ const ProductDetail = () => {
                 {/* Divider */}
                 <div className="border-t border-border" />
 
-                {/* Purchase CTA - Using <a> tag for reliable mobile redirects */}
+                {/* Purchase CTA - Pure anchor for bulletproof mobile redirect */}
                 <a
                   href={cleanUrl(product.affiliate_url)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onPointerDownCapture={() => {
-                    // Fire analytics via sendBeacon (non-blocking)
-                    trackBuyNowClickBeacon(
-                      product.id, 
-                      product.name, 
-                      product.brand, 
-                      product.price, 
-                      product.marketplace || "Instagram"
-                    );
+                  ping={
+                    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analytics-beacon` +
+                    `?event_type=buy_now_click` +
+                    `&page_path=${encodeURIComponent("/buy-now")}` +
+                    `&product_id=${encodeURIComponent(product.id)}` +
+                    `&product_name=${encodeURIComponent(product.name)}` +
+                    `&brand=${encodeURIComponent(product.brand)}` +
+                    `&price=${encodeURIComponent(product.price)}` +
+                    `&destination=${encodeURIComponent(product.marketplace || "Instagram")}` +
+                    `&type=buy_now_click`
+                  }
+                  onTouchStart={() => {
+                    // Fallback analytics for Safari/iOS (ping not supported)
+                    try {
+                      const payload = JSON.stringify({
+                        event_type: "buy_now_click",
+                        page_path: "/buy-now",
+                        metadata: {
+                          product_id: product.id,
+                          product_name: product.name,
+                          brand: product.brand,
+                          price: product.price,
+                          destination: product.marketplace || "Instagram",
+                          type: "buy_now_click",
+                        },
+                      });
+                      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analytics-beacon`;
+                      navigator.sendBeacon?.(url, payload);
+                    } catch { /* silent */ }
                   }}
-                  className="relative z-20 pointer-events-auto inline-flex items-center justify-center px-8 py-3 min-h-[44px] min-w-[44px] bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors touch-manipulation"
+                  onMouseDown={() => {
+                    // Fallback analytics for desktop
+                    try {
+                      const payload = JSON.stringify({
+                        event_type: "buy_now_click",
+                        page_path: "/buy-now",
+                        metadata: {
+                          product_id: product.id,
+                          product_name: product.name,
+                          brand: product.brand,
+                          price: product.price,
+                          destination: product.marketplace || "Instagram",
+                          type: "buy_now_click",
+                        },
+                      });
+                      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analytics-beacon`;
+                      navigator.sendBeacon?.(url, payload);
+                    } catch { /* silent */ }
+                  }}
+                  className="relative z-50 pointer-events-auto inline-flex items-center justify-center px-8 py-3 min-h-[44px] min-w-[44px] bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors touch-manipulation select-none"
+                  style={{ WebkitTapHighlightColor: "transparent" }}
                 >
                   Buy now
                 </a>
