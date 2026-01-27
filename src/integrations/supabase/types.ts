@@ -145,6 +145,7 @@ export type Database = {
       }
       style_guides: {
         Row: {
+          author: string | null
           body: string
           created_at: string
           id: string
@@ -155,6 +156,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          author?: string | null
           body: string
           created_at?: string
           id?: string
@@ -165,6 +167,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          author?: string | null
           body?: string
           created_at?: string
           id?: string

@@ -8,6 +8,7 @@ export interface StyleGuide {
   intro_text: string;
   body: string;
   slug: string;
+  author?: string | null;
   created_at: string;
   updated_at: string;
 }
