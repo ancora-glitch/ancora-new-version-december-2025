@@ -28,6 +28,7 @@ export const useProducts = () => {
 };
 
 // Hook for admin - fetches all products regardless of status
+// Sorts drafts first so newly imported products are easy to find
 export const useAllProducts = () => {
   return useQuery({
     queryKey: ["products-all"],
@@ -38,7 +39,16 @@ export const useAllProducts = () => {
         .order("sort_order", { ascending: true });
 
       if (error) throw error;
-      return data as Product[];
+      
+      // Sort drafts to the top for easy review, then by sort_order
+      const products = data as Product[];
+      return products.sort((a, b) => {
+        // Drafts come first
+        if (a.status === "draft" && b.status !== "draft") return -1;
+        if (a.status !== "draft" && b.status === "draft") return 1;
+        // Then by sort_order
+        return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+      });
     },
   });
 };
