@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -9,6 +9,40 @@ import { formatPrice } from "@/hooks/useProducts";
 import { RedirectModal } from "@/components/RedirectModal";
 import { trackBuyNowClick } from "@/hooks/useAnalytics";
 import { deduplicateImages } from "@/lib/imageUtils";
+
+// Track product page view (excludes admins)
+const trackProductPageView = async (productId: string, productName: string, brand: string) => {
+  try {
+    // Check if user is admin - if so, don't track
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (user) {
+      const { data: isAdmin } = await supabase.rpc("has_role", {
+        _user_id: user.id,
+        _role: "admin",
+      });
+      
+      if (isAdmin) {
+        return; // Don't track admin views
+      }
+    }
+    
+    // Insert product click event
+    await supabase.from("site_analytics").insert([{
+      event_type: "product_click",
+      page_path: `/product/${productId}`,
+      metadata: {
+        product_id: productId,
+        product_name: productName,
+        brand: brand,
+        type: "product_page_view"
+      }
+    }]);
+  } catch (error) {
+    // Silently fail - analytics should not break the app
+    console.error("Product click tracking error:", error);
+  }
+};
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -38,6 +72,13 @@ const ProductDetail = () => {
       : [];
     return deduplicateImages(product.image, additionalImages);
   }, [product]);
+
+  // Track product page view when product loads (excludes admins)
+  useEffect(() => {
+    if (product) {
+      trackProductPageView(product.id, product.name, product.brand);
+    }
+  }, [product?.id]); // Only run when product ID changes
 
   const handlePrevImage = () => {
     setCurrentImageIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1));
