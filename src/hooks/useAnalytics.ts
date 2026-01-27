@@ -51,7 +51,7 @@ export const trackProductClick = async (productId: string, productName: string, 
   });
 };
 
-// Convenience function for tracking Buy Now button clicks
+// Convenience function for tracking Buy Now button clicks (async version)
 export const trackBuyNowClick = async (
   productId: string, 
   productName: string, 
@@ -67,6 +67,51 @@ export const trackBuyNowClick = async (
     destination: destination,
     type: "buy_now_click"
   });
+};
+
+// Fire-and-forget analytics using sendBeacon (reliable on mobile/navigation)
+export const trackBuyNowClickBeacon = (
+  productId: string, 
+  productName: string, 
+  brand: string, 
+  price: string,
+  destination: string
+) => {
+  try {
+    // Don't track on admin pages
+    if (window.location.pathname.startsWith("/admin")) {
+      return;
+    }
+    
+    const payload = {
+      event_type: "buy_now_click",
+      page_path: "/buy-now",
+      metadata: {
+        product_id: productId,
+        product_name: productName,
+        brand: brand,
+        price: price,
+        destination: destination,
+        type: "buy_now_click"
+      }
+    };
+    
+    // Use sendBeacon for reliable fire-and-forget on navigation
+    if (navigator.sendBeacon) {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const url = `${supabaseUrl}/rest/v1/site_analytics`;
+      
+      const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+      navigator.sendBeacon(url + `?apikey=${supabaseKey}`, blob);
+    } else {
+      // Fallback to async tracking (may not complete on navigation)
+      trackBuyNowClick(productId, productName, brand, price, destination);
+    }
+  } catch (error) {
+    // Silently fail - analytics should never break navigation
+    console.error("Analytics beacon error:", error);
+  }
 };
 
 // Hook to automatically track page views on route changes

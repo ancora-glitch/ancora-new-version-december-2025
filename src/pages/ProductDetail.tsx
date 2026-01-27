@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useMemo, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -6,9 +6,9 @@ import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/hooks/useProducts";
-import { RedirectModal } from "@/components/RedirectModal";
-import { trackBuyNowClick } from "@/hooks/useAnalytics";
+import { trackBuyNowClickBeacon } from "@/hooks/useAnalytics";
 import { deduplicateImages } from "@/lib/imageUtils";
+import { useState } from "react";
 
 // Track product page view (excludes admins)
 const trackProductPageView = async (productId: string, productName: string, brand: string) => {
@@ -43,10 +43,22 @@ const trackProductPageView = async (productId: string, productName: string, bran
     console.error("Product click tracking error:", error);
   }
 };
+// Clean and validate URL - ensure https:// prefix
+const cleanUrl = (url: string | undefined): string => {
+  if (!url) return "https://www.instagram.com/ancora_edit/";
+  let cleaned = url.trim();
+  if (!cleaned.startsWith("http://") && !cleaned.startsWith("https://")) {
+    cleaned = "https://" + cleaned;
+  }
+  if (cleaned.startsWith("http://")) {
+    cleaned = cleaned.replace("http://", "https://");
+  }
+  return cleaned;
+};
+
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isRedirectModalOpen, setIsRedirectModalOpen] = useState(false);
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", slug],
@@ -287,37 +299,30 @@ const ProductDetail = () => {
                 {/* Divider */}
                 <div className="border-t border-border" />
 
-                {/* Purchase CTA */}
-                <button
+                {/* Purchase CTA - Using <a> tag for reliable mobile redirects */}
+                <a
+                  href={cleanUrl(product.affiliate_url)}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   onClick={() => {
-                    // Track the Buy Now click for purchase intent
-                    trackBuyNowClick(
+                    // Fire analytics via sendBeacon (non-blocking)
+                    trackBuyNowClickBeacon(
                       product.id, 
                       product.name, 
                       product.brand, 
                       product.price, 
                       product.marketplace || "Instagram"
                     );
-                    setIsRedirectModalOpen(true);
                   }}
-                  className="inline-flex items-center justify-center px-8 py-3 bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors"
+                  className="inline-flex items-center justify-center px-8 py-3 min-h-[44px] bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors touch-manipulation"
                 >
                   Buy now
-                </button>
+                </a>
               </div>
             </div>
           </div>
         </div>
       </main>
-
-      {/* Redirect Confirmation Modal */}
-      <RedirectModal
-        isOpen={isRedirectModalOpen}
-        onClose={() => setIsRedirectModalOpen(false)}
-        redirectUrl={product.affiliate_url || "https://www.instagram.com/ancora_edit/"}
-        marketplaceName={product.marketplace || "Instagram"}
-        marketplaceLogo={product.marketplace ? undefined : "https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png"}
-      />
 
       <Footer />
     </div>
