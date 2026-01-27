@@ -161,9 +161,16 @@ const StyleGuide = () => {
               </Link>
 
               {/* Title */}
-              <h1 className="font-serif text-3xl md:text-5xl lg:text-[3.25rem] xl:text-[3.5rem] text-primary leading-tight mb-10">
+              <h1 className="font-serif text-3xl md:text-5xl lg:text-[3.25rem] xl:text-[3.5rem] text-primary leading-tight mb-4">
                 {guide.title}
               </h1>
+
+              {/* Byline */}
+              {guide.author && (
+                <p className="text-muted-foreground text-sm font-sans tracking-wide mb-10">
+                  By {guide.author}
+                </p>
+              )}
 
               {/* Intro Text */}
               <p className="article-intro">

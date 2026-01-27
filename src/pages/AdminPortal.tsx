@@ -149,6 +149,7 @@ const AdminPortal = () => {
   const [storyIntroText, setStoryIntroText] = useState("");
   const [storyBody, setStoryBody] = useState("");
   const [storySlug, setStorySlug] = useState("");
+  const [storyAuthor, setStoryAuthor] = useState<string>("");
   const [savingStory, setSavingStory] = useState(false);
   const [showInlineImagePicker, setShowInlineImagePicker] = useState(false);
   const [inlineImageCaption, setInlineImageCaption] = useState("");
@@ -185,15 +186,17 @@ const AdminPortal = () => {
     setStoryIntroText("");
     setStoryBody("");
     setStorySlug("");
+    setStoryAuthor("");
   };
 
-  const handleEditStory = (story: { id: string; title: string; image: string; intro_text: string; body: string; slug: string }) => {
+  const handleEditStory = (story: { id: string; title: string; image: string; intro_text: string; body: string; slug: string; author?: string | null }) => {
     setEditingStoryId(story.id);
     setStoryTitle(story.title);
     setStoryImage([story.image]);
     setStoryIntroText(story.intro_text);
     setStoryBody(story.body);
     setStorySlug(story.slug);
+    setStoryAuthor(story.author || "");
     
     // Scroll to form
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -247,6 +250,7 @@ const AdminPortal = () => {
       intro_text: storyIntroText.trim(),
       body: storyBody.trim(),
       slug: storySlug.trim() || storyTitle.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+      author: storyAuthor.trim() || null,
     };
 
     let error;
@@ -656,6 +660,20 @@ const AdminPortal = () => {
                     bucket="guide-images" 
                     singleImage={true}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="storyAuthor">Byline (optional)</Label>
+                  <Select value={storyAuthor} onValueChange={setStoryAuthor}>
+                    <SelectTrigger className="bg-background border-border">
+                      <SelectValue placeholder="Select author (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No byline</SelectItem>
+                      <SelectItem value="Carin Roeraade">Carin Roeraade</SelectItem>
+                      <SelectItem value="Sophie Gill">Sophie Gill</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
