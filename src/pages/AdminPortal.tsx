@@ -8,15 +8,16 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStyleGuides } from "@/hooks/useStyleGuides";
-import { useAllProducts } from "@/hooks/useProducts";
+import { useAllProducts, type ProductStatus } from "@/hooks/useProducts";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Trash2, Pencil, X, GripVertical, Bold, Italic, RefreshCw, Loader2, Image as ImageIcon } from "lucide-react";
+import { Trash2, Pencil, X, GripVertical, Bold, Italic, RefreshCw, Loader2, Image as ImageIcon, Eye, EyeOff, Filter } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StorageImagePicker } from "@/components/StorageImagePicker";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import TraderaSearch from "@/components/TraderaSearch";
+import { Badge } from "@/components/ui/badge";
 import {
   DndContext,
   closestCenter,
@@ -48,10 +49,24 @@ interface Product {
   condition?: string | null;
   material?: string | null;
   size?: string | null;
-  status: "active" | "sold";
+  status: ProductStatus;
   slug?: string | null;
   sort_order?: number | null;
 }
+
+// Status badge helper
+const getStatusBadge = (status: ProductStatus) => {
+  switch (status) {
+    case "published":
+      return <Badge className="bg-green-600 hover:bg-green-700 text-white">Published</Badge>;
+    case "draft":
+      return <Badge variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-200">Draft</Badge>;
+    case "sold":
+      return <Badge variant="outline" className="border-muted-foreground/50 text-muted-foreground">Sold</Badge>;
+    default:
+      return <Badge variant="outline">{status}</Badge>;
+  }
+};
 
 // Sortable Product Item Component
 interface SortableProductItemProps {
@@ -59,9 +74,10 @@ interface SortableProductItemProps {
   editingProductId: string | null;
   onEdit: (product: Product) => void;
   onDelete: (id: string, name: string) => void;
+  onTogglePublish: (product: Product) => void;
 }
 
-const SortableProductItem = ({ product, editingProductId, onEdit, onDelete }: SortableProductItemProps) => {
+const SortableProductItem = ({ product, editingProductId, onEdit, onDelete, onTogglePublish }: SortableProductItemProps) => {
   const {
     attributes,
     listeners,
@@ -100,15 +116,32 @@ const SortableProductItem = ({ product, editingProductId, onEdit, onDelete }: So
         {product.image && (
           <img src={product.image} alt={product.name} className="w-12 h-12 object-cover rounded-sm flex-shrink-0" />
         )}
-        <div className="min-w-0">
-          <h3 className="font-medium text-primary truncate">{product.brand} - {product.name}</h3>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-0.5">
+            <h3 className="font-medium text-primary truncate">{product.brand} - {product.name}</h3>
+            {getStatusBadge(product.status)}
+          </div>
           <p className="text-muted-foreground text-sm">
-            {product.price} · {product.status}
+            {product.price}
             {product.size && ` · Size: ${product.size}`}
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-1 flex-shrink-0">
+        {product.status !== "sold" && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              onTogglePublish(product);
+            }}
+            className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+            title={product.status === "published" ? "Unpublish (move to draft)" : "Publish"}
+          >
+            {product.status === "published" ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="icon"
@@ -167,8 +200,9 @@ const AdminPortal = () => {
   const [productMarketplace, setProductMarketplace] = useState("");
   const [productCondition, setProductCondition] = useState("");
   const [productMaterial, setProductMaterial] = useState("");
-  const [productStatus, setProductStatus] = useState<"active" | "sold">("active");
+  const [productStatus, setProductStatus] = useState<ProductStatus>("draft");
   const [savingProduct, setSavingProduct] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<ProductStatus | "all">("all");
 
   // Auto-generate slug from title (only when creating new story)
   const handleStoryTitleChange = (value: string) => {
@@ -214,7 +248,7 @@ const AdminPortal = () => {
     setProductMarketplace("");
     setProductCondition("");
     setProductMaterial("");
-    setProductStatus("active");
+    setProductStatus("draft");
   };
 
   const handleEditProduct = (product: Product) => {
@@ -360,6 +394,27 @@ const AdminPortal = () => {
       queryClient.invalidateQueries({ queryKey: ["products-all"] });
     }
   };
+
+  const handleTogglePublish = async (product: Product) => {
+    const newStatus: ProductStatus = product.status === "published" ? "draft" : "published";
+    const { error } = await supabase
+      .from("products")
+      .update({ status: newStatus })
+      .eq("id", product.id);
+
+    if (error) {
+      toast.error("Failed to update status: " + error.message);
+    } else {
+      toast.success(newStatus === "published" ? "Product published" : "Product moved to drafts");
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["products-all"] });
+    }
+  };
+
+  // Filter products based on status
+  const filteredProducts = products?.filter(p => 
+    statusFilter === "all" ? true : p.status === statusFilter
+  );
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -537,12 +592,13 @@ const AdminPortal = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="productStatus">Status</Label>
-                    <Select value={productStatus} onValueChange={(v) => setProductStatus(v as "active" | "sold")}>
+                    <Select value={productStatus} onValueChange={(v) => setProductStatus(v as ProductStatus)}>
                       <SelectTrigger className="bg-background border-border">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="draft">Draft</SelectItem>
+                        <SelectItem value="published">Published</SelectItem>
                         <SelectItem value="sold">Sold</SelectItem>
                       </SelectContent>
                     </Select>
@@ -588,35 +644,56 @@ const AdminPortal = () => {
 
               {/* Products List */}
               <div>
-                <h2 className="font-display text-lg text-primary mb-2">Existing Products ({products?.length || 0})</h2>
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="font-display text-lg text-primary">
+                    Existing Products ({filteredProducts?.length || 0}{statusFilter !== "all" ? ` ${statusFilter}` : ""})
+                  </h2>
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-muted-foreground" />
+                    <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as ProductStatus | "all")}>
+                      <SelectTrigger className="w-[140px] bg-background border-border">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="draft">Drafts</SelectItem>
+                        <SelectItem value="published">Published</SelectItem>
+                        <SelectItem value="sold">Sold</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
                 <p className="text-muted-foreground text-sm mb-6">Drag products to reorder. Order is saved automatically.</p>
                 {productsLoading ? (
                   <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-16 bg-muted rounded-sm animate-pulse" />)}</div>
-                ) : products && products.length > 0 ? (
+                ) : filteredProducts && filteredProducts.length > 0 ? (
                   <DndContext
                     sensors={sensors}
                     collisionDetection={closestCenter}
                     onDragEnd={handleDragEnd}
                   >
                     <SortableContext
-                      items={products.map((p) => p.id)}
+                      items={filteredProducts.map((p) => p.id)}
                       strategy={verticalListSortingStrategy}
                     >
                       <div className="space-y-3">
-                        {products.map((product) => (
+                        {filteredProducts.map((product) => (
                           <SortableProductItem
                             key={product.id}
                             product={product as Product}
                             editingProductId={editingProductId}
                             onEdit={handleEditProduct}
                             onDelete={handleDeleteProduct}
+                            onTogglePublish={handleTogglePublish}
                           />
                         ))}
                       </div>
                     </SortableContext>
                   </DndContext>
                 ) : (
-                  <p className="text-muted-foreground text-center py-8 border border-border rounded-sm">No products yet.</p>
+                  <p className="text-muted-foreground text-center py-8 border border-border rounded-sm">
+                    {statusFilter === "all" ? "No products yet." : `No ${statusFilter} products.`}
+                  </p>
                 )}
               </div>
             </TabsContent>

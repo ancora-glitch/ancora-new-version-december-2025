@@ -4,6 +4,9 @@ import type { Tables } from "@/integrations/supabase/types";
 
 export type Product = Tables<"products">;
 
+export type ProductStatus = "draft" | "published" | "sold";
+
+// Public hook - only fetches 'published' products
 export const useProducts = () => {
   return useQuery({
     queryKey: ["products"],
@@ -11,7 +14,7 @@ export const useProducts = () => {
       const { data, error } = await supabase
         .from("products")
         .select("*")
-        .eq("status", "active")
+        .eq("status", "published")
         .order("sort_order", { ascending: true });
 
       if (error) throw error;
