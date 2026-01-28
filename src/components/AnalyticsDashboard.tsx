@@ -254,8 +254,8 @@ export const AnalyticsDashboard = () => {
 
   const maxPageCount = Math.max(...(analytics?.popularPages.map((p) => p.count) || [1]));
 
-  // Calculate conversion rate (Buy Now clicks / Product clicks), capped at 100%
-  const conversionRate = analytics && analytics.totalClicks > 0
+  // Calculate intent rate (Buy Now clicks / Product clicks), capped at 100%
+  const intentRate = analytics && analytics.totalClicks > 0
     ? Math.min((analytics.buyNowClicks / analytics.totalClicks) * 100, 100).toFixed(1)
     : null;
 
@@ -324,37 +324,37 @@ export const AnalyticsDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Buy Now Clicks */}
+        {/* Purchase Intent */}
         <Card className="bg-gradient-to-br from-primary/10 to-background border-primary/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <ShoppingBag size={16} className="text-primary" />
-              Buy Now Clicks
+              Purchase Intent
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-primary">
               {(analytics?.buyNowClicks ?? 0).toLocaleString()}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">Purchase intent</p>
+            <p className="text-xs text-muted-foreground mt-1">Buy Now clicks</p>
           </CardContent>
         </Card>
 
-        {/* Conversion Rate */}
+        {/* Intent Rate */}
         <Card className="bg-gradient-to-br from-secondary/50 to-background border-border/30">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <TrendingUp size={16} className="text-primary" />
-              Conversion Rate
+              Intent Rate
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-foreground">
-              {conversionRate !== null ? `${conversionRate}%` : "—"}
+              {intentRate !== null ? `${intentRate}%` : "—"}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">Buy Now / Product Clicks</p>
-        </CardContent>
-      </Card>
+            <p className="text-xs text-muted-foreground mt-1">Intent / Views</p>
+          </CardContent>
+        </Card>
 
       {/* Top Products */}
       <Card className="border-border/30">
@@ -400,7 +400,7 @@ export const AnalyticsDashboard = () => {
                         {product.purchases}
                       </p>
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                        Buy Now
+                        Intent
                       </p>
                     </div>
                     <div className="min-w-[48px]">
@@ -410,7 +410,7 @@ export const AnalyticsDashboard = () => {
                           : "—"}
                       </p>
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                        CTR
+                        Rate
                       </p>
                     </div>
                   </div>
@@ -504,7 +504,7 @@ export const AnalyticsDashboard = () => {
                 <div className="w-3 h-3 bg-primary/40 rounded" /> Views & Clicks
               </span>
               <span className="flex items-center gap-1">
-                <div className="w-3 h-3 bg-primary/90 rounded" /> Buy Now
+                <div className="w-3 h-3 bg-primary/90 rounded" /> Purchase Intent
               </span>
             </div>
           </CardContent>
