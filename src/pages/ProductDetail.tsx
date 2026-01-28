@@ -9,6 +9,7 @@ import { formatPrice } from "@/hooks/useProducts";
 import { deduplicateImages } from "@/lib/imageUtils";
 import { trackBuyNowClickBeacon } from "@/hooks/useAnalytics";
 import { markProductViewed } from "@/lib/sessionAnalytics";
+import { RedirectModal } from "@/components/RedirectModal";
 
 // Track product page view (excludes admins) and marks product as viewed in session
 const trackProductPageView = async (productId: string, productName: string, brand: string) => {
@@ -63,6 +64,7 @@ const cleanUrl = (url: string | undefined): string => {
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isRedirectModalOpen, setIsRedirectModalOpen] = useState(false);
   const analyticsTrackedRef = useRef(false);
   const hasTrackedPageView = useRef(false);
 
@@ -101,21 +103,27 @@ const ProductDetail = () => {
     }
   }, [product?.id]);
 
-  // Handle Buy Now click with session-based deduplication
-  const handleBuyNowInteraction = () => {
-    if (!product || analyticsTrackedRef.current) return;
+  // Handle Buy Now click - open modal instead of direct navigation
+  const handleBuyNowClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!product) return;
     
-    const tracked = trackBuyNowClickBeacon(
-      product.id,
-      product.name,
-      product.brand,
-      product.price,
-      product.marketplace || "Instagram"
-    );
-    
-    if (tracked) {
-      analyticsTrackedRef.current = true;
+    // Track analytics
+    if (!analyticsTrackedRef.current) {
+      const tracked = trackBuyNowClickBeacon(
+        product.id,
+        product.name,
+        product.brand,
+        product.price,
+        product.marketplace || "Instagram"
+      );
+      if (tracked) {
+        analyticsTrackedRef.current = true;
+      }
     }
+    
+    // Open the redirect modal
+    setIsRedirectModalOpen(true);
   };
 
   const handlePrevImage = () => {
@@ -324,18 +332,14 @@ const ProductDetail = () => {
                 {/* Divider */}
                 <div className="border-t border-border" />
 
-                {/* Purchase CTA - Pure anchor for bulletproof mobile redirect */}
-                <a
-                  href={cleanUrl(product.affiliate_url)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onTouchStart={handleBuyNowInteraction}
-                  onMouseDown={handleBuyNowInteraction}
+                {/* Purchase CTA - Button triggers modal, not direct navigation */}
+                <button
+                  onClick={handleBuyNowClick}
                   className="relative z-50 pointer-events-auto inline-flex items-center justify-center px-8 py-3 min-h-[44px] min-w-[44px] bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors touch-manipulation select-none"
                   style={{ WebkitTapHighlightColor: "transparent" }}
                 >
                   Buy now
-                </a>
+                </button>
               </div>
             </div>
           </div>
@@ -343,6 +347,14 @@ const ProductDetail = () => {
       </main>
 
       <Footer />
+
+      {/* Redirect confirmation modal */}
+      <RedirectModal
+        isOpen={isRedirectModalOpen}
+        onClose={() => setIsRedirectModalOpen(false)}
+        redirectUrl={cleanUrl(product.affiliate_url)}
+        partnerName={product.marketplace || "our partner"}
+      />
     </div>
   );
 };
