@@ -44,7 +44,7 @@ const About = () => {
         </section>
 
         {/* Our Story Section */}
-        <section ref={el => sectionsRef.current[2] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-12 py-[29px]">
+        <section ref={el => sectionsRef.current[2] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-12 py-0">
           <div className="max-w-[700px] mx-auto article-body">
             <h2 className="article-subheader">Our Story</h2>
             <p className="drop-cap">
@@ -63,7 +63,7 @@ const About = () => {
         </section>
 
         {/* Philosophy Section */}
-        <section ref={el => sectionsRef.current[4] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-12 py-px">
+        <section ref={el => sectionsRef.current[4] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-12 py-[5px]">
           <div className="max-w-[700px] mx-auto article-body">
             <h2 className="article-subheader">Our Philosophy</h2>
             <p>
@@ -76,7 +76,7 @@ const About = () => {
         </section>
 
         {/* Origin Section */}
-        <section ref={el => sectionsRef.current[5] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-24 py-[53px]">
+        <section ref={el => sectionsRef.current[5] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-24 py-[22px]">
           <div className="max-w-[700px] mx-auto article-body">
             <h2 className="article-subheader">Where We Started</h2>
             <p>
@@ -88,12 +88,7 @@ const About = () => {
         {/* Team Image */}
         <section ref={el => sectionsRef.current[6] = el} className="fade-section px-6 md:px-12 lg:px-24 py-12">
           <div className="max-w-[700px] mx-auto">
-            <img 
-              src={teamAncoraImage} 
-              alt="Team Ancora" 
-              className="w-full h-auto"
-              loading="lazy"
-            />
+            <img src={teamAncoraImage} alt="Team Ancora" className="w-full h-auto" loading="lazy" />
           </div>
         </section>
       </main>
