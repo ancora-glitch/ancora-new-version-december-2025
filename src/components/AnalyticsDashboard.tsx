@@ -370,10 +370,11 @@ export const AnalyticsDashboard = () => {
           {!analytics?.topProducts?.length ? (
             <p className="text-muted-foreground text-sm">No product data yet</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-10">#</TableHead>
+            <div className="max-h-[320px] overflow-y-auto">
+              <Table>
+                <TableHeader className="sticky top-0 bg-card z-10">
+                  <TableRow>
+                    <TableHead className="w-10">#</TableHead>
                   <TableHead>Product</TableHead>
                   <TableHead className="text-right w-20">Clicks</TableHead>
                   <TableHead className="text-right w-20">Intent</TableHead>
@@ -411,6 +412,7 @@ export const AnalyticsDashboard = () => {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
