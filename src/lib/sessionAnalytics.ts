@@ -88,10 +88,10 @@ export const markBuyNowClicked = (productId: string): boolean => {
     return false; // Already tracked, don't track again
   }
   
-  // Check if product was viewed first
+  // CRITICAL: Product MUST be viewed first - reject if not
   if (!sessionState.viewedProducts.has(productId)) {
-    console.warn(`[Analytics] Buy Now clicked but product ${productId} was not viewed first`);
-    // Still allow tracking but log the discrepancy
+    console.warn(`[Analytics] Buy Now rejected: product ${productId} was not viewed first`);
+    return false; // Do NOT track - prevents intent > clicks
   }
   
   sessionState.buyNowClicked.add(productId);
