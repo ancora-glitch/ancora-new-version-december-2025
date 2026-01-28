@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { X, Heart, ChevronLeft, ChevronRight } from "lucide-react";
+import { trackBuyNowClickBeacon } from "@/hooks/useAnalytics";
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export const ProductModal = ({
   onWishlistToggle,
 }: ProductModalProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const analyticsTrackedRef = useRef(false);
 
   // Clean and validate URL - ensure https:// prefix and clean characters
   const cleanUrl = (url: string | undefined): string => {
@@ -46,41 +48,30 @@ export const ProductModal = ({
   const redirectUrl = cleanUrl(affiliateUrl);
   const destinationName = marketplace || "Instagram";
 
-  // Build ping URL for analytics (browser fires this automatically on link click)
-  const pingUrl =
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analytics-beacon` +
-    `?event_type=buy_now_click` +
-    `&page_path=${encodeURIComponent("/buy-now")}` +
-    `&product_id=${encodeURIComponent(productId || "")}` +
-    `&product_name=${encodeURIComponent(name)}` +
-    `&brand=${encodeURIComponent(brand)}` +
-    `&price=${encodeURIComponent(price)}` +
-    `&destination=${encodeURIComponent(destinationName)}` +
-    `&type=buy_now_click`;
-
-  // Fallback analytics for Safari/iOS which doesn't support ping attribute
-  const fireAnalyticsBeacon = () => {
-    try {
-      const payload = JSON.stringify({
-        event_type: "buy_now_click",
-        page_path: "/buy-now",
-        metadata: {
-          product_id: productId,
-          product_name: name,
-          brand,
-          price,
-          destination: destinationName,
-          type: "buy_now_click",
-        },
-      });
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analytics-beacon`;
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon(url, payload);
+  // Track Buy Now click once per modal open, with session deduplication
+  const handleBuyNowInteraction = () => {
+    // Only track once per modal open
+    if (analyticsTrackedRef.current) return;
+    
+    if (productId) {
+      // trackBuyNowClickBeacon handles session-level deduplication
+      const tracked = trackBuyNowClickBeacon(
+        productId,
+        name,
+        brand,
+        price,
+        destinationName
+      );
+      if (tracked) {
+        analyticsTrackedRef.current = true;
       }
-    } catch {
-      // Silently fail - analytics should never block navigation
     }
   };
+
+  // Reset tracking ref when modal closes and reopens
+  if (!isOpen && analyticsTrackedRef.current) {
+    analyticsTrackedRef.current = false;
+  }
 
   if (!isOpen) return null;
 
@@ -191,9 +182,8 @@ export const ProductModal = ({
             href={redirectUrl}
             target="_blank"
             rel="noopener noreferrer"
-            ping={pingUrl}
-            onTouchStart={fireAnalyticsBeacon}
-            onMouseDown={fireAnalyticsBeacon}
+            onTouchStart={handleBuyNowInteraction}
+            onMouseDown={handleBuyNowInteraction}
             className="relative z-50 pointer-events-auto block w-full py-3 min-h-[44px] min-w-[44px] text-center bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors touch-manipulation select-none"
             style={{ WebkitTapHighlightColor: "transparent" }}
           >
