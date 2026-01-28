@@ -64,6 +64,20 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Tradera API error:', response.status, errorText);
+      
+      // Handle 429 rate limiting as a non-fatal, partial-success case
+      if (response.status === 429) {
+        console.warn('Tradera API rate limited (429) - returning partial success');
+        return new Response(
+          JSON.stringify({ 
+            item: null, 
+            rateLimited: true,
+            message: 'Tradera API rate limited. Item details unavailable but import can continue.'
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ error: 'Tradera API error', details: errorText }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
