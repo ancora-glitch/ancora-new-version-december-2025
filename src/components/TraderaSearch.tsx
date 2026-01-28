@@ -166,8 +166,8 @@ const TraderaSearch = () => {
       });
 
       if (error) {
-        console.error("Translation error:", error);
-        // Return original content if translation fails
+        // Log silently - translation failure is non-blocking
+        console.warn("Translation warning (non-blocking):", error.message);
         return {
           name,
           description,
@@ -178,10 +178,24 @@ const TraderaSearch = () => {
         };
       }
 
-      console.log('Translation successful:', data);
+      // Check if response contains an error field (edge function returned error JSON)
+      if (data?.error) {
+        console.warn("Translation warning (non-blocking):", data.error);
+        return {
+          name,
+          description,
+          condition,
+          material,
+          size,
+          original: { name, description, condition, material, size },
+        };
+      }
+
+      console.log('Translation successful');
       return data as TranslationResult;
     } catch (e) {
-      console.error("Translation error:", e);
+      // Log silently - translation failure is non-blocking
+      console.warn("Translation warning (non-blocking):", e);
       return {
         name,
         description,
@@ -234,8 +248,7 @@ const TraderaSearch = () => {
       const originalSize = details?.size || "";
       const affiliateUrl = details?.itemLink || item.itemLink;
 
-      // Translate Swedish content to English
-      toast.info("Translating content...", { duration: 2000 });
+      // Translate Swedish content to English (silently - no toast for this step)
       const translated = await translateContent(
         originalName,
         originalDescription,
