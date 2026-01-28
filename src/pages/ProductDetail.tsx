@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useEffect, useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -7,11 +7,16 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/hooks/useProducts";
 import { deduplicateImages } from "@/lib/imageUtils";
+import { trackBuyNowClickBeacon } from "@/hooks/useAnalytics";
+import { markProductViewed } from "@/lib/sessionAnalytics";
 
-// Track product page view (excludes admins)
+// Track product page view (excludes admins) and marks product as viewed in session
 const trackProductPageView = async (productId: string, productName: string, brand: string) => {
   try {
-    // Check if user is admin - if so, don't track
+    // Mark product as viewed in session (enables Buy Now tracking)
+    markProductViewed(productId);
+    
+    // Check if user is admin - if so, don't track to database
     const { data: { user } } = await supabase.auth.getUser();
     
     if (user) {
@@ -41,6 +46,7 @@ const trackProductPageView = async (productId: string, productName: string, bran
     console.error("Product click tracking error:", error);
   }
 };
+
 // Clean and validate URL - ensure https:// prefix
 const cleanUrl = (url: string | undefined): string => {
   if (!url) return "https://www.instagram.com/ancora_edit/";
@@ -57,6 +63,7 @@ const cleanUrl = (url: string | undefined): string => {
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const analyticsTrackedRef = useRef(false);
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", slug],
@@ -90,6 +97,23 @@ const ProductDetail = () => {
       trackProductPageView(product.id, product.name, product.brand);
     }
   }, [product?.id]); // Only run when product ID changes
+
+  // Handle Buy Now click with session-based deduplication
+  const handleBuyNowInteraction = () => {
+    if (!product || analyticsTrackedRef.current) return;
+    
+    const tracked = trackBuyNowClickBeacon(
+      product.id,
+      product.name,
+      product.brand,
+      product.price,
+      product.marketplace || "Instagram"
+    );
+    
+    if (tracked) {
+      analyticsTrackedRef.current = true;
+    }
+  };
 
   const handlePrevImage = () => {
     setCurrentImageIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1));
@@ -302,55 +326,8 @@ const ProductDetail = () => {
                   href={cleanUrl(product.affiliate_url)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  ping={
-                    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analytics-beacon` +
-                    `?event_type=buy_now_click` +
-                    `&page_path=${encodeURIComponent("/buy-now")}` +
-                    `&product_id=${encodeURIComponent(product.id)}` +
-                    `&product_name=${encodeURIComponent(product.name)}` +
-                    `&brand=${encodeURIComponent(product.brand)}` +
-                    `&price=${encodeURIComponent(product.price)}` +
-                    `&destination=${encodeURIComponent(product.marketplace || "Instagram")}` +
-                    `&type=buy_now_click`
-                  }
-                  onTouchStart={() => {
-                    // Fallback analytics for Safari/iOS (ping not supported)
-                    try {
-                      const payload = JSON.stringify({
-                        event_type: "buy_now_click",
-                        page_path: "/buy-now",
-                        metadata: {
-                          product_id: product.id,
-                          product_name: product.name,
-                          brand: product.brand,
-                          price: product.price,
-                          destination: product.marketplace || "Instagram",
-                          type: "buy_now_click",
-                        },
-                      });
-                      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analytics-beacon`;
-                      navigator.sendBeacon?.(url, payload);
-                    } catch { /* silent */ }
-                  }}
-                  onMouseDown={() => {
-                    // Fallback analytics for desktop
-                    try {
-                      const payload = JSON.stringify({
-                        event_type: "buy_now_click",
-                        page_path: "/buy-now",
-                        metadata: {
-                          product_id: product.id,
-                          product_name: product.name,
-                          brand: product.brand,
-                          price: product.price,
-                          destination: product.marketplace || "Instagram",
-                          type: "buy_now_click",
-                        },
-                      });
-                      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analytics-beacon`;
-                      navigator.sendBeacon?.(url, payload);
-                    } catch { /* silent */ }
-                  }}
+                  onTouchStart={handleBuyNowInteraction}
+                  onMouseDown={handleBuyNowInteraction}
                   className="relative z-50 pointer-events-auto inline-flex items-center justify-center px-8 py-3 min-h-[44px] min-w-[44px] bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors touch-manipulation select-none"
                   style={{ WebkitTapHighlightColor: "transparent" }}
                 >

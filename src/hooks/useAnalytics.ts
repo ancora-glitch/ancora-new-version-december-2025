@@ -2,6 +2,11 @@ import { useEffect, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
+import { 
+  markProductViewed, 
+  shouldTrackBuyNowClick, 
+  markBuyNowClicked 
+} from "@/lib/sessionAnalytics";
 
 // Track a page view
 export const trackPageView = async (pagePath: string) => {
@@ -42,7 +47,11 @@ export const trackClick = async (eventType: string, pagePath: string, metadata?:
 };
 
 // Convenience function for tracking product card clicks
+// Also marks the product as viewed in the session
 export const trackProductClick = async (productId: string, productName: string, brand: string) => {
+  // Mark product as viewed in session (enables Buy Now tracking)
+  markProductViewed(productId);
+  
   return trackClick("product_click", "/products", {
     product_id: productId,
     product_name: productName,
@@ -52,6 +61,7 @@ export const trackProductClick = async (productId: string, productName: string, 
 };
 
 // Convenience function for tracking Buy Now button clicks (async version)
+// Only tracks if product was viewed first and hasn't been clicked this session
 export const trackBuyNowClick = async (
   productId: string, 
   productName: string, 
@@ -59,6 +69,15 @@ export const trackBuyNowClick = async (
   price: string,
   destination: string
 ) => {
+  // Check session rules before tracking
+  if (!shouldTrackBuyNowClick(productId)) {
+    console.log(`[Analytics] Skipping Buy Now tracking for ${productId} (already tracked or not viewed)`);
+    return;
+  }
+  
+  // Mark as clicked to prevent duplicates
+  markBuyNowClicked(productId);
+  
   return trackClick("buy_now_click", "/buy-now", {
     product_id: productId,
     product_name: productName,
@@ -70,18 +89,28 @@ export const trackBuyNowClick = async (
 };
 
 // Fire-and-forget analytics using sendBeacon (reliable on mobile/navigation)
+// Only tracks if session rules are satisfied (product viewed, not already clicked)
 export const trackBuyNowClickBeacon = (
   productId: string, 
   productName: string, 
   brand: string, 
   price: string,
   destination: string
-) => {
+): boolean => {
   try {
     // Don't track on admin pages
     if (window.location.pathname.startsWith("/admin")) {
-      return;
+      return false;
     }
+    
+    // Check session rules before tracking
+    if (!shouldTrackBuyNowClick(productId)) {
+      console.log(`[Analytics] Skipping Buy Now beacon for ${productId} (already tracked or not viewed)`);
+      return false;
+    }
+    
+    // Mark as clicked to prevent duplicates
+    markBuyNowClicked(productId);
     
     const payload = {
       event_type: "buy_now_click",
@@ -106,7 +135,7 @@ export const trackBuyNowClickBeacon = (
 
     if (navigator.sendBeacon) {
       const ok = navigator.sendBeacon(url, blob);
-      if (ok) return;
+      if (ok) return true;
     }
 
     // Fallback: keepalive fetch (still non-blocking; don't await)
@@ -116,9 +145,11 @@ export const trackBuyNowClickBeacon = (
       body,
       keepalive: true,
     });
+    return true;
   } catch (error) {
     // Silently fail - analytics should never break navigation
     console.error("Analytics beacon error:", error);
+    return false;
   }
 };
 
