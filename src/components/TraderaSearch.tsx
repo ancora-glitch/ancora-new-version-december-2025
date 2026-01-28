@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Search, Loader2, Check, ExternalLink, Languages } from "lucide-react";
+import { Search, Loader2, Check, ExternalLink } from "lucide-react";
+import { determineBrand } from "@/lib/brandExtractor";
 
 interface TraderaItem {
   id: number;
@@ -212,9 +213,18 @@ const TraderaSearch = () => {
       // Fetch full item details
       const details = await fetchItemDetails(item.id);
       
-      // Use details if available, otherwise fall back to search result data
-      const brandName = details?.brand || item.brandName || "Unknown";
-      const originalName = details?.shortDescription || item.shortDescription;
+      // Get raw data from API
+      const rawTitle = details?.shortDescription || item.shortDescription;
+      const apiBrand = details?.brand || item.brandName;
+      
+      // Extract brand from title if not provided by API (or if API says "Unknown")
+      const { brand: extractedBrand, cleanedName } = determineBrand(apiBrand, rawTitle);
+      
+      // Use extracted brand, or empty string if none found (never "Unknown")
+      const brandName = extractedBrand || "";
+      // Use cleaned name (with brand removed) as the product name
+      const originalName = cleanedName || rawTitle;
+      
       const price = `${Math.round(details?.price || item.price)} SEK`;
       const mainImage = details?.imageLinks?.[0] || item.thumbnailLink || "";
       const additionalImages = details?.imageLinks?.slice(1) || item.imageLinks?.slice(1) || [];
