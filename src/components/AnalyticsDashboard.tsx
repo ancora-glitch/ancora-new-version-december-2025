@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Eye, MousePointer, TrendingUp, BarChart3, Calendar, ShoppingBag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 type DateRange = "7days" | "30days" | "all";
 
@@ -293,11 +294,11 @@ export const AnalyticsDashboard = () => {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Views */}
-        <Card className="bg-gradient-to-br from-secondary/50 to-background border-border/30">
+        <Card className="bg-gradient-to-br from-secondary/50 to-background border-border/30 h-full">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Eye size={16} className="text-primary" />
-              Page Views
+              <Eye size={16} className="text-primary shrink-0" />
+              <span className="truncate">Page Views</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -309,11 +310,11 @@ export const AnalyticsDashboard = () => {
         </Card>
 
         {/* Product Clicks */}
-        <Card className="bg-gradient-to-br from-secondary/50 to-background border-border/30">
+        <Card className="bg-gradient-to-br from-secondary/50 to-background border-border/30 h-full">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <MousePointer size={16} className="text-primary" />
-              Product Clicks
+              <MousePointer size={16} className="text-primary shrink-0" />
+              <span className="truncate">Product Clicks</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -325,11 +326,11 @@ export const AnalyticsDashboard = () => {
         </Card>
 
         {/* Purchase Intent */}
-        <Card className="bg-gradient-to-br from-primary/10 to-background border-primary/20">
+        <Card className="bg-gradient-to-br from-primary/10 to-background border-primary/20 h-full">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <ShoppingBag size={16} className="text-primary" />
-              Purchase Intent
+              <ShoppingBag size={16} className="text-primary shrink-0" />
+              <span className="truncate">Purchase Intent</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -341,20 +342,21 @@ export const AnalyticsDashboard = () => {
         </Card>
 
         {/* Intent Rate */}
-        <Card className="bg-gradient-to-br from-secondary/50 to-background border-border/30">
+        <Card className="bg-gradient-to-br from-secondary/50 to-background border-border/30 h-full">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <TrendingUp size={16} className="text-primary" />
-              Intent Rate
+              <TrendingUp size={16} className="text-primary shrink-0" />
+              <span className="truncate">Intent Rate</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-foreground">
-              {intentRate !== null ? `${intentRate}%` : "—"}
+              {intentRate !== null ? `${intentRate}%` : "0%"}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">Intent / Views</p>
+            <p className="text-xs text-muted-foreground mt-1">Intent / Clicks</p>
           </CardContent>
         </Card>
+      </div>
 
       {/* Top Products */}
       <Card className="border-border/30">
@@ -368,59 +370,50 @@ export const AnalyticsDashboard = () => {
           {!analytics?.topProducts?.length ? (
             <p className="text-muted-foreground text-sm">No product data yet</p>
           ) : (
-            <div className="space-y-4">
-              {analytics.topProducts.map((product, index) => (
-                <div key={product.product_id} className="flex items-start justify-between gap-4 pb-3 border-b border-border/30 last:border-0 last:pb-0">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-muted-foreground w-4">
-                        {index + 1}.
-                      </span>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10">#</TableHead>
+                  <TableHead>Product</TableHead>
+                  <TableHead className="text-right w-20">Clicks</TableHead>
+                  <TableHead className="text-right w-20">Intent</TableHead>
+                  <TableHead className="text-right w-20">Rate</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {analytics.topProducts.map((product, index) => (
+                  <TableRow key={product.product_id}>
+                    <TableCell className="font-medium text-muted-foreground">
+                      {index + 1}
+                    </TableCell>
+                    <TableCell>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">
+                        <p className="font-medium text-foreground truncate">
                           {product.product_name}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground truncate">
                           {product.brand}
                         </p>
                       </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 text-right shrink-0">
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">
-                        {product.clicks}
-                      </p>
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                        Clicks
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-primary">
-                        {product.purchases}
-                      </p>
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                        Intent
-                      </p>
-                    </div>
-                    <div className="min-w-[48px]">
-                      <p className="text-sm font-semibold text-foreground">
-                        {product.clicks > 0 
-                          ? `${Math.min((product.purchases / product.clicks) * 100, 100).toFixed(1)}%`
-                          : "—"}
-                      </p>
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                        Rate
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">
+                      {product.clicks}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold text-primary">
+                      {product.purchases}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">
+                      {product.clicks > 0 
+                        ? `${Math.min((product.purchases / product.clicks) * 100, 100).toFixed(0)}%`
+                        : "0%"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
-    </div>
 
       {/* Popular Pages */}
       <Card className="border-border/30">
