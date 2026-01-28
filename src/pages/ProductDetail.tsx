@@ -64,6 +64,7 @@ const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const analyticsTrackedRef = useRef(false);
+  const hasTrackedPageView = useRef(false);
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", slug],
@@ -92,11 +93,13 @@ const ProductDetail = () => {
   }, [product]);
 
   // Track product page view when product loads (excludes admins)
+  // Use hasTrackedPageView ref to ensure we only track once per page load
   useEffect(() => {
-    if (product) {
+    if (product && !hasTrackedPageView.current) {
+      hasTrackedPageView.current = true;
       trackProductPageView(product.id, product.name, product.brand);
     }
-  }, [product?.id]); // Only run when product ID changes
+  }, [product?.id]);
 
   // Handle Buy Now click with session-based deduplication
   const handleBuyNowInteraction = () => {
