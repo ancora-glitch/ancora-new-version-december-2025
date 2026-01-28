@@ -86,11 +86,11 @@ const About = () => {
         </section>
 
         {/* Team Image */}
-        <section ref={el => sectionsRef.current[6] = el} className="fade-section w-full">
+        <section ref={el => sectionsRef.current[6] = el} className="fade-section w-full flex justify-center px-6 md:px-12 lg:px-24 py-12">
           <img 
             src={teamAncoraImage} 
             alt="Team Ancora" 
-            className="w-full h-auto"
+            className="w-1/2 h-auto"
             loading="lazy"
           />
         </section>
