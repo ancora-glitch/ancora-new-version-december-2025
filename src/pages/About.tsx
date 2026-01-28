@@ -26,7 +26,7 @@ const About = () => {
       
       <main className="flex-1 pt-24 md:pt-32">
         {/* Hero Section */}
-        <section ref={el => sectionsRef.current[0] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-24 py-[67px]">
+        <section ref={el => sectionsRef.current[0] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-24 py-[43px]">
           <div className="max-w-[700px] mx-auto">
             <h1 className="font-serif text-primary text-4xl md:text-5xl lg:text-6xl leading-tight mb-8">
               About Ancora
@@ -35,7 +35,7 @@ const About = () => {
         </section>
 
         {/* Intro/Ingress Section */}
-        <section ref={el => sectionsRef.current[1] = el} className="fade-section md:px-12 lg:px-24 md:py-12 py-[37px] px-[60px]">
+        <section ref={el => sectionsRef.current[1] = el} className="fade-section md:px-12 lg:px-24 md:py-12 px-[60px] py-[19px]">
           <div className="max-w-[700px] mx-auto">
             <p className="article-intro">
               <em>Ancora exists for the everyday style seekers and the hardcore fashion hunters</em> — for anyone who believes that great style isn't bought, it's found.
