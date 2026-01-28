@@ -254,10 +254,10 @@ export const AnalyticsDashboard = () => {
 
   const maxPageCount = Math.max(...(analytics?.popularPages.map((p) => p.count) || [1]));
 
-  // Calculate conversion rate (Buy Now clicks / Product clicks)
+  // Calculate conversion rate (Buy Now clicks / Product clicks), capped at 100%
   const conversionRate = analytics && analytics.totalClicks > 0
-    ? ((analytics.buyNowClicks / analytics.totalClicks) * 100).toFixed(1)
-    : "0";
+    ? Math.min((analytics.buyNowClicks / analytics.totalClicks) * 100, 100).toFixed(1)
+    : null;
 
   return (
     <div className="space-y-6">
@@ -350,7 +350,7 @@ export const AnalyticsDashboard = () => {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-foreground">
-              {conversionRate}%
+              {conversionRate !== null ? `${conversionRate}%` : "—"}
             </p>
             <p className="text-xs text-muted-foreground mt-1">Buy Now / Product Clicks</p>
         </CardContent>
@@ -406,7 +406,7 @@ export const AnalyticsDashboard = () => {
                     <div className="min-w-[48px]">
                       <p className="text-sm font-semibold text-foreground">
                         {product.clicks > 0 
-                          ? `${((product.purchases / product.clicks) * 100).toFixed(1)}%`
+                          ? `${Math.min((product.purchases / product.clicks) * 100, 100).toFixed(1)}%`
                           : "—"}
                       </p>
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
