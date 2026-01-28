@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { PullQuote } from "@/components/PullQuote";
+import teamAncoraImage from "@/assets/team-ancora.png";
 const About = () => {
   const sectionsRef = useRef<(HTMLElement | null)[]>([]);
   useEffect(() => {
@@ -84,8 +85,15 @@ const About = () => {
           </div>
         </section>
 
-        {/* Spacer */}
-        <div className="h-8 md:h-16" />
+        {/* Team Image */}
+        <section ref={el => sectionsRef.current[6] = el} className="fade-section w-full">
+          <img 
+            src={teamAncoraImage} 
+            alt="Team Ancora" 
+            className="w-full h-auto"
+            loading="lazy"
+          />
+        </section>
       </main>
 
       <Footer />
