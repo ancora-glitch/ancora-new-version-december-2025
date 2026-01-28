@@ -256,9 +256,10 @@ export const AnalyticsDashboard = () => {
   const maxPageCount = Math.max(...(analytics?.popularPages.map((p) => p.count) || [1]));
 
   // Calculate intent rate (Buy Now clicks / Product clicks), capped at 100%
+  // Note: If intent > clicks, this indicates historical data issues before session-based tracking
   const intentRate = analytics && analytics.totalClicks > 0
     ? Math.min((analytics.buyNowClicks / analytics.totalClicks) * 100, 100).toFixed(1)
-    : null;
+    : "0";
 
   return (
     <div className="space-y-6">
@@ -351,7 +352,7 @@ export const AnalyticsDashboard = () => {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-foreground">
-              {intentRate !== null ? `${intentRate}%` : "0%"}
+              {intentRate}%
             </p>
             <p className="text-xs text-muted-foreground mt-1">Intent / Clicks</p>
           </CardContent>
