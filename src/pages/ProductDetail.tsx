@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState, useRef } from "react";
+import { useMemo, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -9,7 +9,7 @@ import { formatPrice } from "@/hooks/useProducts";
 import { deduplicateImages } from "@/lib/imageUtils";
 import { trackBuyNowClickBeacon } from "@/hooks/useAnalytics";
 import { markProductViewed } from "@/lib/sessionAnalytics";
-import { RedirectModal, triggerUserInitiatedNavigation } from "@/components/RedirectModal";
+import { useState } from "react";
 
 // Track product page view (excludes admins) and marks product as viewed in session
 const trackProductPageView = async (productId: string, productName: string, brand: string) => {
@@ -64,8 +64,6 @@ const cleanUrl = (url: string | undefined): string => {
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isRedirectModalOpen, setIsRedirectModalOpen] = useState(false);
-  const [navigationTriggered, setNavigationTriggered] = useState(false);
   const analyticsTrackedRef = useRef(false);
   const hasTrackedPageView = useRef(false);
 
@@ -104,12 +102,10 @@ const ProductDetail = () => {
     }
   }, [product?.id]);
 
-  // Handle Buy Now click - trigger navigation immediately in user event, then show modal
-  const handleBuyNowClick = (e: React.MouseEvent) => {
-    e.preventDefault();
+  // Track Buy Now click for analytics (called on link click)
+  const handleBuyNowClick = () => {
     if (!product) return;
     
-    // Track analytics
     if (!analyticsTrackedRef.current) {
       const tracked = trackBuyNowClickBeacon(
         product.id,
@@ -122,19 +118,6 @@ const ProductDetail = () => {
         analyticsTrackedRef.current = true;
       }
     }
-    
-    // Trigger navigation immediately in user-initiated event - avoids popup blockers
-    const url = cleanUrl(product.affiliate_url);
-    triggerUserInitiatedNavigation(url);
-    setNavigationTriggered(true);
-    
-    // Open the redirect modal for branding/UX
-    setIsRedirectModalOpen(true);
-  };
-
-  const handleRedirectModalClose = () => {
-    setIsRedirectModalOpen(false);
-    setNavigationTriggered(false);
   };
 
   const handlePrevImage = () => {
@@ -343,14 +326,16 @@ const ProductDetail = () => {
                 {/* Divider */}
                 <div className="border-t border-border" />
 
-                {/* Purchase CTA - Button triggers modal, not direct navigation */}
-                <button
+                {/* Purchase CTA - Native anchor link for reliable navigation */}
+                <a
+                  href={cleanUrl(product.affiliate_url)}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   onClick={handleBuyNowClick}
-                  className="relative z-50 pointer-events-auto inline-flex items-center justify-center px-8 py-3 min-h-[44px] min-w-[44px] bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors touch-manipulation select-none"
-                  style={{ WebkitTapHighlightColor: "transparent" }}
+                  className="inline-flex items-center justify-center px-8 py-3 min-h-[44px] min-w-[44px] bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors touch-manipulation select-none"
                 >
                   Buy now
-                </button>
+                </a>
               </div>
             </div>
           </div>
@@ -358,15 +343,6 @@ const ProductDetail = () => {
       </main>
 
       <Footer />
-
-      {/* Redirect confirmation modal */}
-      <RedirectModal
-        isOpen={isRedirectModalOpen}
-        onClose={handleRedirectModalClose}
-        redirectUrl={cleanUrl(product.affiliate_url)}
-        partnerName={product.marketplace || "our partner"}
-        navigationTriggered={navigationTriggered}
-      />
     </div>
   );
 };
