@@ -1,44 +1,33 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Progress } from "@/components/ui/progress";
-import { X } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { X, ExternalLink } from "lucide-react";
 
 interface RedirectModalProps {
   isOpen: boolean;
   onClose: () => void;
   redirectUrl: string;
   partnerName?: string;
+  /** If true, navigation was already triggered by user click - just show UI */
+  navigationTriggered?: boolean;
 }
 
-const REDIRECT_DELAY_MS = 2000;
+const DISPLAY_DURATION_MS = 2000;
 
-// Known partner app deep link schemes
-const PARTNER_APP_SCHEMES: Record<string, (url: string) => string | null> = {
-  tradera: (url: string) => {
-    // Extract item ID from Tradera URL and create deep link
-    // Tradera URLs: https://www.tradera.com/item/123456789
-    const match = url.match(/tradera\.com\/item\/(\d+)/i);
-    if (match) {
-      return `tradera://item/${match[1]}`;
-    }
-    // Fallback to generic tradera deep link
-    return `tradera://`;
-  },
-};
-
-// Try to trigger app deep link using hidden iframe (works on iOS/Android)
-const triggerAppDeepLink = (deepLink: string): void => {
-  const iframe = document.createElement("iframe");
-  iframe.style.display = "none";
-  iframe.src = deepLink;
-  document.body.appendChild(iframe);
-  
-  // Clean up iframe after a short delay
-  setTimeout(() => {
-    if (iframe.parentNode) {
-      iframe.parentNode.removeChild(iframe);
-    }
-  }, 100);
+/**
+ * Creates and clicks an anchor element to navigate - must be called 
+ * synchronously within a user-initiated event handler to avoid popup blockers.
+ */
+export const triggerUserInitiatedNavigation = (url: string): void => {
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.target = "_blank";
+  anchor.rel = "noopener noreferrer";
+  // Some browsers need the element in the DOM
+  anchor.style.display = "none";
+  document.body.appendChild(anchor);
+  anchor.click();
+  // Clean up immediately
+  document.body.removeChild(anchor);
 };
 
 export const RedirectModal = ({
@@ -46,44 +35,34 @@ export const RedirectModal = ({
   onClose,
   redirectUrl,
   partnerName = "our partner",
+  navigationTriggered = false,
 }: RedirectModalProps) => {
   const [progress, setProgress] = useState(0);
-  const [hasTriggeredAppLink, setHasTriggeredAppLink] = useState(false);
+  const [showManualLink, setShowManualLink] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const redirectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const isMobile = useIsMobile();
+  const displayTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const cleanup = useCallback(() => {
-    if (redirectTimeoutRef.current) {
-      clearTimeout(redirectTimeoutRef.current);
-      redirectTimeoutRef.current = null;
-    }
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
       progressIntervalRef.current = null;
+    }
+    if (displayTimeoutRef.current) {
+      clearTimeout(displayTimeoutRef.current);
+      displayTimeoutRef.current = null;
     }
   }, []);
 
   const handleClose = useCallback(() => {
     cleanup();
     setProgress(0);
-    setHasTriggeredAppLink(false);
+    setShowManualLink(false);
     onClose();
   }, [cleanup, onClose]);
 
-  // Get app deep link for known partners
-  const getAppDeepLink = useCallback((): string | null => {
-    const partnerKey = partnerName.toLowerCase();
-    const schemeGenerator = PARTNER_APP_SCHEMES[partnerKey];
-    if (schemeGenerator) {
-      return schemeGenerator(redirectUrl);
-    }
-    return null;
-  }, [partnerName, redirectUrl]);
-
-  // Handle ESC key
+  // Handle ESC key and focus trap
   useEffect(() => {
     if (!isOpen) return;
 
@@ -113,56 +92,38 @@ export const RedirectModal = ({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, handleClose]);
 
-  // Focus trap - focus close button on open
+  // Focus close button on open
   useEffect(() => {
     if (isOpen && closeButtonRef.current) {
       closeButtonRef.current.focus();
     }
   }, [isOpen]);
 
-  // Trigger app deep link immediately on mobile for known partners
-  useEffect(() => {
-    if (!isOpen || hasTriggeredAppLink) return;
-    
-    if (isMobile) {
-      const appDeepLink = getAppDeepLink();
-      if (appDeepLink) {
-        // Trigger app deep link immediately via hidden iframe
-        // This allows the OS to intercept and open the app if installed
-        triggerAppDeepLink(appDeepLink);
-        setHasTriggeredAppLink(true);
-      }
-    }
-  }, [isOpen, isMobile, getAppDeepLink, hasTriggeredAppLink]);
-
-  // Progress animation and web fallback redirect timer
+  // Progress animation - purely cosmetic since navigation already happened
   useEffect(() => {
     if (!isOpen) {
       setProgress(0);
-      setHasTriggeredAppLink(false);
+      setShowManualLink(false);
       return;
     }
 
     const startTime = Date.now();
     
-    // Update progress every 50ms for smooth animation
+    // Smooth progress animation
     progressIntervalRef.current = setInterval(() => {
       const elapsed = Date.now() - startTime;
-      const newProgress = Math.min((elapsed / REDIRECT_DELAY_MS) * 100, 100);
+      const newProgress = Math.min((elapsed / DISPLAY_DURATION_MS) * 100, 100);
       setProgress(newProgress);
     }, 50);
 
-    // Web fallback redirect after delay
-    // On mobile with app installed, the app will have already opened
-    // On mobile without app or desktop, this will redirect to web
-    redirectTimeoutRef.current = setTimeout(() => {
+    // Show manual link as fallback after delay
+    displayTimeoutRef.current = setTimeout(() => {
       cleanup();
-      window.open(redirectUrl, "_blank", "noopener,noreferrer");
-      onClose();
-    }, REDIRECT_DELAY_MS);
+      setShowManualLink(true);
+    }, DISPLAY_DURATION_MS);
 
     return cleanup;
-  }, [isOpen, redirectUrl, onClose, cleanup]);
+  }, [isOpen, cleanup]);
 
   if (!isOpen) return null;
 
@@ -211,10 +172,25 @@ export const RedirectModal = ({
           </span>
         </div>
 
-        {/* Progress bar */}
-        <div className="w-48 mt-8 animate-fade-up" style={{ animationDelay: "0.3s" }}>
-          <Progress value={progress} className="h-1 bg-muted" />
-        </div>
+        {/* Progress bar - only show when navigation was triggered */}
+        {navigationTriggered && !showManualLink && (
+          <div className="w-48 mt-8 animate-fade-up" style={{ animationDelay: "0.3s" }}>
+            <Progress value={progress} className="h-1 bg-muted" />
+          </div>
+        )}
+
+        {/* Manual fallback link - shown after delay or if navigation wasn't triggered */}
+        {(showManualLink || !navigationTriggered) && (
+          <a
+            href={redirectUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-6 inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 animate-fade-up"
+          >
+            Continue to {partnerName}
+            <ExternalLink size={16} />
+          </a>
+        )}
 
         {/* Cancel link */}
         <button

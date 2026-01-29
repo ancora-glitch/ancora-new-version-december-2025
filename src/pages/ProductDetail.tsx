@@ -9,7 +9,7 @@ import { formatPrice } from "@/hooks/useProducts";
 import { deduplicateImages } from "@/lib/imageUtils";
 import { trackBuyNowClickBeacon } from "@/hooks/useAnalytics";
 import { markProductViewed } from "@/lib/sessionAnalytics";
-import { RedirectModal } from "@/components/RedirectModal";
+import { RedirectModal, triggerUserInitiatedNavigation } from "@/components/RedirectModal";
 
 // Track product page view (excludes admins) and marks product as viewed in session
 const trackProductPageView = async (productId: string, productName: string, brand: string) => {
@@ -65,6 +65,7 @@ const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isRedirectModalOpen, setIsRedirectModalOpen] = useState(false);
+  const [navigationTriggered, setNavigationTriggered] = useState(false);
   const analyticsTrackedRef = useRef(false);
   const hasTrackedPageView = useRef(false);
 
@@ -103,7 +104,7 @@ const ProductDetail = () => {
     }
   }, [product?.id]);
 
-  // Handle Buy Now click - open modal instead of direct navigation
+  // Handle Buy Now click - trigger navigation immediately in user event, then show modal
   const handleBuyNowClick = (e: React.MouseEvent) => {
     e.preventDefault();
     if (!product) return;
@@ -122,8 +123,18 @@ const ProductDetail = () => {
       }
     }
     
-    // Open the redirect modal
+    // Trigger navigation immediately in user-initiated event - avoids popup blockers
+    const url = cleanUrl(product.affiliate_url);
+    triggerUserInitiatedNavigation(url);
+    setNavigationTriggered(true);
+    
+    // Open the redirect modal for branding/UX
     setIsRedirectModalOpen(true);
+  };
+
+  const handleRedirectModalClose = () => {
+    setIsRedirectModalOpen(false);
+    setNavigationTriggered(false);
   };
 
   const handlePrevImage = () => {
@@ -351,9 +362,10 @@ const ProductDetail = () => {
       {/* Redirect confirmation modal */}
       <RedirectModal
         isOpen={isRedirectModalOpen}
-        onClose={() => setIsRedirectModalOpen(false)}
+        onClose={handleRedirectModalClose}
         redirectUrl={cleanUrl(product.affiliate_url)}
         partnerName={product.marketplace || "our partner"}
+        navigationTriggered={navigationTriggered}
       />
     </div>
   );

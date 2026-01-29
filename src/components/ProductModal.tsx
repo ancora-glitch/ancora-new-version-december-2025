@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { X, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { trackBuyNowClickBeacon } from "@/hooks/useAnalytics";
-import { RedirectModal } from "./RedirectModal";
+import { RedirectModal, triggerUserInitiatedNavigation } from "./RedirectModal";
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -32,6 +32,7 @@ export const ProductModal = ({
 }: ProductModalProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showRedirectModal, setShowRedirectModal] = useState(false);
+  const [navigationTriggered, setNavigationTriggered] = useState(false);
   const analyticsTrackedRef = useRef(false);
 
   // Clean and validate URL - ensure https:// prefix and clean characters
@@ -50,7 +51,7 @@ export const ProductModal = ({
   const redirectUrl = cleanUrl(affiliateUrl);
   const partnerName = marketplace || "Instagram";
 
-  // Track Buy Now click once per modal open, with session deduplication
+  // Track Buy Now click and trigger navigation immediately in same event loop
   const handleBuyNowClick = () => {
     // Track analytics (only once per modal open)
     if (!analyticsTrackedRef.current && productId) {
@@ -66,12 +67,17 @@ export const ProductModal = ({
       }
     }
     
-    // Show redirect modal
+    // Trigger navigation immediately in user-initiated event - avoids popup blockers
+    triggerUserInitiatedNavigation(redirectUrl);
+    setNavigationTriggered(true);
+    
+    // Show redirect modal for branding/UX
     setShowRedirectModal(true);
   };
 
   const handleRedirectModalClose = () => {
     setShowRedirectModal(false);
+    setNavigationTriggered(false);
   };
 
   // Reset tracking ref when modal closes and reopens
@@ -201,6 +207,7 @@ export const ProductModal = ({
         onClose={handleRedirectModalClose}
         redirectUrl={redirectUrl}
         partnerName={partnerName}
+        navigationTriggered={navigationTriggered}
       />
     </>
   );
