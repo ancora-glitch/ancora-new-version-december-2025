@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Progress } from "@/components/ui/progress";
 import { X } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface RedirectModalProps {
   isOpen: boolean;
@@ -11,6 +12,35 @@ interface RedirectModalProps {
 
 const REDIRECT_DELAY_MS = 2000;
 
+// Known partner app deep link schemes
+const PARTNER_APP_SCHEMES: Record<string, (url: string) => string | null> = {
+  tradera: (url: string) => {
+    // Extract item ID from Tradera URL and create deep link
+    // Tradera URLs: https://www.tradera.com/item/123456789
+    const match = url.match(/tradera\.com\/item\/(\d+)/i);
+    if (match) {
+      return `tradera://item/${match[1]}`;
+    }
+    // Fallback to generic tradera deep link
+    return `tradera://`;
+  },
+};
+
+// Try to trigger app deep link using hidden iframe (works on iOS/Android)
+const triggerAppDeepLink = (deepLink: string): void => {
+  const iframe = document.createElement("iframe");
+  iframe.style.display = "none";
+  iframe.src = deepLink;
+  document.body.appendChild(iframe);
+  
+  // Clean up iframe after a short delay
+  setTimeout(() => {
+    if (iframe.parentNode) {
+      iframe.parentNode.removeChild(iframe);
+    }
+  }, 100);
+};
+
 export const RedirectModal = ({
   isOpen,
   onClose,
@@ -18,10 +48,12 @@ export const RedirectModal = ({
   partnerName = "our partner",
 }: RedirectModalProps) => {
   const [progress, setProgress] = useState(0);
+  const [hasTriggeredAppLink, setHasTriggeredAppLink] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const redirectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isMobile = useIsMobile();
 
   const cleanup = useCallback(() => {
     if (redirectTimeoutRef.current) {
@@ -37,8 +69,19 @@ export const RedirectModal = ({
   const handleClose = useCallback(() => {
     cleanup();
     setProgress(0);
+    setHasTriggeredAppLink(false);
     onClose();
   }, [cleanup, onClose]);
+
+  // Get app deep link for known partners
+  const getAppDeepLink = useCallback((): string | null => {
+    const partnerKey = partnerName.toLowerCase();
+    const schemeGenerator = PARTNER_APP_SCHEMES[partnerKey];
+    if (schemeGenerator) {
+      return schemeGenerator(redirectUrl);
+    }
+    return null;
+  }, [partnerName, redirectUrl]);
 
   // Handle ESC key
   useEffect(() => {
@@ -77,10 +120,26 @@ export const RedirectModal = ({
     }
   }, [isOpen]);
 
-  // Progress animation and redirect timer
+  // Trigger app deep link immediately on mobile for known partners
+  useEffect(() => {
+    if (!isOpen || hasTriggeredAppLink) return;
+    
+    if (isMobile) {
+      const appDeepLink = getAppDeepLink();
+      if (appDeepLink) {
+        // Trigger app deep link immediately via hidden iframe
+        // This allows the OS to intercept and open the app if installed
+        triggerAppDeepLink(appDeepLink);
+        setHasTriggeredAppLink(true);
+      }
+    }
+  }, [isOpen, isMobile, getAppDeepLink, hasTriggeredAppLink]);
+
+  // Progress animation and web fallback redirect timer
   useEffect(() => {
     if (!isOpen) {
       setProgress(0);
+      setHasTriggeredAppLink(false);
       return;
     }
 
@@ -93,7 +152,9 @@ export const RedirectModal = ({
       setProgress(newProgress);
     }, 50);
 
-    // Redirect after delay
+    // Web fallback redirect after delay
+    // On mobile with app installed, the app will have already opened
+    // On mobile without app or desktop, this will redirect to web
     redirectTimeoutRef.current = setTimeout(() => {
       cleanup();
       window.open(redirectUrl, "_blank", "noopener,noreferrer");
