@@ -29,7 +29,7 @@ const Index = () => {
           <div className="absolute inset-0 flex items-end md:items-center justify-center px-4 md:px-8 pb-12 md:pb-0">
             <div className="bg-black/15 md:bg-black/25 backdrop-blur-sm rounded-lg p-6 md:p-10 lg:p-12 max-w-2xl text-center">
               <h1 className="text-3xl md:text-4xl lg:text-5xl mb-4 md:mb-6 leading-tight text-white font-serif">
-                Curated second hand. Carefully edited.
+                Collected & Curated  
               </h1>
               <p className="text-base md:text-lg lg:text-xl mb-8 md:mb-10 leading-relaxed text-white/90">A new way to shop second hand.</p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
