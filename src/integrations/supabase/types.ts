@@ -14,11 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          seo_description: string | null
+          seo_title: string | null
+          slug: string
+          status: Database["public"]["Enums"]["category_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          seo_description?: string | null
+          seo_title?: string | null
+          slug: string
+          status?: Database["public"]["Enums"]["category_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          seo_description?: string | null
+          seo_title?: string | null
+          slug?: string
+          status?: Database["public"]["Enums"]["category_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           additional_images: Json | null
           affiliate_url: string | null
           brand: string
+          category_id: string | null
           condition: string | null
           condition_sv: string | null
           created_at: string
@@ -43,6 +80,7 @@ export type Database = {
           additional_images?: Json | null
           affiliate_url?: string | null
           brand: string
+          category_id?: string | null
           condition?: string | null
           condition_sv?: string | null
           created_at?: string
@@ -67,6 +105,7 @@ export type Database = {
           additional_images?: Json | null
           affiliate_url?: string | null
           brand?: string
+          category_id?: string | null
           condition?: string | null
           condition_sv?: string | null
           created_at?: string
@@ -87,7 +126,15 @@ export type Database = {
           status?: Database["public"]["Enums"]["product_status"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       projects: {
         Row: {
@@ -233,6 +280,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      category_status: "draft" | "published"
       product_status: "active" | "sold" | "published" | "draft"
     }
     CompositeTypes: {
@@ -362,6 +410,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      category_status: ["draft", "published"],
       product_status: ["active", "sold", "published", "draft"],
     },
   },

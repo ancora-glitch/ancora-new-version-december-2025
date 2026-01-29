@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStyleGuides } from "@/hooks/useStyleGuides";
 import { useAllProducts, type ProductStatus } from "@/hooks/useProducts";
+import { useAllCategories, type Category, type CategoryStatus } from "@/hooks/useCategories";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -52,9 +53,16 @@ interface Product {
   status: ProductStatus;
   slug?: string | null;
   sort_order?: number | null;
+  category_id?: string | null;
 }
 
 const isPublishedStatus = (status: ProductStatus) => status === "active" || status === "published";
+
+// Category status badge helper
+const getCategoryStatusBadge = (status: CategoryStatus) => {
+  if (status === "published") return <Badge>Published</Badge>;
+  return <Badge variant="secondary">Draft</Badge>;
+};
 
 // Status badge helper
 const getStatusBadge = (status: ProductStatus) => {
@@ -168,6 +176,7 @@ const SortableProductItem = ({ product, editingProductId, onEdit, onDelete, onTo
 const AdminPortal = () => {
   const { data: stories, isLoading: storiesLoading } = useStyleGuides();
   const { data: products, isLoading: productsLoading } = useAllProducts();
+  const { data: categories, isLoading: categoriesLoading } = useAllCategories();
   const queryClient = useQueryClient();
   const [isSyncingPrices, setIsSyncingPrices] = useState(false);
 
@@ -197,8 +206,19 @@ const AdminPortal = () => {
   const [productCondition, setProductCondition] = useState("");
   const [productMaterial, setProductMaterial] = useState("");
   const [productStatus, setProductStatus] = useState<ProductStatus>("draft");
+  const [productCategoryId, setProductCategoryId] = useState<string | null>(null);
   const [savingProduct, setSavingProduct] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "active" | "sold">("all");
+
+  // Category form state
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [categoryName, setCategoryName] = useState("");
+  const [categorySlug, setCategorySlug] = useState("");
+  const [categoryStatus, setCategoryStatus] = useState<CategoryStatus>("draft");
+  const [categoryDescription, setCategoryDescription] = useState("");
+  const [categorySeoTitle, setCategorySeoTitle] = useState("");
+  const [categorySeoDescription, setCategorySeoDescription] = useState("");
+  const [savingCategory, setSavingCategory] = useState(false);
 
   // Auto-generate slug from title (only when creating new story)
   const handleStoryTitleChange = (value: string) => {
@@ -245,6 +265,109 @@ const AdminPortal = () => {
     setProductCondition("");
     setProductMaterial("");
     setProductStatus("draft");
+    setProductCategoryId(null);
+  };
+
+  // Category form helpers
+  const handleCategoryNameChange = (value: string) => {
+    setCategoryName(value);
+    if (!editingCategoryId) {
+      const slug = value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      setCategorySlug(slug);
+    }
+  };
+
+  const resetCategoryForm = () => {
+    setEditingCategoryId(null);
+    setCategoryName("");
+    setCategorySlug("");
+    setCategoryStatus("draft");
+    setCategoryDescription("");
+    setCategorySeoTitle("");
+    setCategorySeoDescription("");
+  };
+
+  const handleEditCategory = (category: Category) => {
+    setEditingCategoryId(category.id);
+    setCategoryName(category.name);
+    setCategorySlug(category.slug);
+    setCategoryStatus(category.status);
+    setCategoryDescription(category.description || "");
+    setCategorySeoTitle(category.seo_title || "");
+    setCategorySeoDescription(category.seo_description || "");
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSaveCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!categoryName.trim() || !categorySlug.trim()) {
+      toast.error("Name and slug are required");
+      return;
+    }
+    setSavingCategory(true);
+    
+    const categoryData = {
+      name: categoryName.trim(),
+      slug: categorySlug.trim(),
+      status: categoryStatus,
+      description: categoryDescription.trim() || null,
+      seo_title: categorySeoTitle.trim() || null,
+      seo_description: categorySeoDescription.trim() || null,
+    };
+
+    let error;
+
+    if (editingCategoryId) {
+      const result = await supabase
+        .from("categories")
+        .update(categoryData)
+        .eq("id", editingCategoryId);
+      error = result.error;
+    } else {
+      const result = await supabase.from("categories").insert([categoryData]);
+      error = result.error;
+    }
+    
+    if (error) {
+      toast.error(`Failed to ${editingCategoryId ? 'update' : 'save'} category: ` + error.message);
+    } else {
+      toast.success(editingCategoryId ? "Category updated" : "Category saved");
+      resetCategoryForm();
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ["categories-all"] });
+    }
+    setSavingCategory(false);
+  };
+
+  const handleDeleteCategory = async (id: string, name: string) => {
+    if (!window.confirm(`Delete "${name}"? Products in this category will be unassigned.`)) return;
+    const { error } = await supabase.from("categories").delete().eq("id", id);
+    if (error) {
+      toast.error("Failed to delete: " + error.message);
+    } else {
+      toast.success("Category deleted");
+      if (editingCategoryId === id) {
+        resetCategoryForm();
+      }
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ["categories-all"] });
+    }
+  };
+
+  const handleToggleCategoryPublish = async (category: Category) => {
+    const newStatus: CategoryStatus = category.status === "published" ? "draft" : "published";
+    const { error } = await supabase
+      .from("categories")
+      .update({ status: newStatus })
+      .eq("id", category.id);
+
+    if (error) {
+      toast.error("Failed to update status: " + error.message);
+    } else {
+      toast.success(newStatus === "published" ? "Category published" : "Category moved to drafts");
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ["categories-all"] });
+    }
   };
 
   const handleEditProduct = (product: Product) => {
@@ -262,6 +385,7 @@ const AdminPortal = () => {
     setProductMaterial(product.material || "");
     // Normalize legacy 'published' to 'active' for the UI
     setProductStatus(product.status === "published" ? "active" : product.status);
+    setProductCategoryId(product.category_id || null);
     
     // Scroll to form
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -349,6 +473,7 @@ const AdminPortal = () => {
       material: productMaterial.trim() || null,
       status: productStatus,
       slug,
+      category_id: productCategoryId || null,
     };
 
     let error;
@@ -480,8 +605,9 @@ const AdminPortal = () => {
           </p>
 
           <Tabs defaultValue="statistics" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 mb-8">
+            <TabsList className="grid w-full grid-cols-5 mb-8">
               <TabsTrigger value="statistics">Statistics</TabsTrigger>
+              <TabsTrigger value="categories">Categories</TabsTrigger>
               <TabsTrigger value="tradera">Tradera</TabsTrigger>
               <TabsTrigger value="products">Products</TabsTrigger>
               <TabsTrigger value="stories">Stories</TabsTrigger>
@@ -490,6 +616,173 @@ const AdminPortal = () => {
             {/* STATISTICS TAB */}
             <TabsContent value="statistics">
               <AnalyticsDashboard />
+            </TabsContent>
+
+            {/* CATEGORIES TAB */}
+            <TabsContent value="categories" className="space-y-10">
+              <form onSubmit={handleSaveCategory} className="space-y-5 p-6 border border-border rounded-sm bg-card">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-display text-lg text-primary">
+                    {editingCategoryId ? "Edit Category" : "Add New Category"}
+                  </h2>
+                  {editingCategoryId && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={resetCategoryForm}
+                      className="text-muted-foreground"
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Cancel Edit
+                    </Button>
+                  )}
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="categoryName">Name *</Label>
+                    <Input 
+                      id="categoryName" 
+                      value={categoryName} 
+                      onChange={(e) => handleCategoryNameChange(e.target.value)} 
+                      placeholder="e.g. Coats & Jackets" 
+                      className="bg-background border-border" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="categorySlug">Slug *</Label>
+                    <Input 
+                      id="categorySlug" 
+                      value={categorySlug} 
+                      onChange={(e) => setCategorySlug(e.target.value)} 
+                      placeholder="coats-jackets" 
+                      className="bg-background border-border" 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="categoryStatus">Status</Label>
+                  <Select value={categoryStatus} onValueChange={(v) => setCategoryStatus(v as CategoryStatus)}>
+                    <SelectTrigger className="bg-background border-border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="published">Published</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="categoryDescription">Description</Label>
+                  <Textarea 
+                    id="categoryDescription" 
+                    value={categoryDescription} 
+                    onChange={(e) => setCategoryDescription(e.target.value)} 
+                    placeholder="Category description..." 
+                    className="bg-background border-border min-h-[80px]" 
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="categorySeoTitle">SEO Title (optional)</Label>
+                    <Input 
+                      id="categorySeoTitle" 
+                      value={categorySeoTitle} 
+                      onChange={(e) => setCategorySeoTitle(e.target.value)} 
+                      placeholder="Custom page title for search engines" 
+                      className="bg-background border-border" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="categorySeoDescription">SEO Description (optional)</Label>
+                    <Input 
+                      id="categorySeoDescription" 
+                      value={categorySeoDescription} 
+                      onChange={(e) => setCategorySeoDescription(e.target.value)} 
+                      placeholder="Meta description for search engines" 
+                      className="bg-background border-border" 
+                    />
+                  </div>
+                </div>
+
+                <Button type="submit" disabled={savingCategory} className="w-full">
+                  {savingCategory ? "Saving..." : editingCategoryId ? "Update Category" : "Save Category"}
+                </Button>
+              </form>
+
+              {/* Categories List */}
+              <div>
+                <h2 className="font-display text-lg text-primary mb-6">Existing Categories ({categories?.length || 0})</h2>
+                {categoriesLoading ? (
+                  <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-16 bg-muted rounded-sm animate-pulse" />)}</div>
+                ) : categories && categories.length > 0 ? (
+                  <div className="space-y-3">
+                    {categories.map((category) => (
+                      <div 
+                        key={category.id} 
+                        className={`flex items-center justify-between p-4 border rounded-sm bg-card cursor-pointer transition-colors ${
+                          editingCategoryId === category.id
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                        onClick={() => handleEditCategory(category)}
+                      >
+                        <div className="flex items-center gap-4 min-w-0">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <h3 className="font-medium text-primary truncate">{category.name}</h3>
+                              {getCategoryStatusBadge(category.status)}
+                            </div>
+                            <p className="text-muted-foreground text-sm truncate">/{category.slug}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleCategoryPublish(category);
+                            }}
+                            className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+                            title={category.status === "published" ? "Unpublish (move to draft)" : "Publish"}
+                          >
+                            {category.status === "published" ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditCategory(category);
+                            }}
+                            className="text-primary hover:bg-primary/10"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteCategory(category.id, category.name);
+                            }} 
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-center py-8 border border-border rounded-sm">No categories yet.</p>
+                )}
+              </div>
             </TabsContent>
 
             {/* TRADERA TAB */}
@@ -634,6 +927,26 @@ const AdminPortal = () => {
                     <Label htmlFor="productMarketplace">Marketplace</Label>
                     <Input id="productMarketplace" value={productMarketplace} onChange={(e) => setProductMarketplace(e.target.value)} placeholder="e.g. Vestiaire, Sellpy" className="bg-background border-border" />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="productCategory">Category</Label>
+                  <Select 
+                    value={productCategoryId || "none"} 
+                    onValueChange={(v) => setProductCategoryId(v === "none" ? null : v)}
+                  >
+                    <SelectTrigger className="bg-background border-border">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No category</SelectItem>
+                      {categories?.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name} {cat.status === "draft" && "(Draft)"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <Button type="submit" disabled={savingProduct} className="w-full">
