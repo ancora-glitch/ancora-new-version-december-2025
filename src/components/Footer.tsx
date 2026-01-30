@@ -1,4 +1,4 @@
-import { Instagram, Bookmark } from "lucide-react";
+import { Instagram } from "lucide-react";
 import { Link } from "react-router-dom";
 export const Footer = () => {
   return <footer className="bg-primary text-primary-foreground">
@@ -13,9 +13,6 @@ export const Footer = () => {
             <div className="flex gap-4 pt-2">
               <a href="https://www.instagram.com/ancora_edit/" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Instagram" className="p-2.5 rounded-full border border-primary-foreground/30 hover:bg-primary-foreground/10 transition-colors duration-200">
                 <Instagram className="w-5 h-5" strokeWidth={1.5} />
-              </a>
-              <a href="https://ancoraedit.substack.com/" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Substack" className="p-2.5 rounded-full border border-primary-foreground/30 hover:bg-primary-foreground/10 transition-colors duration-200">
-                <Bookmark className="w-5 h-5" strokeWidth={1.5} />
               </a>
             </div>
           </div>
