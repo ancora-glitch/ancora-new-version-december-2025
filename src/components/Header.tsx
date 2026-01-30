@@ -2,13 +2,14 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCategories } from "@/hooks/useCategories";
 
 interface MenuItem {
   label: string;
   href: string;
 }
 
-const menuItems: MenuItem[] = [
+const staticMenuItems: MenuItem[] = [
   { label: "Home", href: "/home" },
   { label: "Edits", href: "/edits" },
   { label: "Stories", href: "/stories" },
@@ -17,6 +18,18 @@ const menuItems: MenuItem[] = [
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
+  const { data: categories } = useCategories();
+
+  // Build dynamic menu items: static items + published categories
+  const menuItems: MenuItem[] = [
+    ...staticMenuItems.slice(0, 2), // Home, Edits
+    // Insert categories after Edits
+    ...(categories?.map(cat => ({
+      label: cat.name,
+      href: `/category/${cat.slug}`
+    })) || []),
+    ...staticMenuItems.slice(2) // Stories, About
+  ];
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
