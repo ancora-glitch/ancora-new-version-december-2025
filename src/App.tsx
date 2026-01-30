@@ -12,6 +12,7 @@ import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import ProductDetail from "./pages/ProductDetail";
 import Edits from "./pages/Edits";
+import CategoryPage from "./pages/CategoryPage";
 import AdminPortal from "./pages/AdminPortal";
 import Auth from "./pages/Auth";
 import RequireAdmin from "./components/RequireAdmin";
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/style-guides/:slug" element={<StyleGuide />} />
             <Route path="/product/:slug" element={<ProductDetail />} />
             <Route path="/edits" element={<Edits />} />
+            <Route path="/category/:slug" element={<CategoryPage />} />
             <Route
               path="/admin-portal"
               element={
