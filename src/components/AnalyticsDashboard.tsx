@@ -1,10 +1,17 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Eye, MousePointer, TrendingUp, BarChart3, Calendar, ShoppingBag } from "lucide-react";
+import { Eye, MousePointer, TrendingUp, BarChart3, Calendar, ShoppingBag, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 
 type DateRange = "7days" | "30days" | "all";
 
@@ -13,15 +20,25 @@ interface TopProduct {
   product_name: string;
   brand: string;
   clicks: number;
+  uniqueClicks: number;
   purchases: number;
+}
+
+interface DailyData {
+  date: string;
+  views: number;
+  clicks: number;
+  buyNow: number;
+  uniqueVisitors: number;
 }
 
 interface AnalyticsSummary {
   totalViews: number;
   totalClicks: number;
   buyNowClicks: number;
+  uniqueVisitors: number;
   popularPages: { page_path: string; count: number }[];
-  recentActivity: { date: string; views: number; clicks: number; buyNow: number }[];
+  recentActivity: DailyData[];
   topProducts: TopProduct[];
 }
 
@@ -46,6 +63,17 @@ const getDateRangeLabel = (range: DateRange): string => {
     case "all":
       return "All time";
   }
+};
+
+const chartConfig: ChartConfig = {
+  uniqueVisitors: {
+    label: "Unique Visitors",
+    color: "hsl(var(--primary))",
+  },
+  clicks: {
+    label: "Product Clicks",
+    color: "hsl(var(--primary) / 0.5)",
+  },
 };
 
 export const AnalyticsDashboard = () => {
@@ -92,6 +120,21 @@ export const AnalyticsDashboard = () => {
       
       const { count: buyNowClicks } = await buyNowQuery;
 
+      // Get unique visitors count
+      let visitorsQuery = supabase
+        .from("site_analytics")
+        .select("visitor_id");
+      
+      if (rangeStart) {
+        visitorsQuery = visitorsQuery.gte("created_at", rangeStart.toISOString());
+      }
+      
+      const { data: visitorData } = await visitorsQuery;
+      const uniqueVisitorIds = new Set(
+        visitorData?.map(v => v.visitor_id).filter(Boolean) || []
+      );
+      const uniqueVisitors = uniqueVisitorIds.size;
+
       // Get popular pages
       let pagesQuery = supabase
         .from("site_analytics")
@@ -122,18 +165,27 @@ export const AnalyticsDashboard = () => {
 
       const { data: recentEvents } = await supabase
         .from("site_analytics")
-        .select("event_type, page_path, created_at")
+        .select("event_type, page_path, created_at, visitor_id")
         .gte("created_at", chartStart.toISOString());
 
       // Group by date
-      const activityByDate: Record<string, { views: number; clicks: number; buyNow: number }> = {};
+      const activityByDate: Record<string, { views: number; clicks: number; buyNow: number; visitors: Set<string> }> = {};
+      
+      // Initialize all dates in range
+      for (let i = 0; i < chartDays; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() - (chartDays - 1 - i));
+        const dateKey = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        activityByDate[dateKey] = { views: 0, clicks: 0, buyNow: 0, visitors: new Set() };
+      }
+      
       recentEvents?.forEach((event) => {
         const date = new Date(event.created_at).toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
         });
         if (!activityByDate[date]) {
-          activityByDate[date] = { views: 0, clicks: 0, buyNow: 0 };
+          activityByDate[date] = { views: 0, clicks: 0, buyNow: 0, visitors: new Set() };
         }
         if (event.event_type === "page_view") {
           activityByDate[date].views++;
@@ -142,16 +194,24 @@ export const AnalyticsDashboard = () => {
         } else if (event.event_type === "product_click") {
           activityByDate[date].clicks++;
         }
+        if (event.visitor_id) {
+          activityByDate[date].visitors.add(event.visitor_id);
+        }
       });
 
-      const recentActivity = Object.entries(activityByDate)
-        .map(([date, data]) => ({ date, ...data }))
-        .slice(-chartDays);
+      const recentActivity: DailyData[] = Object.entries(activityByDate)
+        .map(([date, data]) => ({ 
+          date, 
+          views: data.views,
+          clicks: data.clicks,
+          buyNow: data.buyNow,
+          uniqueVisitors: data.visitors.size 
+        }));
 
-      // Get top products by clicks and purchases
+      // Get top products by clicks and purchases with unique click counts
       let productClicksQuery = supabase
         .from("site_analytics")
-        .select("metadata")
+        .select("metadata, visitor_id")
         .eq("event_type", "product_click");
       
       if (rangeStart) {
@@ -171,8 +231,8 @@ export const AnalyticsDashboard = () => {
       
       const { data: purchaseClicks } = await purchaseClicksQuery;
 
-      // Aggregate product data
-      const productStats: Record<string, TopProduct> = {};
+      // Aggregate product data with unique visitors per product
+      const productStats: Record<string, TopProduct & { uniqueVisitors: Set<string> }> = {};
       
       productClicks?.forEach((event) => {
         const meta = event.metadata as { product_id?: string; product_name?: string; brand?: string } | null;
@@ -183,10 +243,15 @@ export const AnalyticsDashboard = () => {
               product_name: meta.product_name || "Unknown",
               brand: meta.brand || "Unknown",
               clicks: 0,
+              uniqueClicks: 0,
               purchases: 0,
+              uniqueVisitors: new Set(),
             };
           }
           productStats[meta.product_id].clicks++;
+          if (event.visitor_id) {
+            productStats[meta.product_id].uniqueVisitors.add(event.visitor_id);
+          }
         }
       });
 
@@ -199,7 +264,9 @@ export const AnalyticsDashboard = () => {
               product_name: meta.product_name || "Unknown",
               brand: meta.brand || "Unknown",
               clicks: 0,
+              uniqueClicks: 0,
               purchases: 0,
+              uniqueVisitors: new Set(),
             };
           }
           productStats[meta.product_id].purchases++;
@@ -207,13 +274,22 @@ export const AnalyticsDashboard = () => {
       });
 
       const topProducts = Object.values(productStats)
+        .map(p => ({
+          product_id: p.product_id,
+          product_name: p.product_name,
+          brand: p.brand,
+          clicks: p.clicks,
+          uniqueClicks: p.uniqueVisitors.size,
+          purchases: p.purchases,
+        }))
         .sort((a, b) => (b.clicks + b.purchases * 2) - (a.clicks + a.purchases * 2))
-        .slice(0, 5);
+        .slice(0, 10);
 
       return {
         totalViews: totalViews || 0,
         totalClicks: totalClicks || 0,
         buyNowClicks: buyNowClicks || 0,
+        uniqueVisitors,
         popularPages,
         recentActivity,
         topProducts,
@@ -231,8 +307,8 @@ export const AnalyticsDashboard = () => {
             Statistics
           </h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          {[1, 2, 3, 4, 5].map((i) => (
             <Card key={i} className="animate-pulse">
               <CardContent className="pt-6">
                 <div className="h-16 bg-muted rounded" />
@@ -256,7 +332,6 @@ export const AnalyticsDashboard = () => {
   const maxPageCount = Math.max(...(analytics?.popularPages.map((p) => p.count) || [1]));
 
   // Calculate intent rate (Buy Now clicks / Product clicks), capped at 100%
-  // Note: If intent > clicks, this indicates historical data issues before session-based tracking
   const intentRate = analytics && analytics.totalClicks > 0
     ? Math.min((analytics.buyNowClicks / analytics.totalClicks) * 100, 100).toFixed(1)
     : "0";
@@ -293,7 +368,23 @@ export const AnalyticsDashboard = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* Unique Visitors */}
+        <Card className="bg-gradient-to-br from-primary/10 to-background border-primary/20 h-full">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Users size={16} className="text-primary shrink-0" />
+              <span className="truncate">Unique Visitors</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-primary">
+              {(analytics?.uniqueVisitors ?? 0).toLocaleString()}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">{getDateRangeLabel(dateRange)}</p>
+          </CardContent>
+        </Card>
+
         {/* Total Views */}
         <Card className="bg-gradient-to-br from-secondary/50 to-background border-border/30 h-full">
           <CardHeader className="pb-2">
@@ -327,7 +418,7 @@ export const AnalyticsDashboard = () => {
         </Card>
 
         {/* Purchase Intent */}
-        <Card className="bg-gradient-to-br from-primary/10 to-background border-primary/20 h-full">
+        <Card className="bg-gradient-to-br from-secondary/50 to-background border-border/30 h-full">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <ShoppingBag size={16} className="text-primary shrink-0" />
@@ -335,7 +426,7 @@ export const AnalyticsDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-primary">
+            <p className="text-3xl font-bold text-foreground">
               {(analytics?.buyNowClicks ?? 0).toLocaleString()}
             </p>
             <p className="text-xs text-muted-foreground mt-1">Buy Now clicks</p>
@@ -359,6 +450,63 @@ export const AnalyticsDashboard = () => {
         </Card>
       </div>
 
+      {/* Trend Line Chart */}
+      {analytics && analytics.recentActivity.length > 0 && (
+        <Card className="border-border/30">
+          <CardHeader>
+            <CardTitle className="text-base font-medium text-foreground flex items-center gap-2">
+              <TrendingUp size={16} className="text-primary" />
+              Trends ({getDateRangeLabel(dateRange)})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-[250px] w-full">
+              <LineChart data={analytics.recentActivity} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                <XAxis 
+                  dataKey="date" 
+                  tick={{ fontSize: 10 }}
+                  tickLine={false}
+                  axisLine={false}
+                  interval={dateRange === "30days" ? 4 : 0}
+                />
+                <YAxis 
+                  tick={{ fontSize: 10 }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={30}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Line 
+                  type="monotone" 
+                  dataKey="uniqueVisitors" 
+                  stroke="var(--color-uniqueVisitors)" 
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4 }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="clicks" 
+                  stroke="var(--color-clicks)" 
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4 }}
+                />
+              </LineChart>
+            </ChartContainer>
+            <div className="flex items-center justify-center gap-6 mt-2 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <div className="w-3 h-0.5 bg-primary rounded" /> Unique Visitors
+              </span>
+              <span className="flex items-center gap-1">
+                <div className="w-3 h-0.5 bg-primary/50 rounded" /> Product Clicks
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Top Products */}
       <Card className="border-border/30">
         <CardHeader>
@@ -371,48 +519,54 @@ export const AnalyticsDashboard = () => {
           {!analytics?.topProducts?.length ? (
             <p className="text-muted-foreground text-sm">No product data yet</p>
           ) : (
-            <div className="max-h-[320px] overflow-y-auto">
-              <Table>
-                <TableHeader className="sticky top-0 bg-card z-10">
-                  <TableRow>
-                    <TableHead className="w-10">#</TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead className="text-right w-20">Clicks</TableHead>
-                  <TableHead className="text-right w-20">Intent</TableHead>
-                  <TableHead className="text-right w-20">Rate</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {analytics.topProducts.map((product, index) => (
-                  <TableRow key={product.product_id}>
-                    <TableCell className="font-medium text-muted-foreground">
-                      {index + 1}
-                    </TableCell>
-                    <TableCell>
-                      <div className="min-w-0">
-                        <p className="font-medium text-foreground truncate">
-                          {product.product_name}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {product.brand}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right font-semibold">
-                      {product.clicks}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold text-primary">
-                      {product.purchases}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold">
-                      {product.clicks > 0 
-                        ? `${Math.min((product.purchases / product.clicks) * 100, 100).toFixed(0)}%`
-                        : "0%"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+              <div className="max-h-[400px] overflow-y-auto">
+                <Table>
+                  <TableHeader className="sticky top-0 bg-card z-10">
+                    <TableRow>
+                      <TableHead className="w-10">#</TableHead>
+                      <TableHead>Product</TableHead>
+                      <TableHead className="text-right w-16">Clicks</TableHead>
+                      <TableHead className="text-right w-20">Unique</TableHead>
+                      <TableHead className="text-right w-16">Intent</TableHead>
+                      <TableHead className="text-right w-16">Rate</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {analytics.topProducts.map((product, index) => (
+                      <TableRow key={product.product_id}>
+                        <TableCell className="font-medium text-muted-foreground">
+                          {index + 1}
+                        </TableCell>
+                        <TableCell>
+                          <div className="min-w-0">
+                            <p className="font-medium text-foreground truncate max-w-[180px]">
+                              {product.product_name}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {product.brand}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-semibold">
+                          {product.clicks}
+                        </TableCell>
+                        <TableCell className="text-right font-semibold text-muted-foreground">
+                          {product.uniqueClicks}
+                        </TableCell>
+                        <TableCell className="text-right font-semibold text-primary">
+                          {product.purchases}
+                        </TableCell>
+                        <TableCell className="text-right font-semibold">
+                          {product.clicks > 0 
+                            ? `${Math.min((product.purchases / product.clicks) * 100, 100).toFixed(0)}%`
+                            : "0%"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
         </CardContent>
@@ -452,60 +606,6 @@ export const AnalyticsDashboard = () => {
           )}
         </CardContent>
       </Card>
-
-      {/* Recent Activity */}
-      {analytics && analytics.recentActivity.length > 0 && (
-        <Card className="border-border/30">
-          <CardHeader>
-            <CardTitle className="text-base font-medium text-foreground">
-              {dateRange === "7days" ? "Last 7 Days" : dateRange === "30days" ? "Last 30 Days" : "Recent Activity"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-end justify-between gap-1 h-32 overflow-x-auto">
-              {analytics.recentActivity.map((day) => {
-                const maxValue = Math.max(
-                  ...analytics.recentActivity.map((d) => d.views + d.clicks + d.buyNow),
-                  1
-                );
-                const totalHeight = ((day.views + day.clicks + day.buyNow) / maxValue) * 100;
-                const buyNowHeight = (day.buyNow / (day.views + day.clicks + day.buyNow || 1)) * totalHeight;
-                return (
-                  <div
-                    key={day.date}
-                    className="flex-1 min-w-[20px] flex flex-col items-center gap-1"
-                  >
-                    <div
-                      className="w-full flex flex-col justify-end rounded-t overflow-hidden"
-                      style={{ height: `${totalHeight}%`, minHeight: "4px" }}
-                      title={`${day.views} views, ${day.clicks} clicks, ${day.buyNow} buy now`}
-                    >
-                      <div 
-                        className="w-full bg-primary/90"
-                        style={{ height: `${buyNowHeight}%`, minHeight: day.buyNow > 0 ? "2px" : "0" }}
-                      />
-                      <div 
-                        className="w-full bg-primary/40 flex-1"
-                      />
-                    </div>
-                    <span className="text-[10px] text-muted-foreground truncate max-w-full">
-                      {dateRange === "30days" ? day.date.split(" ")[1] : day.date}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="flex items-center justify-center gap-6 mt-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <div className="w-3 h-3 bg-primary/40 rounded" /> Views & Clicks
-              </span>
-              <span className="flex items-center gap-1">
-                <div className="w-3 h-3 bg-primary/90 rounded" /> Purchase Intent
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };

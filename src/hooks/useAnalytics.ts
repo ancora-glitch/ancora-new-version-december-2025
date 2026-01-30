@@ -5,15 +5,18 @@ import type { Json } from "@/integrations/supabase/types";
 import { 
   markProductViewed, 
   shouldTrackBuyNowClick, 
-  markBuyNowClicked 
+  markBuyNowClicked,
+  getVisitorId 
 } from "@/lib/sessionAnalytics";
 
 // Track a page view
 export const trackPageView = async (pagePath: string) => {
   try {
+    const visitor_id = getVisitorId();
     const { error } = await supabase.from("site_analytics").insert([{
       event_type: "page_view",
       page_path: pagePath,
+      visitor_id,
     }]);
     if (error) {
       console.error("Analytics page view error:", error);
@@ -32,10 +35,12 @@ export const trackClick = async (eventType: string, pagePath: string, metadata?:
       return;
     }
     
+    const visitor_id = getVisitorId();
     const { error } = await supabase.from("site_analytics").insert([{
       event_type: eventType,
       page_path: pagePath,
       metadata: metadata || {},
+      visitor_id,
     }]);
     
     if (error) {
@@ -112,9 +117,11 @@ export const trackBuyNowClickBeacon = (
     // Mark as clicked to prevent duplicates
     markBuyNowClicked(productId);
     
+    const visitor_id = getVisitorId();
     const payload = {
       event_type: "buy_now_click",
       page_path: "/buy-now",
+      visitor_id,
       metadata: {
         product_id: productId,
         product_name: productName,

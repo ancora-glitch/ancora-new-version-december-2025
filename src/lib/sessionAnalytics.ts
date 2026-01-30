@@ -4,7 +4,12 @@
  * and only after a product has been viewed.
  */
 
+import { getVisitorId } from "./visitorId";
+
 const SESSION_STORAGE_KEY = "ancora_analytics_session";
+
+// Re-export getVisitorId for convenience
+export { getVisitorId };
 
 interface AnalyticsSession {
   viewedProducts: Set<string>;
