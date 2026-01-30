@@ -1,10 +1,21 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useProducts, formatPrice } from "@/hooks/useProducts";
+import { useCategories } from "@/hooks/useCategories";
+import { cn } from "@/lib/utils";
 
 const Edits = () => {
-  const { data: products, isLoading } = useProducts();
+  const { data: products, isLoading: productsLoading } = useProducts();
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  const filteredProducts = selectedCategory
+    ? products?.filter((p) => p.category_id === selectedCategory)
+    : products;
+
+  const isLoading = productsLoading || categoriesLoading;
 
   return (
     <div className="min-h-screen bg-background">
@@ -31,13 +42,46 @@ const Edits = () => {
           </p>
         </div>
 
+        {/* Category Filter Chips */}
+        {categories && categories.length > 0 && (
+          <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto mb-8 md:mb-12">
+            <div className="flex flex-wrap justify-center gap-2 md:gap-3">
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className={cn(
+                  "px-4 py-2 text-xs md:text-sm font-medium uppercase tracking-wider border transition-colors duration-200 min-h-[44px]",
+                  selectedCategory === null
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-transparent text-muted-foreground border-border hover:border-foreground hover:text-foreground"
+                )}
+              >
+                All
+              </button>
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => setSelectedCategory(category.id)}
+                  className={cn(
+                    "px-4 py-2 text-xs md:text-sm font-medium uppercase tracking-wider border transition-colors duration-200 min-h-[44px]",
+                    selectedCategory === category.id
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-transparent text-muted-foreground border-border hover:border-foreground hover:text-foreground"
+                  )}
+                >
+                  {category.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Products Grid */}
         <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto">
           {isLoading ? (
             <p className="text-center text-muted-foreground py-20">Loading products...</p>
-          ) : products && products.length > 0 ? (
+          ) : filteredProducts && filteredProducts.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-6 lg:gap-8">
-              {products.map((product) => (
+              {filteredProducts.map((product) => (
                 <Link
                   key={product.id}
                   to={`/product/${product.slug || product.id}`}
