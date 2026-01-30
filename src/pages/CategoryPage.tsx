@@ -1,12 +1,11 @@
-import { useParams, Navigate } from "react-router-dom";
+import { useParams, Navigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { ProductCard } from "@/components/ProductCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Tables } from "@/integrations/supabase/types";
-import { PUBLIC_VISIBLE_PRODUCT_STATUSES } from "@/hooks/useProducts";
+import { PUBLIC_VISIBLE_PRODUCT_STATUSES, formatPrice } from "@/hooks/useProducts";
 import { useEffect } from "react";
 
 type Category = Tables<"categories">;
@@ -22,10 +21,10 @@ const useCategoryBySlug = (slug: string | undefined) => {
         .from("categories")
         .select("*")
         .eq("slug", slug)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      return data as Category;
+      return data as Category | null;
     },
     enabled: !!slug,
   });
@@ -61,7 +60,6 @@ const CategoryPage = () => {
     if (category) {
       document.title = category.seo_title || `${category.name} | ANCORA`;
       
-      // Update meta description
       const metaDescription = document.querySelector('meta[name="description"]');
       const descriptionContent = category.seo_description || category.description || `Shop ${category.name} at ANCORA`;
       
@@ -76,26 +74,38 @@ const CategoryPage = () => {
     }
     
     return () => {
-      // Reset title on unmount
       document.title = "ANCORA";
     };
   }, [category]);
 
-  // Show loading state
+  const isLoading = categoryLoading || productsLoading;
+
+  // Show loading state - matching Edits page layout
   if (categoryLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen bg-background">
         <Header />
-        <main className="flex-1 pt-24 pb-16">
-          <div className="container mx-auto px-5 md:px-8">
-            <Skeleton className="h-10 w-64 mb-4" />
-            <Skeleton className="h-6 w-full max-w-2xl mb-12" />
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+        <main className="pt-24 md:pt-28 pb-16 md:pb-24">
+          {/* Back Navigation Skeleton */}
+          <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto mb-6">
+            <Skeleton className="h-5 w-32" />
+          </div>
+
+          {/* Page Header Skeleton */}
+          <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto mb-12 md:mb-16">
+            <Skeleton className="h-10 md:h-12 w-64 mx-auto mb-4" />
+            <Skeleton className="h-5 w-full max-w-2xl mx-auto" />
+          </div>
+
+          {/* Products Grid Skeleton */}
+          <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-6 lg:gap-8">
               {[...Array(8)].map((_, i) => (
                 <div key={i} className="space-y-3">
-                  <Skeleton className="aspect-[3/4] w-full" />
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="aspect-[4/5] w-full" />
+                  <Skeleton className="h-3 w-1/3" />
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-4 w-1/4" />
                 </div>
               ))}
             </div>
@@ -112,56 +122,77 @@ const CategoryPage = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="flex-1 pt-24 pb-16">
-        <div className="container mx-auto px-5 md:px-8">
-          {/* Category Header */}
-          <div className="mb-12">
-            <h1 className="text-3xl md:text-4xl font-serif font-medium text-foreground mb-4">
-              {category.name}
-            </h1>
-            {category.description && (
-              <p className="text-muted-foreground max-w-2xl text-base md:text-lg leading-relaxed">
-                {category.description}
-              </p>
-            )}
-          </div>
+      <main className="pt-24 md:pt-28 pb-16 md:pb-24">
+        {/* Back Navigation */}
+        <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto mb-6">
+          <Link 
+            to="/" 
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            ← Back to home
+          </Link>
+        </div>
 
-          {/* Products Grid */}
+        {/* Page Header - matching Edits style */}
+        <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto mb-12 md:mb-16">
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-serif text-primary text-center mb-4">
+            {category.name}
+          </h1>
+          {category.description && (
+            <p className="text-center text-muted-foreground max-w-2xl mx-auto">
+              {category.description}
+            </p>
+          )}
+        </div>
+
+        {/* Products Grid - identical to Edits */}
+        <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto">
           {productsLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="space-y-3">
-                  <Skeleton className="aspect-[3/4] w-full" />
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                </div>
-              ))}
-            </div>
+            <p className="text-center text-muted-foreground py-20">Loading products...</p>
           ) : products && products.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-6 lg:gap-8">
               {products.map((product) => (
-                <ProductCard
+                <Link
                   key={product.id}
-                  id={product.id}
-                  brand={product.brand}
-                  name={product.name}
-                  price={product.price}
-                  image={product.image}
-                  slug={product.slug || product.id}
-                  additionalImages={(product.additional_images as string[]) || []}
-                  affiliateUrl={product.affiliate_url || undefined}
-                  marketplace={product.marketplace || undefined}
-                />
+                  to={`/product/${product.slug || product.id}`}
+                  className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 hover:bg-secondary/10 transition-all duration-300 min-h-[44px]"
+                  aria-label={`View ${product.brand} ${product.name}`}
+                >
+                  {/* Image Container */}
+                  <div className="relative aspect-[4/5] overflow-hidden bg-secondary/30">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      loading="lazy"
+                      width={400}
+                      height={500}
+                      className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/10 transition-colors duration-300" />
+                  </div>
+
+                  {/* Card Content */}
+                  <div className="p-4 space-y-1.5">
+                    <span className="text-xs font-semibold uppercase tracking-widest text-foreground">
+                      {product.brand}
+                    </span>
+                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-1">
+                      {product.name}
+                    </p>
+                    <p className="text-base font-semibold text-foreground pt-1">
+                      {formatPrice(product.price)}
+                    </p>
+                  </div>
+                </Link>
               ))}
             </div>
           ) : (
-            <div className="text-center py-16">
-              <p className="text-muted-foreground text-lg">
-                No products at the moment
-              </p>
+            <div className="text-center py-20">
+              <p className="text-muted-foreground mb-4">No products available at the moment.</p>
+              <p className="text-sm text-muted-foreground">Check back soon for our next edit.</p>
             </div>
           )}
         </div>
