@@ -18,12 +18,7 @@ const staticMenuItems: MenuItem[] = [
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
-  const { data: categories, isLoading, error } = useCategories();
-
-  // Debug logging
-  console.log('Categories found:', categories);
-  console.log('Categories loading:', isLoading);
-  console.log('Categories error:', error);
+  const { data: categories } = useCategories();
 
   // Build dynamic menu items: static items + published categories
   const menuItems: MenuItem[] = [
