@@ -19,7 +19,7 @@ export const useProducts = () => {
         .from("products")
         .select("*")
         .in("status", PUBLIC_VISIBLE_PRODUCT_STATUSES)
-        .order("sort_order", { ascending: true });
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data as Product[];
