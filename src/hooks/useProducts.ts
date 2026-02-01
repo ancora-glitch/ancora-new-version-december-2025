@@ -27,8 +27,8 @@ export const useProducts = () => {
   });
 };
 
-// Hook for admin - fetches all products regardless of status
-// Sorts drafts first so newly imported products are easy to find
+// Hook for admin - fetches all products EXCEPT sold (which have their own archive)
+// Sorts pending_import first, then drafts, then by sort_order
 export const useAllProducts = () => {
   return useQuery({
     queryKey: ["products-all"],
@@ -36,6 +36,7 @@ export const useAllProducts = () => {
       const { data, error } = await supabase
         .from("products")
         .select("*")
+        .neq("status", "sold")
         .order("sort_order", { ascending: true });
 
       if (error) throw error;
@@ -60,6 +61,23 @@ export const useAllProducts = () => {
         // Then by sort_order for everything else
         return (a.sort_order ?? 0) - (b.sort_order ?? 0);
       });
+    },
+  });
+};
+
+// Hook for admin - fetches only sold products for the archive view
+export const useSoldProducts = () => {
+  return useQuery({
+    queryKey: ["products-sold"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("status", "sold")
+        .order("updated_at", { ascending: false });
+
+      if (error) throw error;
+      return data as Product[];
     },
   });
 };
