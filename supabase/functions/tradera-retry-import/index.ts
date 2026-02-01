@@ -22,6 +22,12 @@ interface TraderaItemDetail {
   material?: string;
 }
 
+interface UploadResult {
+  originalUrl: string;
+  storageUrl: string | null;
+  error?: string;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -127,12 +133,36 @@ serve(async (req) => {
           continue;
         }
 
-        // Update product with full data
+        // Upload images to storage (Tradera URLs cannot be hotlinked)
+        console.log(`Uploading ${uniqueImages.length} images to storage for ${product.name}...`);
+        const storageUrls = await uploadImagesToStorage(
+          supabase,
+          uniqueImages,
+          product.tradera_item_id!
+        );
+
+        if (storageUrls.length === 0) {
+          console.log(`Failed to upload any images for ${product.name}`);
+          // Increment retry count but don't mark as complete
+          await supabase
+            .from('products')
+            .update({
+              import_retry_count: (product.import_retry_count || 0) + 1,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', product.id);
+          results.failed++;
+          continue;
+        }
+
+        console.log(`Successfully uploaded ${storageUrls.length} images to storage`);
+
+        // Update product with full data (using storage URLs)
         const { error: updateError } = await supabase
           .from('products')
           .update({
-            image: uniqueImages[0],
-            additional_images: uniqueImages.slice(1),
+            image: storageUrls[0],
+            additional_images: storageUrls.slice(1),
             description: item.longDescription || null,
             description_sv: item.longDescription || null,
             condition_sv: item.condition || null,
@@ -148,7 +178,7 @@ serve(async (req) => {
           console.error(`Failed to update product ${product.id}:`, updateError);
           results.failed++;
         } else {
-          console.log(`Successfully imported ${product.name} with ${uniqueImages.length} images`);
+          console.log(`Successfully imported ${product.name} with ${storageUrls.length} images`);
           results.success++;
         }
       } catch (e) {
@@ -176,6 +206,87 @@ serve(async (req) => {
     );
   }
 });
+
+/**
+ * Uploads images to Supabase storage.
+ * Fetches each image from Tradera server-side and uploads to 'products' bucket.
+ */
+async function uploadImagesToStorage(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  imageUrls: string[],
+  traderaItemId: string
+): Promise<string[]> {
+  const folderName = `tradera-${traderaItemId}`;
+  console.log(`Uploading ${imageUrls.length} images to folder: ${folderName}`);
+
+  const storageUrls: string[] = [];
+
+  for (let i = 0; i < imageUrls.length; i++) {
+    const originalUrl = imageUrls[i];
+
+    try {
+      console.log(`Fetching image ${i + 1}/${imageUrls.length}...`);
+
+      // Fetch the image from Tradera
+      const imageResponse = await fetch(originalUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Accept': 'image/*',
+          'Referer': 'https://www.tradera.com/',
+        },
+      });
+
+      if (!imageResponse.ok) {
+        console.error(`Failed to fetch image ${i + 1}: ${imageResponse.status}`);
+        continue;
+      }
+
+      // Get the image data as ArrayBuffer
+      const imageData = await imageResponse.arrayBuffer();
+      const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+
+      // Determine file extension from content type
+      let extension = 'jpg';
+      if (contentType.includes('png')) extension = 'png';
+      else if (contentType.includes('webp')) extension = 'webp';
+      else if (contentType.includes('gif')) extension = 'gif';
+
+      // Create a unique filename
+      const filename = `${folderName}/image-${i + 1}-${Date.now()}.${extension}`;
+
+      console.log(`Uploading to storage: ${filename} (${Math.round(imageData.byteLength / 1024)}KB)`);
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('products')
+        .upload(filename, imageData, {
+          contentType,
+          upsert: true,
+        });
+
+      if (uploadError) {
+        console.error(`Failed to upload image ${i + 1}:`, uploadError);
+        continue;
+      }
+
+      // Get the public URL
+      const { data: publicUrlData } = supabase.storage
+        .from('products')
+        .getPublicUrl(filename);
+
+      console.log(`Successfully uploaded image ${i + 1}`);
+      storageUrls.push(publicUrlData.publicUrl);
+
+    } catch (e) {
+      console.error(`Error processing image ${i + 1}:`, e);
+      // Continue with next image
+    }
+  }
+
+  console.log(`Upload complete: ${storageUrls.length} of ${imageUrls.length} images uploaded`);
+  return storageUrls;
+}
 
 interface FetchResult {
   item: TraderaItemDetail | null;

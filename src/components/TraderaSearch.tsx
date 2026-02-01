@@ -277,6 +277,39 @@ const TraderaSearch = () => {
   };
 
   /**
+   * Uploads images to Supabase storage via the edge function.
+   * Returns an array of storage URLs (may be shorter than input if some fail).
+   */
+  const uploadImagesToStorage = async (
+    imageUrls: string[],
+    traderaItemId: string
+  ): Promise<string[]> => {
+    try {
+      console.log(`Uploading ${imageUrls.length} images to storage for Tradera item ${traderaItemId}...`);
+      
+      const { data, error } = await supabase.functions.invoke("tradera-upload-images", {
+        body: { imageUrls, traderaItemId },
+      });
+
+      if (error) {
+        console.error("Failed to upload images:", error);
+        return [];
+      }
+
+      if (!data.success || !data.storageUrls || data.storageUrls.length === 0) {
+        console.error("No images were uploaded successfully:", data);
+        return [];
+      }
+
+      console.log(`Successfully uploaded ${data.storageUrls.length} of ${imageUrls.length} images`);
+      return data.storageUrls;
+    } catch (e) {
+      console.error("Error uploading images to storage:", e);
+      return [];
+    }
+  };
+
+  /**
    * Creates or resets a pending import record when rate-limited.
    * If a product with the same tradera_item_id already exists, it resets to pending_import.
    * The item will be retried later by the tradera-retry-import edge function.
@@ -413,9 +446,20 @@ const TraderaSearch = () => {
         return;
       }
       
+      // Upload images to our storage (Tradera URLs cannot be hotlinked)
+      toast.info(`Uploading ${allUniqueImages.length} images to storage...`, { duration: 3000 });
+      const storageUrls = await uploadImagesToStorage(allUniqueImages, String(item.id));
+      
+      if (storageUrls.length === 0) {
+        toast.error("Failed to upload images to storage. Cannot import without images.");
+        return;
+      }
+      
+      console.log(`Successfully uploaded ${storageUrls.length} images to storage`);
+      
       // Use first image as main, rest as additional
-      const mainImage = allUniqueImages[0];
-      const additionalImages = allUniqueImages.slice(1);
+      const mainImage = storageUrls[0];
+      const additionalImages = storageUrls.slice(1);
       
       const originalDescription = details.longDescription || "";
       const originalCondition = details.condition || "";
@@ -512,7 +556,7 @@ const TraderaSearch = () => {
         return;
       }
 
-      toast.success(`Product imported with ${allUniqueImages.length} images. Go to the Products tab to review.`, {
+      toast.success(`Product imported with ${storageUrls.length} images. Go to the Products tab to review.`, {
         duration: 5000,
       });
       setImportedIds((prev) => new Set(prev).add(item.id));
