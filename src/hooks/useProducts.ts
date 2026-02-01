@@ -6,7 +6,7 @@ export type Product = Tables<"products">;
 
 // NOTE: Historically, "active" is the public/visible status in the database.
 // We also temporarily support legacy "published" values to avoid breaking older rows.
-export type ProductStatus = "draft" | "active" | "sold" | "published";
+export type ProductStatus = "draft" | "active" | "sold" | "published" | "pending_import";
 
 export const PUBLIC_VISIBLE_PRODUCT_STATUSES: Array<ProductStatus> = ["active", "published"];
 
