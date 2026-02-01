@@ -6,6 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const MAX_IMAGES_PER_PRODUCT = 10;
+
 interface UploadRequest {
   imageUrls: string[];
   productId?: string; // Optional: if provided, uses this as folder name
@@ -46,12 +48,20 @@ serve(async (req) => {
     }
 
     const folderName = productId || `tradera-${traderaItemId}`;
-    console.log(`Uploading ${imageUrls.length} images to folder: ${folderName}`);
+    
+    // Limit to max images per product
+    const imagesToUpload = imageUrls.slice(0, MAX_IMAGES_PER_PRODUCT);
+    if (imageUrls.length > MAX_IMAGES_PER_PRODUCT) {
+      console.log(`Limiting from ${imageUrls.length} to ${MAX_IMAGES_PER_PRODUCT} images`);
+    }
+    
+    console.log(`Uploading ${imagesToUpload.length} images to folder: ${folderName}`);
 
     const results: UploadResult[] = [];
     
-    for (let i = 0; i < imageUrls.length; i++) {
-      const originalUrl = imageUrls[i];
+    for (let i = 0; i < imagesToUpload.length; i++) {
+      const originalUrl = imagesToUpload[i];
+      
       
       try {
         console.log(`Fetching image ${i + 1}/${imageUrls.length}: ${originalUrl.substring(0, 80)}...`);

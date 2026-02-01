@@ -8,6 +8,7 @@ const corsHeaders = {
 
 const MAX_RETRY_ATTEMPTS = 5;
 const RETRY_DELAY_MS = 2000; // Delay between Tradera API calls
+const MAX_IMAGES_PER_PRODUCT = 10;
 
 interface TraderaItemDetail {
   id: number;
@@ -124,8 +125,12 @@ serve(async (req) => {
 
         const item = itemDetails.item;
 
-        // Deduplicate images
-        const uniqueImages = deduplicateImages(item.imageLinks || []);
+        // Deduplicate images and limit to max
+        const allImages = deduplicateImages(item.imageLinks || []);
+        const uniqueImages = allImages.slice(0, MAX_IMAGES_PER_PRODUCT);
+        if (allImages.length > MAX_IMAGES_PER_PRODUCT) {
+          console.log(`Limiting from ${allImages.length} to ${MAX_IMAGES_PER_PRODUCT} images`);
+        }
 
         if (uniqueImages.length === 0) {
           console.log(`No images found for item ${product.tradera_item_id}`);
