@@ -252,8 +252,8 @@ async function uploadImagesToStorage(
       else if (contentType.includes('webp')) extension = 'webp';
       else if (contentType.includes('gif')) extension = 'gif';
 
-      // Create a unique filename
-      const filename = `${folderName}/image-${i + 1}-${Date.now()}.${extension}`;
+      // Create a consistent filename (no timestamp = upsert will overwrite on re-import)
+      const filename = `${folderName}/image-${String(i + 1).padStart(2, '0')}.${extension}`;
 
       console.log(`Uploading to storage: ${filename} (${Math.round(imageData.byteLength / 1024)}KB)`);
 
