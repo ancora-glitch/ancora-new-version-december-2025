@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Search, Loader2, Check, ExternalLink } from "lucide-react";
 import { determineBrand } from "@/lib/brandExtractor";
+import { deduplicateImages } from "@/lib/imageUtils";
 
 interface TraderaItem {
   id: number;
@@ -218,6 +219,62 @@ const TraderaSearch = () => {
       .substring(0, 100);
   };
 
+  /**
+   * Flattens all image sources into a single deduplicated array of URL strings.
+   * Handles nested structures, arrays, and various field types from Tradera API.
+   */
+  const flattenAndDeduplicateImages = (
+    details: TraderaItemDetail | null,
+    searchItem: TraderaItem
+  ): string[] => {
+    const allImages: string[] = [];
+
+    // Helper to safely extract URLs from any value (handles nested objects, arrays, strings)
+    const extractUrls = (value: unknown): void => {
+      if (!value) return;
+      
+      if (typeof value === 'string' && value.startsWith('http')) {
+        allImages.push(value);
+      } else if (Array.isArray(value)) {
+        for (const item of value) {
+          extractUrls(item);
+        }
+      } else if (typeof value === 'object' && value !== null) {
+        // Handle objects with url/Url/URL properties
+        const obj = value as Record<string, unknown>;
+        if (obj.url) extractUrls(obj.url);
+        if (obj.Url) extractUrls(obj.Url);
+        if (obj.URL) extractUrls(obj.URL);
+        // Recursively check all properties for nested image objects
+        for (const key of Object.keys(obj)) {
+          if (key.toLowerCase().includes('image') || key.toLowerCase().includes('url')) {
+            extractUrls(obj[key]);
+          }
+        }
+      }
+    };
+
+    // 1. Collect from details (full item data) - prioritize these
+    if (details) {
+      extractUrls(details.imageLinks);
+    }
+
+    // 2. Collect from search result item
+    extractUrls(searchItem.thumbnailLink);
+    extractUrls(searchItem.imageLinks);
+
+    // 3. Normalize all URLs to HTTPS
+    const normalizedImages = allImages.map(url => 
+      url.replace(/^http:\/\//i, 'https://')
+    );
+
+    // 4. Use the shared deduplication utility
+    if (normalizedImages.length === 0) return [];
+    
+    // deduplicateImages expects (mainImage, additionalImages)
+    return deduplicateImages(normalizedImages[0], normalizedImages.slice(1));
+  };
+
   const handleImport = async (item: TraderaItem) => {
     if (importingIds.has(item.id) || importedIds.has(item.id)) return;
 
@@ -240,8 +297,15 @@ const TraderaSearch = () => {
       const originalName = cleanedName || rawTitle;
       
       const price = `${Math.round(details?.price || item.price)} SEK`;
-      const mainImage = details?.imageLinks?.[0] || item.thumbnailLink || "";
-      const additionalImages = details?.imageLinks?.slice(1) || item.imageLinks?.slice(1) || [];
+      
+      // Flatten and deduplicate ALL images from all sources into a single array
+      const allUniqueImages = flattenAndDeduplicateImages(details, item);
+      console.log(`Flattened images for item ${item.id}:`, allUniqueImages.length, 'unique images');
+      
+      // Use first image as main, rest as additional
+      const mainImage = allUniqueImages[0] || "";
+      const additionalImages = allUniqueImages.slice(1);
+      
       const originalDescription = details?.longDescription || item.longDescription || "";
       const originalCondition = details?.condition || item.condition || "";
       const originalMaterial = details?.material || "";
