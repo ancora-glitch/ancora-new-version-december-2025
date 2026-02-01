@@ -41,182 +41,19 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const appId = Deno.env.get('TRADERA_APP_ID');
-    const appKey = Deno.env.get('TRADERA_APP_KEY');
-
-    if (!appId || !appKey) {
-      return new Response(
-        JSON.stringify({ error: 'Tradera API credentials not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Fetch all pending imports that are ready for retry
-    const { data: pendingProducts, error: fetchError } = await supabase
-      .from('products')
-      .select('id, tradera_item_id, import_retry_count, name')
-      .eq('status', 'pending_import')
-      .lt('import_retry_count', MAX_RETRY_ATTEMPTS)
-      .order('import_queued_at', { ascending: true })
-      .limit(10); // Process in batches to avoid timeout
-
-    if (fetchError) {
-      console.error('Error fetching pending products:', fetchError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch pending products' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!pendingProducts || pendingProducts.length === 0) {
-      return new Response(
-        JSON.stringify({ message: 'No pending imports to process', processed: 0 }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log(`Processing ${pendingProducts.length} pending imports`);
-
-    const results = {
-      success: 0,
-      rateLimited: 0,
-      failed: 0,
-      maxRetriesReached: 0,
-    };
-
-    for (const product of pendingProducts) {
-      if (!product.tradera_item_id) {
-        console.log(`Product ${product.id} has no tradera_item_id, skipping`);
-        continue;
-      }
-
-      // Add delay between API calls to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
-
-      try {
-        const itemDetails = await fetchTraderaItem(product.tradera_item_id, appId, appKey);
-
-        if (itemDetails.rateLimited) {
-          // Still rate limited - increment retry count and continue
-          await supabase
-            .from('products')
-            .update({
-              import_retry_count: (product.import_retry_count || 0) + 1,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', product.id);
-
-          if ((product.import_retry_count || 0) + 1 >= MAX_RETRY_ATTEMPTS) {
-            console.log(`Product ${product.id} reached max retries, marking as failed`);
-            await supabase
-              .from('products')
-              .update({ status: 'draft' }) // Move to draft for manual handling
-              .eq('id', product.id);
-            results.maxRetriesReached++;
-          } else {
-            results.rateLimited++;
-          }
-          continue;
-        }
-
-        if (!itemDetails.item) {
-          console.log(`Could not fetch item ${product.tradera_item_id}`);
-          results.failed++;
-          continue;
-        }
-
-        const item = itemDetails.item;
-
-        // Deduplicate images and limit to max
-        const allImages = deduplicateImages(item.imageLinks || []);
-        const uniqueImages = allImages.slice(0, MAX_IMAGES_PER_PRODUCT);
-        if (allImages.length > MAX_IMAGES_PER_PRODUCT) {
-          console.log(`Limiting from ${allImages.length} to ${MAX_IMAGES_PER_PRODUCT} images`);
-        }
-
-        if (uniqueImages.length === 0) {
-          console.log(`No images found for item ${product.tradera_item_id}`);
-          results.failed++;
-          continue;
-        }
-
-        // Upload images to storage via shared edge function
-        console.log(`Uploading ${uniqueImages.length} images via tradera-upload-images for ${product.name}...`);
-        const storageUrls = await callUploadImagesFunction(
-          supabaseUrl,
-          uniqueImages,
-          product.tradera_item_id!
-        );
-
-        if (storageUrls.length === 0) {
-          console.log(`Failed to upload any images for ${product.name}`);
-          // Increment retry count but don't mark as complete
-          await supabase
-            .from('products')
-            .update({
-              import_retry_count: (product.import_retry_count || 0) + 1,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', product.id);
-          results.failed++;
-          continue;
-        }
-
-        console.log(`Successfully uploaded ${storageUrls.length} images to storage`);
-
-        // Update product with full data (using storage URLs)
-        const { error: updateError } = await supabase
-          .from('products')
-          .update({
-            image: storageUrls[0],
-            additional_images: storageUrls.slice(1),
-            description: item.longDescription || null,
-            description_sv: item.longDescription || null,
-            condition_sv: item.condition || null,
-            material_sv: item.material || null,
-            size_sv: item.size || null,
-            status: 'draft', // Move to draft for manual review
-            import_retry_count: (product.import_retry_count || 0) + 1,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', product.id);
-
-        if (updateError) {
-          console.error(`Failed to update product ${product.id}:`, updateError);
-          results.failed++;
-        } else {
-          console.log(`Successfully imported ${product.name} with ${storageUrls.length} images`);
-          results.success++;
-        }
-      } catch (e) {
-        console.error(`Error processing product ${product.id}:`, e);
-        results.failed++;
-      }
-    }
-
-    console.log('Retry import complete:', results);
-
-    return new Response(
-      JSON.stringify({
-        message: 'Retry import complete',
-        processed: pendingProducts.length,
-        results,
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
-  } catch (error) {
-    console.error('Error in tradera-retry-import:', error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
+  // ========================================
+  // IMPORTS PAUSED: Retry job disabled
+  // Remove this block when rate limiting is resolved
+  // ========================================
+  console.log('tradera-retry-import: PAUSED - rate limiting active, skipping all retries');
+  return new Response(
+    JSON.stringify({ 
+      message: 'Tradera imports paused due to rate limiting. Retry job disabled.',
+      paused: true,
+      processed: 0,
+    }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
 });
 
 /**
