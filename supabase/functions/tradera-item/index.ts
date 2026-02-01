@@ -58,81 +58,53 @@ serve(async (req) => {
   </soap:Body>
 </soap:Envelope>`;
 
-    // Retry configuration for rate limiting
-    const maxRetries = 3;
-    const baseDelayMs = 1500; // Start with 1.5 second delay
+    // ========================================
+    // IMPORTS PAUSED: No retries on 429
+    // Remove this block when rate limiting is resolved
+    // ========================================
     
-    let lastError: string | null = null;
-    let lastStatus: number | null = null;
-    let lastRetryAfter: string | null = null;
-    let response: Response | null = null;
+    console.log(`Fetching item ${itemId} (retries disabled - rate limit pause active)`);
     
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      console.log(`Attempt ${attempt}/${maxRetries} to fetch item ${itemId}`);
-      
-      response = await fetch('https://api.tradera.com/v3/PublicService.asmx', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'text/xml; charset=utf-8',
-          'SOAPAction': 'http://api.tradera.com/GetItem',
-        },
-        body: soapEnvelope,
-      });
+    const response = await fetch('https://api.tradera.com/v3/PublicService.asmx', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/xml; charset=utf-8',
+        'SOAPAction': 'http://api.tradera.com/GetItem',
+      },
+      body: soapEnvelope,
+    });
 
-      if (response.ok) {
-        console.log(`Success on attempt ${attempt}`);
-        break;
-      }
-
-      // Capture status for diagnostics
-      lastStatus = response.status;
-      lastRetryAfter = response.headers.get('retry-after');
+    // Immediate fail on 429 - no retries while paused
+    if (response.status === 429) {
+      const errorBody = await response.text();
+      const retryAfter = response.headers.get('retry-after');
+      console.warn(
+        `Tradera GetItem returned 429 (PAUSED - no retry). retry-after=${retryAfter ?? 'n/a'}. bodySnippet=${truncateForLog(errorBody)}`,
+      );
       
-      // Handle rate limiting with exponential backoff
-      if (response.status === 429) {
-        lastError = await response.text();
-        console.warn(
-          `Tradera GetItem returned 429. retry-after=${lastRetryAfter ?? 'n/a'}. bodySnippet=${truncateForLog(lastError)}`,
-        );
-        
-        if (attempt < maxRetries) {
-          // Exponential backoff: 1.5s, 3s, 6s
-          const delayMs = baseDelayMs * Math.pow(2, attempt - 1);
-          console.log(`Rate limited (429), waiting ${delayMs}ms before retry...`);
-          await new Promise(resolve => setTimeout(resolve, delayMs));
-          continue;
-        }
-        
-        // All retries exhausted
-        console.warn('Tradera API rate limited after all retries - returning partial success');
-        return new Response(
-          JSON.stringify({ 
-            item: null, 
-            rateLimited: true,
-            message: 'Tradera API rate limited after retries.',
-            tradera: {
-              status: lastStatus,
-              retryAfter: lastRetryAfter,
-              bodySnippet: truncateForLog(lastError ?? ''),
-            },
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
-      // Other errors - don't retry
+      return new Response(
+        JSON.stringify({ 
+          item: null, 
+          rateLimited: true,
+          paused: true,
+          message: 'Tradera imports paused due to rate limiting. No automatic retries.',
+          tradera: {
+            status: 429,
+            retryAfter,
+            bodySnippet: truncateForLog(errorBody),
+          },
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Other errors - fail immediately
+    if (!response.ok) {
       const errorText = await response.text();
       console.error('Tradera API error:', response.status, errorText);
       return new Response(
         JSON.stringify({ error: 'Tradera API error', details: errorText }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!response || !response.ok) {
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch item after retries', details: lastError }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
