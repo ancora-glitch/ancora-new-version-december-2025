@@ -68,7 +68,6 @@ const TraderaSearch = () => {
   const [results, setResults] = useState<TraderaItem[]>([]);
   const [importingIds, setImportingIds] = useState<Set<number>>(new Set());
   const [importedIds, setImportedIds] = useState<Set<number>>(new Set());
-  const [pendingIds, setPendingIds] = useState<Set<number>>(new Set()); // Items queued for retry
   const queryClient = useQueryClient();
 
   const handleSearch = async () => {
@@ -117,7 +116,7 @@ const TraderaSearch = () => {
     }
   };
 
-  const fetchItemDetails = async (itemId: number): Promise<{ item: TraderaItemDetail | null; rateLimited: boolean }> => {
+  const fetchItemDetails = async (itemId: number): Promise<TraderaItemDetail | null> => {
     try {
       const { data, error } = await supabase.functions.invoke("tradera-item", {
         body: { itemId },
@@ -125,19 +124,19 @@ const TraderaSearch = () => {
 
       if (error || data.error) {
         console.error("Failed to fetch item details:", error || data.error);
-        return { item: null, rateLimited: false };
+        return null;
       }
 
-      // Handle rate-limited response - STRICT: do not proceed without full data
+      // If rate-limited, return null - import will fail and user can retry
       if (data.rateLimited) {
-        console.warn("Tradera API rate limited - cannot import without full item details");
-        return { item: null, rateLimited: true };
+        console.warn("Tradera API rate limited - try again later");
+        return null;
       }
 
-      return { item: data.item, rateLimited: false };
+      return data.item;
     } catch (e) {
       console.error("Error fetching item details:", e);
-      return { item: null, rateLimited: false };
+      return null;
     }
   };
 
@@ -309,115 +308,16 @@ const TraderaSearch = () => {
     }
   };
 
-  /**
-   * Creates or resets a pending import record when rate-limited.
-   * If a product with the same tradera_item_id already exists, it resets to pending_import.
-   * The item will be retried later by the tradera-retry-import edge function.
-   */
-  const createPendingImport = async (item: TraderaItem): Promise<boolean> => {
-    try {
-      const traderaItemId = String(item.id);
-      
-      // Check if a product with this tradera_item_id already exists
-      const { data: existingProduct } = await supabase
-        .from("products")
-        .select("id")
-        .eq("tradera_item_id", traderaItemId)
-        .maybeSingle();
-      
-      if (existingProduct) {
-        // Reset existing product to pending_import status for re-import
-        const { error } = await supabase
-          .from("products")
-          .update({
-            status: "pending_import",
-            import_retry_count: 0,
-            import_queued_at: new Date().toISOString(),
-            image: "", // Clear old images
-            additional_images: [],
-          } as any)
-          .eq("id", existingProduct.id);
-        
-        if (error) {
-          console.error("Failed to reset existing product for re-import:", error);
-          return false;
-        }
-        
-        console.log(`Reset existing product ${existingProduct.id} to pending_import for re-import`);
-        return true;
-      }
-      
-      // No existing product - create new pending import
-      const rawTitle = item.shortDescription;
-      const { brand: extractedBrand, cleanedName } = determineBrand(item.brandName, rawTitle);
-      const brandName = extractedBrand || "";
-      const price = `${Math.round(item.price)} SEK`;
-      const slug = createSlug(brandName, cleanedName || rawTitle);
-
-      const { error } = await supabase.from("products").insert({
-        brand: brandName,
-        name: cleanedName || rawTitle,
-        name_sv: rawTitle,
-        price,
-        image: "", // Empty - will be populated on successful retry
-        additional_images: [], // Empty - will be populated on successful retry
-        description: null,
-        description_sv: item.longDescription || null,
-        condition: null,
-        condition_sv: item.condition || null,
-        material: null,
-        material_sv: null,
-        size: null,
-        size_sv: null,
-        affiliate_url: item.itemLink,
-        status: "pending_import", // Queued for retry
-        marketplace: "Tradera",
-        slug,
-        tradera_item_id: traderaItemId,
-        import_retry_count: 0,
-        import_queued_at: new Date().toISOString(),
-      } as any);
-
-      if (error) {
-        console.error("Failed to create pending import:", error);
-        return false;
-      }
-
-      return true;
-    } catch (e) {
-      console.error("Error creating pending import:", e);
-      return false;
-    }
-  };
-
   const handleImport = async (item: TraderaItem) => {
-    if (importingIds.has(item.id) || importedIds.has(item.id) || pendingIds.has(item.id)) return;
+    if (importingIds.has(item.id) || importedIds.has(item.id)) return;
 
     setImportingIds((prev) => new Set(prev).add(item.id));
 
     try {
-      // Fetch full item details - REQUIRED for import
-      const { item: details, rateLimited } = await fetchItemDetails(item.id);
+      // Fetch full item details - REQUIRED for import (synchronous, no queue)
+      const details = await fetchItemDetails(item.id);
       
-      // STRICT RULE: If rate-limited, queue for retry - do NOT use search result data
-      if (rateLimited) {
-        console.log("Rate limited - creating pending import for later retry");
-        const success = await createPendingImport(item);
-        
-        if (success) {
-          setPendingIds((prev) => new Set(prev).add(item.id));
-          toast.info("Item queued for import. Will retry automatically when Tradera API is available.", {
-            duration: 5000,
-          });
-          queryClient.invalidateQueries({ queryKey: ["products"] });
-          queryClient.invalidateQueries({ queryKey: ["products-all"] });
-        } else {
-          toast.error("Failed to queue item for import");
-        }
-        return;
-      }
-      
-      // STRICT RULE: Must have full details to proceed
+      // Must have full details to proceed
       if (!details) {
         toast.error("Could not fetch full item details from Tradera. Please try again later.");
         return;
@@ -721,8 +621,8 @@ const TraderaSearch = () => {
 
                     <Button
                       onClick={() => handleImport(item)}
-                      disabled={importingIds.has(item.id) || importedIds.has(item.id) || pendingIds.has(item.id)}
-                      variant={importedIds.has(item.id) ? "secondary" : pendingIds.has(item.id) ? "outline" : "default"}
+                      disabled={importingIds.has(item.id) || importedIds.has(item.id)}
+                      variant={importedIds.has(item.id) ? "secondary" : "default"}
                       className="w-full h-7 text-xs"
                       size="sm"
                     >
@@ -730,8 +630,6 @@ const TraderaSearch = () => {
                         <Loader2 className="w-3 h-3 animate-spin" />
                       ) : importedIds.has(item.id) ? (
                         <Check className="w-3 h-3" />
-                      ) : pendingIds.has(item.id) ? (
-                        "Queued"
                       ) : (
                         "Import"
                       )}
