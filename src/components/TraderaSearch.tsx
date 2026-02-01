@@ -277,18 +277,50 @@ const TraderaSearch = () => {
   };
 
   /**
-   * Creates a pending import record when rate-limited.
+   * Creates or resets a pending import record when rate-limited.
+   * If a product with the same tradera_item_id already exists, it resets to pending_import.
    * The item will be retried later by the tradera-retry-import edge function.
    */
   const createPendingImport = async (item: TraderaItem): Promise<boolean> => {
     try {
+      const traderaItemId = String(item.id);
+      
+      // Check if a product with this tradera_item_id already exists
+      const { data: existingProduct } = await supabase
+        .from("products")
+        .select("id")
+        .eq("tradera_item_id", traderaItemId)
+        .maybeSingle();
+      
+      if (existingProduct) {
+        // Reset existing product to pending_import status for re-import
+        const { error } = await supabase
+          .from("products")
+          .update({
+            status: "pending_import",
+            import_retry_count: 0,
+            import_queued_at: new Date().toISOString(),
+            image: "", // Clear old images
+            additional_images: [],
+          } as any)
+          .eq("id", existingProduct.id);
+        
+        if (error) {
+          console.error("Failed to reset existing product for re-import:", error);
+          return false;
+        }
+        
+        console.log(`Reset existing product ${existingProduct.id} to pending_import for re-import`);
+        return true;
+      }
+      
+      // No existing product - create new pending import
       const rawTitle = item.shortDescription;
       const { brand: extractedBrand, cleanedName } = determineBrand(item.brandName, rawTitle);
       const brandName = extractedBrand || "";
       const price = `${Math.round(item.price)} SEK`;
       const slug = createSlug(brandName, cleanedName || rawTitle);
 
-      // Insert with pending_import status - NO IMAGES saved
       const { error } = await supabase.from("products").insert({
         brand: brandName,
         name: cleanedName || rawTitle,
@@ -308,7 +340,7 @@ const TraderaSearch = () => {
         status: "pending_import", // Queued for retry
         marketplace: "Tradera",
         slug,
-        tradera_item_id: String(item.id), // Track for retry
+        tradera_item_id: traderaItemId,
         import_retry_count: 0,
         import_queued_at: new Date().toISOString(),
       } as any);
@@ -405,29 +437,69 @@ const TraderaSearch = () => {
       const mappedCondition = mapCondition(translated.condition);
       const slug = createSlug(brandName, translated.name);
 
-      // Insert into products table with 'draft' status for manual review
-      // All Tradera imports start as drafts regardless of source data
-      const { error } = await supabase.from("products").insert({
-        brand: brandName,
-        name: translated.name,
-        name_sv: translated.original.name,
-        price,
-        image: mainImage,
-        additional_images: additionalImages,
-        description: translated.description,
-        description_sv: translated.original.description,
-        condition: mappedCondition,
-        condition_sv: translated.original.condition,
-        material: translated.material || null,
-        material_sv: translated.original.material || null,
-        size: translated.size || null,
-        size_sv: translated.original.size || null,
-        affiliate_url: affiliateUrl,
-        status: "draft", // Always import as draft for manual review
-        marketplace: "Tradera",
-        slug,
-        tradera_item_id: String(item.id),
-      } as any);
+      // Check if a product with this tradera_item_id already exists
+      const traderaItemId = String(item.id);
+      const { data: existingProduct } = await supabase
+        .from("products")
+        .select("id")
+        .eq("tradera_item_id", traderaItemId)
+        .maybeSingle();
+
+      let error;
+      
+      if (existingProduct) {
+        // Update existing product (re-import scenario)
+        const { error: updateError } = await supabase
+          .from("products")
+          .update({
+            brand: brandName,
+            name: translated.name,
+            name_sv: translated.original.name,
+            price,
+            image: mainImage,
+            additional_images: additionalImages,
+            description: translated.description,
+            description_sv: translated.original.description,
+            condition: mappedCondition,
+            condition_sv: translated.original.condition,
+            material: translated.material || null,
+            material_sv: translated.original.material || null,
+            size: translated.size || null,
+            size_sv: translated.original.size || null,
+            affiliate_url: affiliateUrl,
+            status: "draft", // Reset to draft for manual review
+            marketplace: "Tradera",
+            slug,
+            import_retry_count: 0,
+            import_queued_at: null,
+          } as any)
+          .eq("id", existingProduct.id);
+        error = updateError;
+      } else {
+        // Insert new product
+        const { error: insertError } = await supabase.from("products").insert({
+          brand: brandName,
+          name: translated.name,
+          name_sv: translated.original.name,
+          price,
+          image: mainImage,
+          additional_images: additionalImages,
+          description: translated.description,
+          description_sv: translated.original.description,
+          condition: mappedCondition,
+          condition_sv: translated.original.condition,
+          material: translated.material || null,
+          material_sv: translated.original.material || null,
+          size: translated.size || null,
+          size_sv: translated.original.size || null,
+          affiliate_url: affiliateUrl,
+          status: "draft", // Always import as draft for manual review
+          marketplace: "Tradera",
+          slug,
+          tradera_item_id: traderaItemId,
+        } as any);
+        error = insertError;
+      }
 
       if (error) {
         console.error("Import error:", error);
