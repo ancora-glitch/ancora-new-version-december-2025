@@ -68,6 +68,7 @@ const TraderaSearch = () => {
   const [results, setResults] = useState<TraderaItem[]>([]);
   const [importingIds, setImportingIds] = useState<Set<number>>(new Set());
   const [importedIds, setImportedIds] = useState<Set<number>>(new Set());
+  const [pendingIds, setPendingIds] = useState<Set<number>>(new Set()); // Items queued for retry
   const queryClient = useQueryClient();
 
   const handleSearch = async () => {
@@ -127,9 +128,9 @@ const TraderaSearch = () => {
         return { item: null, rateLimited: false };
       }
 
-      // Handle rate-limited response - item will be null but we can still proceed
+      // Handle rate-limited response - STRICT: do not proceed without full data
       if (data.rateLimited) {
-        console.warn("Tradera API rate limited - will use search result images");
+        console.warn("Tradera API rate limited - cannot import without full item details");
         return { item: null, rateLimited: true };
       }
 
@@ -226,12 +227,12 @@ const TraderaSearch = () => {
   };
 
   /**
-   * Flattens all image sources into a single deduplicated array of URL strings.
-   * Handles nested structures, arrays, and various field types from Tradera API.
+   * STRICT: Only extracts images from the full GetItem payload.
+   * NEVER uses search-result images as they are incomplete.
+   * Returns null if details are not available.
    */
-  const flattenAndDeduplicateImages = (
-    details: TraderaItemDetail | null,
-    searchItem: TraderaItem
+  const extractImagesFromFullPayload = (
+    details: TraderaItemDetail
   ): string[] => {
     const allImages: string[] = [];
 
@@ -260,43 +261,106 @@ const TraderaSearch = () => {
       }
     };
 
-    // 1. Collect from details (full item data) - prioritize these
-    if (details) {
-      extractUrls(details.imageLinks);
-    }
+    // ONLY extract from full item details - never from search results
+    extractUrls(details.imageLinks);
 
-    // 2. Collect from search result item
-    extractUrls(searchItem.thumbnailLink);
-    extractUrls(searchItem.imageLinks);
-
-    // 3. Normalize all URLs to HTTPS
+    // Normalize all URLs to HTTPS
     const normalizedImages = allImages.map(url => 
       url.replace(/^http:\/\//i, 'https://')
     );
 
-    // 4. Use the shared deduplication utility
+    // Use the shared deduplication utility
     if (normalizedImages.length === 0) return [];
     
     // deduplicateImages expects (mainImage, additionalImages)
     return deduplicateImages(normalizedImages[0], normalizedImages.slice(1));
   };
 
+  /**
+   * Creates a pending import record when rate-limited.
+   * The item will be retried later by the tradera-retry-import edge function.
+   */
+  const createPendingImport = async (item: TraderaItem): Promise<boolean> => {
+    try {
+      const rawTitle = item.shortDescription;
+      const { brand: extractedBrand, cleanedName } = determineBrand(item.brandName, rawTitle);
+      const brandName = extractedBrand || "";
+      const price = `${Math.round(item.price)} SEK`;
+      const slug = createSlug(brandName, cleanedName || rawTitle);
+
+      // Insert with pending_import status - NO IMAGES saved
+      const { error } = await supabase.from("products").insert({
+        brand: brandName,
+        name: cleanedName || rawTitle,
+        name_sv: rawTitle,
+        price,
+        image: "", // Empty - will be populated on successful retry
+        additional_images: [], // Empty - will be populated on successful retry
+        description: null,
+        description_sv: item.longDescription || null,
+        condition: null,
+        condition_sv: item.condition || null,
+        material: null,
+        material_sv: null,
+        size: null,
+        size_sv: null,
+        affiliate_url: item.itemLink,
+        status: "pending_import", // Queued for retry
+        marketplace: "Tradera",
+        slug,
+        tradera_item_id: String(item.id), // Track for retry
+        import_retry_count: 0,
+        import_queued_at: new Date().toISOString(),
+      } as any);
+
+      if (error) {
+        console.error("Failed to create pending import:", error);
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      console.error("Error creating pending import:", e);
+      return false;
+    }
+  };
+
   const handleImport = async (item: TraderaItem) => {
-    if (importingIds.has(item.id) || importedIds.has(item.id)) return;
+    if (importingIds.has(item.id) || importedIds.has(item.id) || pendingIds.has(item.id)) return;
 
     setImportingIds((prev) => new Set(prev).add(item.id));
 
     try {
-      // Fetch full item details (may be null if rate-limited)
+      // Fetch full item details - REQUIRED for import
       const { item: details, rateLimited } = await fetchItemDetails(item.id);
       
+      // STRICT RULE: If rate-limited, queue for retry - do NOT use search result data
       if (rateLimited) {
-        console.log("Using search result images due to rate limiting");
+        console.log("Rate limited - creating pending import for later retry");
+        const success = await createPendingImport(item);
+        
+        if (success) {
+          setPendingIds((prev) => new Set(prev).add(item.id));
+          toast.info("Item queued for import. Will retry automatically when Tradera API is available.", {
+            duration: 5000,
+          });
+          queryClient.invalidateQueries({ queryKey: ["products"] });
+          queryClient.invalidateQueries({ queryKey: ["products-all"] });
+        } else {
+          toast.error("Failed to queue item for import");
+        }
+        return;
       }
       
-      // Get raw data from API - fall back to search item data if details unavailable
-      const rawTitle = details?.shortDescription || item.shortDescription;
-      const apiBrand = details?.brand || item.brandName;
+      // STRICT RULE: Must have full details to proceed
+      if (!details) {
+        toast.error("Could not fetch full item details from Tradera. Please try again later.");
+        return;
+      }
+      
+      // Get data ONLY from full API response
+      const rawTitle = details.shortDescription;
+      const apiBrand = details.brand;
       
       // Extract brand from title if not provided by API (or if API says "Unknown")
       const { brand: extractedBrand, cleanedName } = determineBrand(apiBrand, rawTitle);
@@ -306,21 +370,26 @@ const TraderaSearch = () => {
       // Use cleaned name (with brand removed) as the product name
       const originalName = cleanedName || rawTitle;
       
-      const price = `${Math.round(details?.price || item.price)} SEK`;
+      const price = `${Math.round(details.price)} SEK`;
       
-      // Flatten and deduplicate ALL images from all sources into a single array
-      const allUniqueImages = flattenAndDeduplicateImages(details, item);
-      console.log(`Flattened images for item ${item.id}:`, allUniqueImages.length, 'unique images');
+      // STRICT: Extract images ONLY from full payload
+      const allUniqueImages = extractImagesFromFullPayload(details);
+      console.log(`Extracted ${allUniqueImages.length} unique images from full payload for item ${item.id}`);
+      
+      if (allUniqueImages.length === 0) {
+        toast.error("No images found in Tradera listing. Cannot import without images.");
+        return;
+      }
       
       // Use first image as main, rest as additional
-      const mainImage = allUniqueImages[0] || "";
+      const mainImage = allUniqueImages[0];
       const additionalImages = allUniqueImages.slice(1);
       
-      const originalDescription = details?.longDescription || item.longDescription || "";
-      const originalCondition = details?.condition || item.condition || "";
-      const originalMaterial = details?.material || "";
-      const originalSize = details?.size || "";
-      const affiliateUrl = details?.itemLink || item.itemLink;
+      const originalDescription = details.longDescription || "";
+      const originalCondition = details.condition || "";
+      const originalMaterial = details.material || "";
+      const originalSize = details.size || "";
+      const affiliateUrl = details.itemLink;
 
       // Translate Swedish content to English (silently - no toast for this step)
       const translated = await translateContent(
@@ -357,6 +426,7 @@ const TraderaSearch = () => {
         status: "draft", // Always import as draft for manual review
         marketplace: "Tradera",
         slug,
+        tradera_item_id: String(item.id),
       } as any);
 
       if (error) {
@@ -370,7 +440,7 @@ const TraderaSearch = () => {
         return;
       }
 
-      toast.success("Product imported as draft. Go to the Products tab to review and publish.", {
+      toast.success(`Product imported with ${allUniqueImages.length} images. Go to the Products tab to review.`, {
         duration: 5000,
       });
       setImportedIds((prev) => new Set(prev).add(item.id));
@@ -535,8 +605,8 @@ const TraderaSearch = () => {
 
                     <Button
                       onClick={() => handleImport(item)}
-                      disabled={importingIds.has(item.id) || importedIds.has(item.id)}
-                      variant={importedIds.has(item.id) ? "secondary" : "default"}
+                      disabled={importingIds.has(item.id) || importedIds.has(item.id) || pendingIds.has(item.id)}
+                      variant={importedIds.has(item.id) ? "secondary" : pendingIds.has(item.id) ? "outline" : "default"}
                       className="w-full h-7 text-xs"
                       size="sm"
                     >
@@ -544,6 +614,8 @@ const TraderaSearch = () => {
                         <Loader2 className="w-3 h-3 animate-spin" />
                       ) : importedIds.has(item.id) ? (
                         <Check className="w-3 h-3" />
+                      ) : pendingIds.has(item.id) ? (
+                        "Queued"
                       ) : (
                         "Import"
                       )}

@@ -63,6 +63,8 @@ export type Database = {
           description_sv: string | null
           id: string
           image: string
+          import_queued_at: string | null
+          import_retry_count: number | null
           marketplace: string | null
           material: string | null
           material_sv: string | null
@@ -74,6 +76,7 @@ export type Database = {
           slug: string | null
           sort_order: number | null
           status: Database["public"]["Enums"]["product_status"]
+          tradera_item_id: string | null
           updated_at: string
         }
         Insert: {
@@ -88,6 +91,8 @@ export type Database = {
           description_sv?: string | null
           id?: string
           image: string
+          import_queued_at?: string | null
+          import_retry_count?: number | null
           marketplace?: string | null
           material?: string | null
           material_sv?: string | null
@@ -99,6 +104,7 @@ export type Database = {
           slug?: string | null
           sort_order?: number | null
           status?: Database["public"]["Enums"]["product_status"]
+          tradera_item_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -113,6 +119,8 @@ export type Database = {
           description_sv?: string | null
           id?: string
           image?: string
+          import_queued_at?: string | null
+          import_retry_count?: number | null
           marketplace?: string | null
           material?: string | null
           material_sv?: string | null
@@ -124,6 +132,7 @@ export type Database = {
           slug?: string | null
           sort_order?: number | null
           status?: Database["public"]["Enums"]["product_status"]
+          tradera_item_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -284,7 +293,12 @@ export type Database = {
     Enums: {
       app_role: "admin" | "moderator" | "user"
       category_status: "draft" | "published"
-      product_status: "active" | "sold" | "published" | "draft"
+      product_status:
+        | "active"
+        | "sold"
+        | "published"
+        | "draft"
+        | "pending_import"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -414,7 +428,13 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "moderator", "user"],
       category_status: ["draft", "published"],
-      product_status: ["active", "sold", "published", "draft"],
+      product_status: [
+        "active",
+        "sold",
+        "published",
+        "draft",
+        "pending_import",
+      ],
     },
   },
 } as const
