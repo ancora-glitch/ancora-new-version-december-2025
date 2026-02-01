@@ -3,8 +3,16 @@
  */
 
 /**
+ * Checks if a URL is from our Supabase storage bucket
+ */
+const isStorageUrl = (url: string): boolean => {
+  return url.includes('supabase.co/storage') || url.includes('/storage/v1/object/');
+};
+
+/**
  * Extracts the base image identifier from a Tradera or similar URL
- * to detect duplicates (thumbnails vs full-res versions)
+ * to detect duplicates (thumbnails vs full-res versions).
+ * For storage URLs, uses the exact filename as identifier since they're already unique.
  */
 const extractImageIdentifier = (url: string): string => {
   if (!url) return "";
@@ -12,6 +20,12 @@ const extractImageIdentifier = (url: string): string => {
   try {
     const urlObj = new URL(url);
     const pathname = urlObj.pathname;
+    
+    // For our storage URLs, use the exact path as identifier (already unique)
+    // This prevents false-positive deduplication of different images
+    if (isStorageUrl(url)) {
+      return pathname.toLowerCase();
+    }
     
     // Common patterns for Tradera/marketplace image URLs:
     // - /images/123456_large.jpg vs /images/123456_thumb.jpg
@@ -72,7 +86,8 @@ const isHighResVersion = (url: string): boolean => {
 };
 
 /**
- * Deduplicates an array of image URLs, keeping only unique high-quality versions
+ * Deduplicates an array of image URLs, keeping only unique high-quality versions.
+ * For storage URLs, uses exact URL matching. For external URLs, uses pattern-based deduplication.
  * @param mainImage - The primary/main image URL
  * @param additionalImages - Array of additional image URLs
  * @returns Deduplicated array of unique image URLs, with main image first
@@ -83,10 +98,28 @@ export const deduplicateImages = (
 ): string[] => {
   if (!mainImage) return [];
   
-  // Combine all images
+  // Combine all images and filter out empty/null values
   const allImages = [mainImage, ...additionalImages].filter(Boolean);
   
-  // Group images by their base identifier
+  // For storage URLs, use exact URL matching (no pattern deduplication needed)
+  // This prevents false-positive deduplication of legitimately different images
+  if (isStorageUrl(mainImage)) {
+    const seen = new Set<string>();
+    const uniqueImages: string[] = [];
+    
+    for (const url of allImages) {
+      const normalized = url.toLowerCase().trim();
+      if (!seen.has(normalized)) {
+        seen.add(normalized);
+        uniqueImages.push(url); // Keep original casing
+      }
+    }
+    
+    return uniqueImages;
+  }
+  
+  // For external URLs (Tradera, etc.), use pattern-based deduplication
+  // to handle thumbnail vs full-res versions of the same image
   const imageGroups = new Map<string, string[]>();
   
   for (const url of allImages) {

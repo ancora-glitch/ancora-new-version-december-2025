@@ -145,14 +145,22 @@ serve(async (req) => {
 
     console.log(`Upload complete: ${successful.length} successful, ${failed.length} failed`);
 
+    // Deduplicate storage URLs before returning (ensures no duplicates in response)
+    const allStorageUrls = results.map(r => r.storageUrl).filter(Boolean) as string[];
+    const uniqueStorageUrls = [...new Set(allStorageUrls)];
+    
+    if (uniqueStorageUrls.length < allStorageUrls.length) {
+      console.log(`Deduplicated storage URLs: ${allStorageUrls.length} -> ${uniqueStorageUrls.length}`);
+    }
+
     return new Response(
       JSON.stringify({
         success: successful.length > 0,
         uploaded: successful.length,
         failed: failed.length,
         results,
-        // Return just the storage URLs in order for easy access
-        storageUrls: results.map(r => r.storageUrl).filter(Boolean) as string[],
+        // Return deduplicated storage URLs in order for easy access
+        storageUrls: uniqueStorageUrls,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
