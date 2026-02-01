@@ -40,13 +40,24 @@ export const useAllProducts = () => {
 
       if (error) throw error;
       
-      // Sort drafts to the top for easy review, then by sort_order
+      // Sort pending_import to top (by import_queued_at desc), then drafts, then by sort_order
       const products = data as Product[];
       return products.sort((a, b) => {
-        // Drafts come first
+        // pending_import always comes first
+        const aIsPending = a.status === "pending_import";
+        const bIsPending = b.status === "pending_import";
+        if (aIsPending && !bIsPending) return -1;
+        if (!aIsPending && bIsPending) return 1;
+        if (aIsPending && bIsPending) {
+          // Within pending_import, sort by import_queued_at descending (most recent first)
+          const aQueued = a.import_queued_at ? new Date(a.import_queued_at).getTime() : 0;
+          const bQueued = b.import_queued_at ? new Date(b.import_queued_at).getTime() : 0;
+          return bQueued - aQueued;
+        }
+        // Then drafts come second
         if (a.status === "draft" && b.status !== "draft") return -1;
         if (a.status !== "draft" && b.status === "draft") return 1;
-        // Then by sort_order
+        // Then by sort_order for everything else
         return (a.sort_order ?? 0) - (b.sort_order ?? 0);
       });
     },
