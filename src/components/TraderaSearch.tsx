@@ -308,163 +308,234 @@ const TraderaSearch = () => {
     }
   };
 
+  /**
+   * Creates a pending import record so the product is visible immediately.
+   * Image uploads are handled asynchronously by tradera-retry-import.
+   */
+  const createPendingImport = async (
+    item: TraderaItem,
+    details: TraderaItemDetail,
+    extractedBrand: string,
+    cleanedName: string
+  ): Promise<{ id: string } | null> => {
+    const traderaItemId = String(item.id);
+    const price = `${Math.round(details.price)} SEK`;
+    const slug = createSlug(extractedBrand, cleanedName);
+
+    // Check if product already exists
+    const { data: existingProduct } = await supabase
+      .from("products")
+      .select("id, status")
+      .eq("tradera_item_id", traderaItemId)
+      .maybeSingle();
+
+    if (existingProduct) {
+      // Reset existing product to pending_import for re-import
+      const { error } = await supabase
+        .from("products")
+        .update({
+          status: "pending_import",
+          import_retry_count: 0,
+          import_queued_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq("id", existingProduct.id);
+
+      if (error) {
+        console.error("Failed to reset product for re-import:", error);
+        return null;
+      }
+      return { id: existingProduct.id };
+    }
+
+    // Create new pending product with minimal data
+    const { data, error } = await supabase
+      .from("products")
+      .insert({
+        brand: extractedBrand,
+        name: cleanedName,
+        name_sv: cleanedName, // Will be updated by retry function
+        price,
+        image: details.imageLinks?.[0]?.replace(/^http:\/\//i, 'https://') || "pending",
+        status: "pending_import",
+        marketplace: "Tradera",
+        slug,
+        tradera_item_id: traderaItemId,
+        affiliate_url: details.itemLink,
+        import_queued_at: new Date().toISOString(),
+        import_retry_count: 0,
+      } as any)
+      .select("id")
+      .single();
+
+    if (error) {
+      console.error("Failed to create pending import:", error);
+      return null;
+    }
+
+    return data;
+  };
+
+  /**
+   * Attempts a full synchronous import with images.
+   * If successful, returns true. If it fails, returns false.
+   */
+  const attemptFullImport = async (
+    item: TraderaItem,
+    details: TraderaItemDetail,
+    extractedBrand: string,
+    cleanedName: string
+  ): Promise<boolean> => {
+    const traderaItemId = String(item.id);
+    const price = `${Math.round(details.price)} SEK`;
+    
+    // Extract images from full payload
+    const allUniqueImages = extractImagesFromFullPayload(details);
+    console.log(`Extracted ${allUniqueImages.length} unique images from full payload for item ${item.id}`);
+    
+    if (allUniqueImages.length === 0) {
+      console.warn("No images found in Tradera listing");
+      return false;
+    }
+    
+    // Try to upload images
+    toast.info(`Uploading ${allUniqueImages.length} images...`, { duration: 2000 });
+    const storageUrls = await uploadImagesToStorage(allUniqueImages, traderaItemId);
+    
+    if (storageUrls.length === 0) {
+      console.warn("Failed to upload images - will retry later");
+      return false;
+    }
+    
+    const mainImage = storageUrls[0];
+    const additionalImages = storageUrls.slice(1);
+    
+    const originalDescription = details.longDescription || "";
+    const originalCondition = details.condition || "";
+    const originalMaterial = details.material || "";
+    const originalSize = details.size || "";
+    const affiliateUrl = details.itemLink;
+
+    // Translate content (non-blocking - falls back to Swedish on failure)
+    const translated = await translateContent(
+      cleanedName,
+      originalDescription,
+      originalCondition,
+      originalMaterial,
+      originalSize,
+      extractedBrand
+    );
+
+    const mappedCondition = mapCondition(translated.condition);
+    const slug = createSlug(extractedBrand, translated.name);
+
+    // Check for existing product
+    const { data: existingProduct } = await supabase
+      .from("products")
+      .select("id")
+      .eq("tradera_item_id", traderaItemId)
+      .maybeSingle();
+
+    const productData = {
+      brand: extractedBrand,
+      name: translated.name,
+      name_sv: translated.original.name,
+      price,
+      image: mainImage,
+      additional_images: additionalImages,
+      description: translated.description,
+      description_sv: translated.original.description,
+      condition: mappedCondition,
+      condition_sv: translated.original.condition,
+      material: translated.material || null,
+      material_sv: translated.original.material || null,
+      size: translated.size || null,
+      size_sv: translated.original.size || null,
+      affiliate_url: affiliateUrl,
+      status: "draft",
+      marketplace: "Tradera",
+      slug,
+      import_retry_count: 0,
+      import_queued_at: null,
+    } as any;
+
+    let error;
+    if (existingProduct) {
+      const { error: updateError } = await supabase
+        .from("products")
+        .update(productData)
+        .eq("id", existingProduct.id);
+      error = updateError;
+    } else {
+      const { error: insertError } = await supabase
+        .from("products")
+        .insert({
+          ...productData,
+          tradera_item_id: traderaItemId,
+        });
+      error = insertError;
+    }
+
+    if (error) {
+      console.error("Failed to save product:", error);
+      return false;
+    }
+
+    return true;
+  };
+
   const handleImport = async (item: TraderaItem) => {
     if (importingIds.has(item.id) || importedIds.has(item.id)) return;
 
     setImportingIds((prev) => new Set(prev).add(item.id));
 
     try {
-      // Fetch full item details - REQUIRED for import (synchronous, no queue)
+      // Step 1: Fetch full item details
       const details = await fetchItemDetails(item.id);
       
-      // Must have full details to proceed
       if (!details) {
-        toast.error("Could not fetch full item details from Tradera. Please try again later.");
+        toast.error("Could not fetch item details from Tradera. The API may be rate-limited - please try again later.");
         return;
       }
       
-      // Get data ONLY from full API response
+      // Extract brand from title
       const rawTitle = details.shortDescription;
       const apiBrand = details.brand;
-      
-      // Extract brand from title if not provided by API (or if API says "Unknown")
       const { brand: extractedBrand, cleanedName } = determineBrand(apiBrand, rawTitle);
-      
-      // Use extracted brand, or empty string if none found (never "Unknown")
       const brandName = extractedBrand || "";
-      // Use cleaned name (with brand removed) as the product name
       const originalName = cleanedName || rawTitle;
-      
-      const price = `${Math.round(details.price)} SEK`;
-      
-      // STRICT: Extract images ONLY from full payload
-      const allUniqueImages = extractImagesFromFullPayload(details);
-      console.log(`Extracted ${allUniqueImages.length} unique images from full payload for item ${item.id}`);
-      
-      if (allUniqueImages.length === 0) {
-        toast.error("No images found in Tradera listing. Cannot import without images.");
-        return;
-      }
-      
-      // Upload images to our storage (Tradera URLs cannot be hotlinked)
-      toast.info(`Uploading ${allUniqueImages.length} images to storage...`, { duration: 3000 });
-      const storageUrls = await uploadImagesToStorage(allUniqueImages, String(item.id));
-      
-      if (storageUrls.length === 0) {
-        toast.error("Failed to upload images to storage. Cannot import without images.");
-        return;
-      }
-      
-      console.log(`Successfully uploaded ${storageUrls.length} images to storage`);
-      
-      // Use first image as main, rest as additional
-      const mainImage = storageUrls[0];
-      const additionalImages = storageUrls.slice(1);
-      
-      const originalDescription = details.longDescription || "";
-      const originalCondition = details.condition || "";
-      const originalMaterial = details.material || "";
-      const originalSize = details.size || "";
-      const affiliateUrl = details.itemLink;
 
-      // Translate Swedish content to English (silently - no toast for this step)
-      const translated = await translateContent(
-        originalName,
-        originalDescription,
-        originalCondition,
-        originalMaterial,
-        originalSize,
-        brandName
+      // Step 2: Try full synchronous import first
+      const fullImportSuccess = await attemptFullImport(item, details, brandName, originalName);
+      
+      if (fullImportSuccess) {
+        toast.success(`Product imported successfully. Go to Products tab to review.`, { duration: 5000 });
+        setImportedIds((prev) => new Set(prev).add(item.id));
+        queryClient.invalidateQueries({ queryKey: ["products"] });
+        queryClient.invalidateQueries({ queryKey: ["products-all"] });
+        return;
+      }
+
+      // Step 3: If full import failed, create pending record for async retry
+      console.log("Full import failed, creating pending record for async processing...");
+      const pendingProduct = await createPendingImport(item, details, brandName, originalName);
+      
+      if (!pendingProduct) {
+        toast.error("Failed to create product record. Please try again.");
+        return;
+      }
+
+      toast.warning(
+        "Product queued for import. Images will be processed shortly. Check the Products tab.",
+        { duration: 6000 }
       );
-
-      // Map condition to standardized values
-      const mappedCondition = mapCondition(translated.condition);
-      const slug = createSlug(brandName, translated.name);
-
-      // Check if a product with this tradera_item_id already exists
-      const traderaItemId = String(item.id);
-      const { data: existingProduct } = await supabase
-        .from("products")
-        .select("id")
-        .eq("tradera_item_id", traderaItemId)
-        .maybeSingle();
-
-      let error;
-      
-      if (existingProduct) {
-        // Update existing product (re-import scenario)
-        const { error: updateError } = await supabase
-          .from("products")
-          .update({
-            brand: brandName,
-            name: translated.name,
-            name_sv: translated.original.name,
-            price,
-            image: mainImage,
-            additional_images: additionalImages,
-            description: translated.description,
-            description_sv: translated.original.description,
-            condition: mappedCondition,
-            condition_sv: translated.original.condition,
-            material: translated.material || null,
-            material_sv: translated.original.material || null,
-            size: translated.size || null,
-            size_sv: translated.original.size || null,
-            affiliate_url: affiliateUrl,
-            status: "draft", // Reset to draft for manual review
-            marketplace: "Tradera",
-            slug,
-            import_retry_count: 0,
-            import_queued_at: null,
-          } as any)
-          .eq("id", existingProduct.id);
-        error = updateError;
-      } else {
-        // Insert new product
-        const { error: insertError } = await supabase.from("products").insert({
-          brand: brandName,
-          name: translated.name,
-          name_sv: translated.original.name,
-          price,
-          image: mainImage,
-          additional_images: additionalImages,
-          description: translated.description,
-          description_sv: translated.original.description,
-          condition: mappedCondition,
-          condition_sv: translated.original.condition,
-          material: translated.material || null,
-          material_sv: translated.original.material || null,
-          size: translated.size || null,
-          size_sv: translated.original.size || null,
-          affiliate_url: affiliateUrl,
-          status: "draft", // Always import as draft for manual review
-          marketplace: "Tradera",
-          slug,
-          tradera_item_id: traderaItemId,
-        } as any);
-        error = insertError;
-      }
-
-      if (error) {
-        console.error("Import error:", error);
-        toast.error(`Failed to import: ${error.message}`);
-        setImportingIds((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(item.id);
-          return newSet;
-        });
-        return;
-      }
-
-      toast.success(`Product imported with ${storageUrls.length} images. Go to the Products tab to review.`, {
-        duration: 5000,
-      });
       setImportedIds((prev) => new Set(prev).add(item.id));
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["products-all"] });
+
     } catch (error) {
       console.error("Import error:", error);
-      toast.error("Failed to import product");
+      toast.error("Failed to import product. Please try again.");
     } finally {
       setImportingIds((prev) => {
         const newSet = new Set(prev);

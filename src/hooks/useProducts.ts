@@ -28,7 +28,7 @@ export const useProducts = () => {
 };
 
 // Hook for admin - fetches all products EXCEPT sold (which have their own archive)
-// Sorts drafts first, then by sort_order
+// Sorts pending_import first, then drafts, then by sort_order
 export const useAllProducts = () => {
   return useQuery({
     queryKey: ["products-all"],
@@ -41,10 +41,13 @@ export const useAllProducts = () => {
 
       if (error) throw error;
       
-      // Sort drafts to top, then by sort_order
+      // Sort pending_import first, then drafts, then by sort_order
       const products = data as Product[];
       return products.sort((a, b) => {
-        // Drafts come first
+        // Pending imports come first (need attention)
+        if (a.status === "pending_import" && b.status !== "pending_import") return -1;
+        if (a.status !== "pending_import" && b.status === "pending_import") return 1;
+        // Then drafts
         if (a.status === "draft" && b.status !== "draft") return -1;
         if (a.status !== "draft" && b.status === "draft") return 1;
         // Then by sort_order for everything else
