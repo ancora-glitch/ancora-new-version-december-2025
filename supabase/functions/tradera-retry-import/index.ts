@@ -10,6 +10,13 @@ const MAX_RETRY_ATTEMPTS = 5;
 const RETRY_DELAY_MS = 2000; // Delay between Tradera API calls
 const MAX_IMAGES_PER_PRODUCT = 10;
 
+interface UploadImagesResponse {
+  success: boolean;
+  uploaded: number;
+  failed: number;
+  storageUrls: string[];
+}
+
 interface TraderaItemDetail {
   id: number;
   shortDescription: string;
@@ -138,10 +145,10 @@ serve(async (req) => {
           continue;
         }
 
-        // Upload images to storage (Tradera URLs cannot be hotlinked)
-        console.log(`Uploading ${uniqueImages.length} images to storage for ${product.name}...`);
-        const storageUrls = await uploadImagesToStorage(
-          supabase,
+        // Upload images to storage via shared edge function
+        console.log(`Uploading ${uniqueImages.length} images via tradera-upload-images for ${product.name}...`);
+        const storageUrls = await callUploadImagesFunction(
+          supabaseUrl,
           uniqueImages,
           product.tradera_item_id!
         );
@@ -213,84 +220,45 @@ serve(async (req) => {
 });
 
 /**
- * Uploads images to Supabase storage.
- * Fetches each image from Tradera server-side and uploads to 'products' bucket.
+ * Calls the shared tradera-upload-images edge function.
+ * This is the single source of truth for Tradera image handling.
  */
-async function uploadImagesToStorage(
-  // deno-lint-ignore no-explicit-any
-  supabase: any,
+async function callUploadImagesFunction(
+  supabaseUrl: string,
   imageUrls: string[],
   traderaItemId: string
 ): Promise<string[]> {
-  const folderName = `tradera-${traderaItemId}`;
-  console.log(`Uploading ${imageUrls.length} images to folder: ${folderName}`);
+  try {
+    const uploadFunctionUrl = `${supabaseUrl}/functions/v1/tradera-upload-images`;
+    
+    console.log(`Calling tradera-upload-images for item ${traderaItemId} with ${imageUrls.length} images`);
+    
+    const response = await fetch(uploadFunctionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+      },
+      body: JSON.stringify({
+        imageUrls,
+        traderaItemId,
+      }),
+    });
 
-  const storageUrls: string[] = [];
-
-  for (let i = 0; i < imageUrls.length; i++) {
-    const originalUrl = imageUrls[i];
-
-    try {
-      console.log(`Fetching image ${i + 1}/${imageUrls.length}...`);
-
-      // Fetch the image from Tradera
-      const imageResponse = await fetch(originalUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Accept': 'image/*',
-          'Referer': 'https://www.tradera.com/',
-        },
-      });
-
-      if (!imageResponse.ok) {
-        console.error(`Failed to fetch image ${i + 1}: ${imageResponse.status}`);
-        continue;
-      }
-
-      // Get the image data as ArrayBuffer
-      const imageData = await imageResponse.arrayBuffer();
-      const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
-
-      // Determine file extension from content type
-      let extension = 'jpg';
-      if (contentType.includes('png')) extension = 'png';
-      else if (contentType.includes('webp')) extension = 'webp';
-      else if (contentType.includes('gif')) extension = 'gif';
-
-      // Create a consistent filename (no timestamp = upsert will overwrite on re-import)
-      const filename = `${folderName}/image-${String(i + 1).padStart(2, '0')}.${extension}`;
-
-      console.log(`Uploading to storage: ${filename} (${Math.round(imageData.byteLength / 1024)}KB)`);
-
-      // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('products')
-        .upload(filename, imageData, {
-          contentType,
-          upsert: true,
-        });
-
-      if (uploadError) {
-        console.error(`Failed to upload image ${i + 1}:`, uploadError);
-        continue;
-      }
-
-      // Get the public URL
-      const { data: publicUrlData } = supabase.storage
-        .from('products')
-        .getPublicUrl(filename);
-
-      console.log(`Successfully uploaded image ${i + 1}`);
-      storageUrls.push(publicUrlData.publicUrl);
-
-    } catch (e) {
-      console.error(`Error processing image ${i + 1}:`, e);
-      // Continue with next image
+    if (!response.ok) {
+      console.error(`tradera-upload-images returned ${response.status}`);
+      return [];
     }
-  }
 
-  console.log(`Upload complete: ${storageUrls.length} of ${imageUrls.length} images uploaded`);
-  return storageUrls;
+    const result: UploadImagesResponse = await response.json();
+    
+    console.log(`tradera-upload-images result: ${result.uploaded} uploaded, ${result.failed} failed`);
+    
+    return result.storageUrls || [];
+  } catch (e) {
+    console.error('Error calling tradera-upload-images:', e);
+    return [];
+  }
 }
 
 interface FetchResult {
