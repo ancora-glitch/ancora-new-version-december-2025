@@ -5,6 +5,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function truncateForLog(input: string, max = 800): string {
+  if (!input) return '';
+  const cleaned = input.replace(/\s+/g, ' ').trim();
+  return cleaned.length > max ? `${cleaned.slice(0, max)}…` : cleaned;
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -57,6 +63,8 @@ serve(async (req) => {
     const baseDelayMs = 1500; // Start with 1.5 second delay
     
     let lastError: string | null = null;
+    let lastStatus: number | null = null;
+    let lastRetryAfter: string | null = null;
     let response: Response | null = null;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -75,10 +83,17 @@ serve(async (req) => {
         console.log(`Success on attempt ${attempt}`);
         break;
       }
+
+      // Capture status for diagnostics
+      lastStatus = response.status;
+      lastRetryAfter = response.headers.get('retry-after');
       
       // Handle rate limiting with exponential backoff
       if (response.status === 429) {
         lastError = await response.text();
+        console.warn(
+          `Tradera GetItem returned 429. retry-after=${lastRetryAfter ?? 'n/a'}. bodySnippet=${truncateForLog(lastError)}`,
+        );
         
         if (attempt < maxRetries) {
           // Exponential backoff: 1.5s, 3s, 6s
@@ -94,7 +109,12 @@ serve(async (req) => {
           JSON.stringify({ 
             item: null, 
             rateLimited: true,
-            message: 'Tradera API rate limited after retries. Using search result images.'
+            message: 'Tradera API rate limited after retries.',
+            tradera: {
+              status: lastStatus,
+              retryAfter: lastRetryAfter,
+              bodySnippet: truncateForLog(lastError ?? ''),
+            },
           }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
