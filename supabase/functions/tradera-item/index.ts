@@ -260,30 +260,91 @@ function parseItemDetails(xml: string): TraderaItemDetail | null {
     const id = extractNumber(xml, 'Id');
     if (!id) return null;
 
-    // Extract all image URLs
+    // Collect images from ALL available fields in the Tradera payload
     const rawImageLinks: string[] = [];
-    const imageMatches = xml.match(/<Url>(.*?)<\/Url>/g);
-    if (imageMatches) {
-      for (const match of imageMatches) {
-        const url = match.replace(/<\/?Url>/g, '');
-        if (url && url.startsWith('http')) {
-          rawImageLinks.push(url);
+    const seenUrls = new Set<string>();
+    
+    const addImageUrl = (url: string | undefined) => {
+      if (!url || !url.startsWith('http')) return;
+      // Normalize to HTTPS
+      const normalizedUrl = url.replace(/^http:\/\//i, 'https://');
+      if (!seenUrls.has(normalizedUrl.toLowerCase())) {
+        seenUrls.add(normalizedUrl.toLowerCase());
+        rawImageLinks.push(normalizedUrl);
+      }
+    };
+
+    // 1. Extract from <ImageLinks> section (contains multiple <Url> elements)
+    const imageLinksSection = xml.match(/<ImageLinks>([\s\S]*?)<\/ImageLinks>/gi);
+    if (imageLinksSection) {
+      for (const section of imageLinksSection) {
+        const urlMatches = section.match(/<Url>([^<]+)<\/Url>/gi);
+        if (urlMatches) {
+          for (const match of urlMatches) {
+            const url = match.replace(/<\/?Url>/gi, '').trim();
+            addImageUrl(url);
+          }
         }
       }
     }
 
-    // Also check for ImageLink elements
-    const imageLinkMatches = xml.match(/<ImageLink>(.*?)<\/ImageLink>/g);
+    // 2. Extract standalone <Url> elements outside ImageLinks
+    const allUrlMatches = xml.match(/<Url>([^<]+)<\/Url>/gi);
+    if (allUrlMatches) {
+      for (const match of allUrlMatches) {
+        const url = match.replace(/<\/?Url>/gi, '').trim();
+        addImageUrl(url);
+      }
+    }
+
+    // 3. Extract from <ImageLink> elements
+    const imageLinkMatches = xml.match(/<ImageLink>([^<]+)<\/ImageLink>/gi);
     if (imageLinkMatches) {
       for (const match of imageLinkMatches) {
-        const url = match.replace(/<\/?ImageLink>/g, '');
-        if (url && url.startsWith('http') && !rawImageLinks.includes(url)) {
-          rawImageLinks.push(url);
-        }
+        const url = match.replace(/<\/?ImageLink>/gi, '').trim();
+        addImageUrl(url);
       }
     }
 
-    // Deduplicate and keep only high-res/original images
+    // 4. Extract from <ThumbnailLink> elements
+    const thumbnailMatches = xml.match(/<ThumbnailLink>([^<]+)<\/ThumbnailLink>/gi);
+    if (thumbnailMatches) {
+      for (const match of thumbnailMatches) {
+        const url = match.replace(/<\/?ThumbnailLink>/gi, '').trim();
+        addImageUrl(url);
+      }
+    }
+
+    // 5. Extract from <ItemImage> or <MainImage> elements
+    const itemImageMatches = xml.match(/<(?:ItemImage|MainImage)>([^<]+)<\/(?:ItemImage|MainImage)>/gi);
+    if (itemImageMatches) {
+      for (const match of itemImageMatches) {
+        const url = match.replace(/<\/?(?:ItemImage|MainImage)>/gi, '').trim();
+        addImageUrl(url);
+      }
+    }
+
+    // 6. Extract from <Image> elements (generic)
+    const genericImageMatches = xml.match(/<Image>([^<]+)<\/Image>/gi);
+    if (genericImageMatches) {
+      for (const match of genericImageMatches) {
+        const url = match.replace(/<\/?Image>/gi, '').trim();
+        addImageUrl(url);
+      }
+    }
+
+    // 7. Extract from <LargeImageLink> or similar high-res fields
+    const largeImageMatches = xml.match(/<(?:LargeImageLink|OriginalImageLink|FullImageLink)>([^<]+)<\/(?:LargeImageLink|OriginalImageLink|FullImageLink)>/gi);
+    if (largeImageMatches) {
+      for (const match of largeImageMatches) {
+        const url = match.replace(/<\/?(?:LargeImageLink|OriginalImageLink|FullImageLink)>/gi, '').trim();
+        addImageUrl(url);
+      }
+    }
+
+    console.log(`Collected ${rawImageLinks.length} raw images from all fields`);
+
+    // Deduplicate by normalizing URLs and keeping best quality versions
     const imageLinks = deduplicateImages(rawImageLinks);
 
     // Extract attributes
