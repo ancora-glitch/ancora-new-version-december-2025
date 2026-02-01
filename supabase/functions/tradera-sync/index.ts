@@ -61,6 +61,12 @@ serve(async (req) => {
     }
 
     console.log(`Found ${products.length} active Tradera products to sync`);
+    
+    // ========================================
+    // THROTTLING: Max 1 request at a time, 2.5s delay between calls
+    // Fail-fast on 429 (no retries)
+    // ========================================
+    const THROTTLE_DELAY_MS = 2500;
 
     const results: TraderaSyncResult[] = [];
 
@@ -81,11 +87,17 @@ serve(async (req) => {
         continue;
       }
 
+      // Throttle: wait before each API call (except first)
+      if (results.length > 0) {
+        console.log(`Throttling: waiting ${THROTTLE_DELAY_MS}ms before next call...`);
+        await new Promise(resolve => setTimeout(resolve, THROTTLE_DELAY_MS));
+      }
+
       try {
-        // Fetch item details from Tradera API
+        // Fetch item details from Tradera API (fail-fast on 429)
         const itemDetails = await fetchTraderaItem(itemId, appId, appKey);
         
-        if (!itemDetails) {
+        if (itemDetails === null) {
           console.log(`Item ${itemId} not found or error`);
           results.push({
             productId: product.id,
@@ -96,6 +108,21 @@ serve(async (req) => {
             error: 'Could not fetch item from Tradera',
           });
           continue;
+        }
+        
+        // Check if rate limited - stop processing entirely
+        if (itemDetails.rateLimited) {
+          console.warn(`Rate limited on item ${itemId} - stopping sync to avoid further 429s`);
+          results.push({
+            productId: product.id,
+            productName: `${product.brand} - ${product.name}`,
+            oldPrice: product.price,
+            newPrice: product.price,
+            status: 'error',
+            error: 'Tradera rate limited (429) - sync stopped',
+          });
+          // Stop processing more items when rate limited
+          break;
         }
 
         // Check if auction has ended
@@ -191,6 +218,7 @@ function extractItemId(url: string | null): string | null {
 interface TraderaItemDetails {
   price: number;
   hasEnded: boolean;
+  rateLimited?: boolean;
 }
 
 async function fetchTraderaItem(itemId: string, appId: string, appKey: string): Promise<TraderaItemDetails | null> {
@@ -212,6 +240,8 @@ async function fetchTraderaItem(itemId: string, appId: string, appKey: string): 
 </soap:Envelope>`;
 
   try {
+    console.log(`Fetching item ${itemId} (single request, no retries)`);
+    
     const response = await fetch('https://api.tradera.com/v3/PublicService.asmx', {
       method: 'POST',
       headers: {
@@ -220,6 +250,12 @@ async function fetchTraderaItem(itemId: string, appId: string, appKey: string): 
       },
       body: soapEnvelope,
     });
+
+    // Fail-fast on 429 - no retries
+    if (response.status === 429) {
+      console.warn(`Tradera GetItem returned 429 for item ${itemId} - fail fast, no retry`);
+      return { price: 0, hasEnded: false, rateLimited: true };
+    }
 
     if (!response.ok) {
       console.error(`Tradera API error for item ${itemId}:`, response.status);
