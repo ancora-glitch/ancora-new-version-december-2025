@@ -116,7 +116,7 @@ const TraderaSearch = () => {
     }
   };
 
-  const fetchItemDetails = async (itemId: number): Promise<TraderaItemDetail | null> => {
+  const fetchItemDetails = async (itemId: number): Promise<{ item: TraderaItemDetail | null; rateLimited: boolean }> => {
     try {
       const { data, error } = await supabase.functions.invoke("tradera-item", {
         body: { itemId },
@@ -124,13 +124,19 @@ const TraderaSearch = () => {
 
       if (error || data.error) {
         console.error("Failed to fetch item details:", error || data.error);
-        return null;
+        return { item: null, rateLimited: false };
       }
 
-      return data.item;
+      // Handle rate-limited response - item will be null but we can still proceed
+      if (data.rateLimited) {
+        console.warn("Tradera API rate limited - will use search result images");
+        return { item: null, rateLimited: true };
+      }
+
+      return { item: data.item, rateLimited: false };
     } catch (e) {
       console.error("Error fetching item details:", e);
-      return null;
+      return { item: null, rateLimited: false };
     }
   };
 
@@ -281,10 +287,14 @@ const TraderaSearch = () => {
     setImportingIds((prev) => new Set(prev).add(item.id));
 
     try {
-      // Fetch full item details
-      const details = await fetchItemDetails(item.id);
+      // Fetch full item details (may be null if rate-limited)
+      const { item: details, rateLimited } = await fetchItemDetails(item.id);
       
-      // Get raw data from API
+      if (rateLimited) {
+        console.log("Using search result images due to rate limiting");
+      }
+      
+      // Get raw data from API - fall back to search item data if details unavailable
       const rawTitle = details?.shortDescription || item.shortDescription;
       const apiBrand = details?.brand || item.brandName;
       

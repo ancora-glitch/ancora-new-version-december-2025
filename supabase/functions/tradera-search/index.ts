@@ -142,6 +142,80 @@ function escapeXml(str: string): string {
     .replace(/'/g, '&apos;');
 }
 
+/**
+ * Extracts a base identifier from an image URL for deduplication.
+ * Tradera provides the same image in multiple resolutions (minithumb, thumb, medium, images/normal).
+ */
+function extractImageIdentifier(url: string): string {
+  if (!url) return "";
+  
+  try {
+    const urlObj = new URL(url);
+    const pathname = urlObj.pathname;
+    
+    // Remove Tradera's resolution prefixes: /minithumb/, /thumbs/, /medium/, /images/
+    // Keep the unique image ID that follows
+    const cleanPath = pathname
+      .replace(/^\/(minithumb|thumbs|thumb|medium|images|normal)\//gi, "/img/")
+      .replace(/\.(jpg|jpeg|png|webp|gif)$/i, "");
+    
+    return cleanPath.toLowerCase();
+  } catch {
+    return url.toLowerCase();
+  }
+}
+
+/**
+ * Determines if a URL is a high-resolution version
+ */
+function isHighResVersion(url: string): boolean {
+  // Tradera's URL patterns: /images/ = highest res, /medium/ = medium, /thumbs/ or /minithumb/ = low
+  if (url.includes('/images/') || url.includes('/normal/')) return true;
+  if (url.includes('/medium/')) return false; // Medium is okay but not best
+  if (url.includes('/thumbs/') || url.includes('/minithumb/')) return false;
+  return true;
+}
+
+/**
+ * Deduplicates images by base identifier and keeps the highest resolution version
+ */
+function deduplicateAndSelectBest(urls: string[]): string[] {
+  if (urls.length === 0) return [];
+  
+  // Group by base identifier
+  const groups = new Map<string, string[]>();
+  for (const url of urls) {
+    const id = extractImageIdentifier(url);
+    const existing = groups.get(id) || [];
+    existing.push(url);
+    groups.set(id, existing);
+  }
+  
+  // Select best from each group, preserving original order
+  const result: string[] = [];
+  const processed = new Set<string>();
+  
+  for (const url of urls) {
+    const id = extractImageIdentifier(url);
+    if (processed.has(id)) continue;
+    
+    const group = groups.get(id) || [url];
+    // Sort: high-res first, then by URL length (longer = more specific)
+    const sorted = [...group].sort((a, b) => {
+      const aHigh = isHighResVersion(a);
+      const bHigh = isHighResVersion(b);
+      if (aHigh && !bHigh) return -1;
+      if (!aHigh && bHigh) return 1;
+      return b.length - a.length;
+    });
+    
+    result.push(sorted[0]);
+    processed.add(id);
+  }
+  
+  return result;
+}
+
 function parseTraderaResponse(xml: string): TraderaItem[] {
   const items: TraderaItem[] = [];
   
@@ -163,40 +237,39 @@ function parseTraderaResponse(xml: string): TraderaItem[] {
       
       if (!id || !shortDesc) continue;
 
-      // Extract all image URLs from ImageLinks section
-      const imageLinks: string[] = [];
+      // Extract ALL image URLs from multiple sources
+      const rawImageUrls: string[] = [];
+      
+      // 1. Extract from <ImageLinks> section
       const imageLinksMatch = itemXml.match(/<ImageLinks>([\s\S]*?)<\/ImageLinks>/i);
       if (imageLinksMatch) {
         const imageLinksXml = imageLinksMatch[1];
-        // Extract all <Url> values
         const urlMatches = imageLinksXml.matchAll(/<Url>([^<]+)<\/Url>/gi);
         for (const match of urlMatches) {
           const url = match[1].trim();
-          if (url) {
-            // Ensure HTTPS
-            imageLinks.push(url.replace(/^http:\/\//i, 'https://'));
-          }
+          if (url) rawImageUrls.push(url.replace(/^http:\/\//i, 'https://'));
         }
       }
       
-      // Get thumbnail as fallback
-      let thumbnailLink = extractText(itemXml, 'ThumbnailLink');
+      // 2. Extract <ThumbnailLink>
+      const thumbnailLink = extractText(itemXml, 'ThumbnailLink');
       if (thumbnailLink) {
-        thumbnailLink = thumbnailLink.replace(/^http:\/\//i, 'https://');
+        rawImageUrls.push(thumbnailLink.replace(/^http:\/\//i, 'https://'));
       }
       
-      // Find the best image: prefer 'normal' or 'images' (highest res), then 'medium', then thumbnail
-      let bestImage = thumbnailLink;
-      for (const url of imageLinks) {
-        if (url.includes('/images/') || url.includes('/normal/')) {
-          bestImage = url;
-          break;
-        } else if (url.includes('/medium/') && !bestImage?.includes('/images/')) {
-          bestImage = url;
+      // 3. Extract any standalone <Url> elements with image patterns
+      const standaloneUrls = itemXml.matchAll(/<Url>([^<]+)<\/Url>/gi);
+      for (const match of standaloneUrls) {
+        const url = match[1].trim();
+        if (url && url.includes('tradera.net') && !rawImageUrls.includes(url)) {
+          rawImageUrls.push(url.replace(/^http:\/\//i, 'https://'));
         }
       }
       
-      console.log(`Item ${id} - Best image: ${bestImage}, All images: ${imageLinks.length}`);
+      // Deduplicate and select highest resolution versions
+      const deduplicatedImages = deduplicateAndSelectBest(rawImageUrls);
+      
+      console.log(`Item ${id} - Raw images: ${rawImageUrls.length}, Deduplicated: ${deduplicatedImages.length}`);
 
       const item: TraderaItem = {
         id,
@@ -206,8 +279,8 @@ function parseTraderaResponse(xml: string): TraderaItem[] {
                extractNumber(itemXml, 'NextBid') ||
                extractNumber(itemXml, 'BuyItNowPrice') || 0,
         buyItNowPrice: extractNumber(itemXml, 'BuyItNowPrice'),
-        thumbnailLink: bestImage || thumbnailLink,
-        imageLinks: imageLinks.length > 0 ? imageLinks : undefined,
+        thumbnailLink: deduplicatedImages[0] || thumbnailLink,
+        imageLinks: deduplicatedImages.length > 0 ? deduplicatedImages : undefined,
         itemLink: `https://www.tradera.com/item/${id}`,
         categoryId: extractNumber(itemXml, 'CategoryId') || 0,
         sellerId: extractNumber(itemXml, 'SellerId') || 0,
