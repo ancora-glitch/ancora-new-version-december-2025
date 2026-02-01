@@ -131,8 +131,34 @@ interface TraderaItemDetail {
   attributes: Record<string, string>;
 }
 
-// Filter out thumbnail/low-res image URLs and keep only originals
-function filterHighResImages(urls: string[]): string[] {
+/**
+ * Extracts a base identifier from an image URL for deduplication.
+ * This helps detect when the same image appears in different resolutions/sizes.
+ */
+function extractImageIdentifier(url: string): string {
+  if (!url) return "";
+  
+  try {
+    const urlObj = new URL(url);
+    const pathname = urlObj.pathname;
+    
+    // Remove common size suffixes and thumbnail patterns to get base identifier
+    const cleanPath = pathname
+      .replace(/[_-](thumb|thumbnail|small|medium|large|xl|xxl|original|hires|lowres|preview|tiny|mini|xs|s|m|l)\b/gi, "")
+      .replace(/\/\d+x\d+\//g, "/")  // Remove dimension paths like /400x300/
+      .replace(/\/[stm]\//gi, "/")    // Remove single-letter size paths like /s/ /t/ /m/
+      .replace(/\.(jpg|jpeg|png|webp|gif)$/i, "");  // Remove extension for comparison
+    
+    return cleanPath.toLowerCase();
+  } catch {
+    return url.toLowerCase();
+  }
+}
+
+/**
+ * Determines if a URL is likely a high-resolution version
+ */
+function isHighResVersion(url: string): boolean {
   const lowResPatterns = [
     /thumb/i,
     /thumbnail/i,
@@ -148,31 +174,85 @@ function filterHighResImages(urls: string[]): string[] {
     /\/t\//i,
     /size=small/i,
     /size=thumb/i,
+    /\/\d{2,3}x\d{2,3}\//,  // Small dimensions like /100x100/
   ];
 
-  const filtered = urls.filter(url => {
-    // Check if URL contains any low-res patterns
-    const isLowRes = lowResPatterns.some(pattern => pattern.test(url));
-    if (isLowRes) {
-      console.log('Filtering out low-res image:', url);
-    }
-    return !isLowRes;
-  });
+  const highResPatterns = [
+    /large/i,
+    /original/i,
+    /hires/i,
+    /full/i,
+    /_l\./i,
+    /_xl\./i,
+  ];
 
-  // Deduplicate by normalizing URLs (remove query params for comparison)
-  const seen = new Set<string>();
-  const unique: string[] = [];
+  const urlLower = url.toLowerCase();
   
-  for (const url of filtered) {
-    const normalized = url.split('?')[0].toLowerCase();
-    if (!seen.has(normalized)) {
-      seen.add(normalized);
-      unique.push(url);
-    }
+  if (lowResPatterns.some(pattern => pattern.test(urlLower))) {
+    return false;
   }
+  
+  if (highResPatterns.some(pattern => pattern.test(urlLower))) {
+    return true;
+  }
+  
+  return true; // Default: assume okay quality
+}
 
-  console.log(`Filtered images: ${urls.length} -> ${unique.length}`);
-  return unique;
+/**
+ * Selects the best quality URL from a group of similar images
+ */
+function selectBestQuality(urls: string[]): string {
+  if (urls.length === 1) return urls[0];
+  
+  const sorted = [...urls].sort((a, b) => {
+    const aIsHigh = isHighResVersion(a);
+    const bIsHigh = isHighResVersion(b);
+    
+    if (aIsHigh && !bIsHigh) return -1;
+    if (!aIsHigh && bIsHigh) return 1;
+    
+    // Prefer longer URLs (often more specific/full resolution)
+    return b.length - a.length;
+  });
+  
+  return sorted[0];
+}
+
+/**
+ * Deduplicates images by extracting base identifiers and keeping best quality versions.
+ * This handles cases where the same image appears as thumbnail + full-res.
+ */
+function deduplicateImages(urls: string[]): string[] {
+  if (urls.length === 0) return [];
+  
+  // Group images by their base identifier
+  const imageGroups = new Map<string, string[]>();
+  
+  for (const url of urls) {
+    const identifier = extractImageIdentifier(url);
+    const existing = imageGroups.get(identifier) || [];
+    existing.push(url);
+    imageGroups.set(identifier, existing);
+  }
+  
+  // For each group, select the highest quality version
+  const uniqueImages: string[] = [];
+  const processedIdentifiers = new Set<string>();
+  
+  // Process in original order to preserve ordering
+  for (const url of urls) {
+    const identifier = extractImageIdentifier(url);
+    if (processedIdentifiers.has(identifier)) continue;
+    
+    const group = imageGroups.get(identifier) || [url];
+    const bestUrl = selectBestQuality(group);
+    uniqueImages.push(bestUrl);
+    processedIdentifiers.add(identifier);
+  }
+  
+  console.log(`Deduplicated images: ${urls.length} -> ${uniqueImages.length}`);
+  return uniqueImages;
 }
 
 function parseItemDetails(xml: string): TraderaItemDetail | null {
@@ -203,8 +283,8 @@ function parseItemDetails(xml: string): TraderaItemDetail | null {
       }
     }
 
-    // Filter to only keep high-res/original images
-    const imageLinks = filterHighResImages(rawImageLinks);
+    // Deduplicate and keep only high-res/original images
+    const imageLinks = deduplicateImages(rawImageLinks);
 
     // Extract attributes
     const attributes: Record<string, string> = {};
