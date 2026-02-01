@@ -52,52 +52,91 @@ serve(async (req) => {
   </soap:Body>
 </soap:Envelope>`;
 
-    const response = await fetch('https://api.tradera.com/v3/PublicService.asmx', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/xml; charset=utf-8',
-        'SOAPAction': 'http://api.tradera.com/GetItem',
-      },
-      body: soapEnvelope,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Tradera API error:', response.status, errorText);
+    // Retry configuration for rate limiting
+    const maxRetries = 3;
+    const baseDelayMs = 1500; // Start with 1.5 second delay
+    
+    let lastError: string | null = null;
+    let response: Response | null = null;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      console.log(`Attempt ${attempt}/${maxRetries} to fetch item ${itemId}`);
       
-      // Handle 429 rate limiting as a non-fatal, partial-success case
+      response = await fetch('https://api.tradera.com/v3/PublicService.asmx', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/xml; charset=utf-8',
+          'SOAPAction': 'http://api.tradera.com/GetItem',
+        },
+        body: soapEnvelope,
+      });
+
+      if (response.ok) {
+        console.log(`Success on attempt ${attempt}`);
+        break;
+      }
+      
+      // Handle rate limiting with exponential backoff
       if (response.status === 429) {
-        console.warn('Tradera API rate limited (429) - returning partial success');
+        lastError = await response.text();
+        
+        if (attempt < maxRetries) {
+          // Exponential backoff: 1.5s, 3s, 6s
+          const delayMs = baseDelayMs * Math.pow(2, attempt - 1);
+          console.log(`Rate limited (429), waiting ${delayMs}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+          continue;
+        }
+        
+        // All retries exhausted
+        console.warn('Tradera API rate limited after all retries - returning partial success');
         return new Response(
           JSON.stringify({ 
             item: null, 
             rateLimited: true,
-            message: 'Tradera API rate limited. Item details unavailable but import can continue.'
+            message: 'Tradera API rate limited after retries. Using search result images.'
           }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       
+      // Other errors - don't retry
+      const errorText = await response.text();
+      console.error('Tradera API error:', response.status, errorText);
       return new Response(
         JSON.stringify({ error: 'Tradera API error', details: errorText }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    if (!response || !response.ok) {
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch item after retries', details: lastError }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const xmlText = await response.text();
-    console.log('Received item details XML');
+    console.log('Received item details XML, length:', xmlText.length);
+    
+    // Log a snippet to help debug image extraction
+    const imageLinksStart = xmlText.indexOf('<ImageLinks>');
+    const imageLinksEnd = xmlText.indexOf('</ImageLinks>');
+    if (imageLinksStart > -1 && imageLinksEnd > -1) {
+      console.log('ImageLinks section found:', xmlText.substring(imageLinksStart, imageLinksEnd + 13).substring(0, 500));
+    }
 
     // Parse the item details
     const item = parseItemDetails(xmlText);
     
     if (!item) {
       return new Response(
-        JSON.stringify({ error: 'Item not found' }),
+        JSON.stringify({ error: 'Item not found or failed to parse' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Parsed item:', item.id, item.shortDescription);
+    console.log('Parsed item:', item.id, '- Images:', item.imageLinks.length);
 
     return new Response(
       JSON.stringify({ item }),
