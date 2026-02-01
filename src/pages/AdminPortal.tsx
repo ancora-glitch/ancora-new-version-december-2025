@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStyleGuides } from "@/hooks/useStyleGuides";
-import { useAllProducts, type ProductStatus } from "@/hooks/useProducts";
+import { useAllProducts, useSoldProducts, type ProductStatus } from "@/hooks/useProducts";
 import { useAllCategories, type Category, type CategoryStatus } from "@/hooks/useCategories";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -176,6 +176,7 @@ const SortableProductItem = ({ product, editingProductId, onEdit, onDelete, onTo
 const AdminPortal = () => {
   const { data: stories, isLoading: storiesLoading } = useStyleGuides();
   const { data: products, isLoading: productsLoading } = useAllProducts();
+  const { data: soldProducts, isLoading: soldProductsLoading } = useSoldProducts();
   const { data: categories, isLoading: categoriesLoading } = useAllCategories();
   const queryClient = useQueryClient();
   const [isSyncingPrices, setIsSyncingPrices] = useState(false);
@@ -1005,6 +1006,93 @@ const AdminPortal = () => {
                 ) : (
                   <p className="text-muted-foreground text-center py-8 border border-border rounded-sm">
                     {statusFilter === "all" ? "No products yet." : `No ${statusFilter} products.`}
+                  </p>
+                )}
+              </div>
+            </TabsContent>
+
+            {/* SOLD ARCHIVE TAB */}
+            <TabsContent value="sold" className="space-y-6">
+              <div className="p-4 border border-border rounded-sm bg-card">
+                <h2 className="font-display text-lg text-primary mb-2">Sold Archive</h2>
+                <p className="text-muted-foreground text-sm">
+                  Historical record of sold products for reference and affiliate analysis.
+                </p>
+              </div>
+
+              <div>
+                <h2 className="font-display text-lg text-primary mb-6">
+                  Sold Products ({soldProducts?.length || 0})
+                </h2>
+                {soldProductsLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-20 bg-muted rounded-sm animate-pulse" />
+                    ))}
+                  </div>
+                ) : soldProducts && soldProducts.length > 0 ? (
+                  <div className="space-y-3">
+                    {soldProducts.map((product) => (
+                      <div
+                        key={product.id}
+                        className={`flex items-center justify-between p-4 border rounded-sm bg-card cursor-pointer transition-colors ${
+                          editingProductId === product.id
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                        onClick={() => handleEditProduct(product as Product)}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          {product.image && (
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              className="w-12 h-12 object-cover rounded-sm flex-shrink-0 opacity-75"
+                            />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <h3 className="font-medium text-primary truncate">
+                                {product.brand} - {product.name}
+                              </h3>
+                              <Badge variant="outline">Sold</Badge>
+                            </div>
+                            <p className="text-muted-foreground text-sm">
+                              {product.price}
+                              {product.size && ` · Size: ${product.size}`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditProduct(product as Product);
+                            }}
+                            className="text-primary hover:bg-primary/10"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteProduct(product.id, product.name);
+                            }}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-center py-8 border border-border rounded-sm">
+                    No sold products yet.
                   </p>
                 )}
               </div>
