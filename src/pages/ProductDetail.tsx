@@ -294,6 +294,13 @@ const ProductDetail = () => {
 
                 {/* Product Details */}
                 <div className="space-y-4">
+                  {product.size && (
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-sm text-muted-foreground uppercase tracking-wide">Size</span>
+                      <span className="text-foreground">{product.size}</span>
+                    </div>
+                  )}
+                  
                   {product.condition && (
                     <div className="flex justify-between items-baseline">
                       <span className="text-sm text-muted-foreground uppercase tracking-wide">Condition</span>
