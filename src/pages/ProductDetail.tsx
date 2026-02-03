@@ -292,28 +292,22 @@ const ProductDetail = () => {
                 {/* Divider */}
                 <div className="border-t border-border" />
 
-                {/* Product Details */}
-                <div className="space-y-4">
-                  {product.size && (
-                    <div className="flex justify-between items-baseline">
-                      <span className="text-sm text-muted-foreground uppercase tracking-wide">Size</span>
-                      <span className="text-foreground">{product.size}</span>
-                    </div>
-                  )}
+                {/* Product Metadata - Always displayed in consistent order */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-baseline gap-4">
+                    <span className="text-sm text-muted-foreground uppercase tracking-wide flex-shrink-0">Size</span>
+                    <span className="text-foreground text-right">{product.size || "—"}</span>
+                  </div>
                   
-                  {product.condition && (
-                    <div className="flex justify-between items-baseline">
-                      <span className="text-sm text-muted-foreground uppercase tracking-wide">Condition</span>
-                      <span className="text-foreground">{product.condition}</span>
-                    </div>
-                  )}
+                  <div className="flex justify-between items-baseline gap-4">
+                    <span className="text-sm text-muted-foreground uppercase tracking-wide flex-shrink-0">Condition</span>
+                    <span className="text-foreground text-right">{product.condition || "—"}</span>
+                  </div>
                   
-                  {product.material && (
-                    <div className="flex justify-between items-baseline">
-                      <span className="text-sm text-muted-foreground uppercase tracking-wide">Material</span>
-                      <span className="text-foreground">{product.material}</span>
-                    </div>
-                  )}
+                  <div className="flex justify-between items-baseline gap-4">
+                    <span className="text-sm text-muted-foreground uppercase tracking-wide flex-shrink-0">Material</span>
+                    <span className="text-foreground text-right">{product.material || "—"}</span>
+                  </div>
                 </div>
 
                 {/* Description */}
