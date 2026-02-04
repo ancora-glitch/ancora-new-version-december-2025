@@ -326,16 +326,19 @@ const ProductDetail = () => {
                   </p>
                 )}
 
-                {/* Source Badge - Editorial override or marketplace fallback */}
-                {product.ancora_select_source === "tradera" ? (
+                {/* Source Badge - Editorial override (highest priority), otherwise marketplace fallback */}
+                {product.ancora_select_source === "tradera" && (
                   <span className="inline-flex items-center px-3 py-1 text-xs uppercase tracking-wider text-muted-foreground bg-muted rounded-full">
                     Ancora selects from Tradera
                   </span>
-                ) : product.marketplace?.toLowerCase() === "tradera" ? (
-                  <span className="inline-flex items-center px-3 py-1 text-xs uppercase tracking-wider text-muted-foreground bg-muted rounded-full">
-                    Tradera
-                  </span>
-                ) : null}
+                )}
+
+                {product.ancora_select_source !== "tradera" &&
+                  product.marketplace?.toLowerCase() === "tradera" && (
+                    <span className="inline-flex items-center px-3 py-1 text-xs uppercase tracking-wider text-muted-foreground bg-muted rounded-full">
+                      Tradera
+                    </span>
+                  )}
 
                 {/* Divider */}
                 <div className="border-t border-border" />
