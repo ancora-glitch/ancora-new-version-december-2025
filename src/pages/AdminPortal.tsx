@@ -37,6 +37,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+type AncoraSelectSource = "tradera" | null;
+
 interface Product {
   id: string;
   brand: string;
@@ -54,6 +56,7 @@ interface Product {
   slug?: string | null;
   sort_order?: number | null;
   category_id?: string | null;
+  ancora_select_source?: AncoraSelectSource;
 }
 
 const isPublishedStatus = (status: ProductStatus) => status === "active" || status === "published";
@@ -208,6 +211,7 @@ const AdminPortal = () => {
   const [productMaterial, setProductMaterial] = useState("");
   const [productStatus, setProductStatus] = useState<ProductStatus>("draft");
   const [productCategoryId, setProductCategoryId] = useState<string | null>(null);
+  const [productAncoraSelectSource, setProductAncoraSelectSource] = useState<AncoraSelectSource>(null);
   const [savingProduct, setSavingProduct] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "active" | "sold">("all");
 
@@ -267,6 +271,7 @@ const AdminPortal = () => {
     setProductMaterial("");
     setProductStatus("draft");
     setProductCategoryId(null);
+    setProductAncoraSelectSource(null);
   };
 
   // Category form helpers
@@ -387,6 +392,7 @@ const AdminPortal = () => {
     // Normalize legacy 'published' to 'active' for the UI
     setProductStatus(product.status === "published" ? "active" : product.status);
     setProductCategoryId(product.category_id || null);
+    setProductAncoraSelectSource(product.ancora_select_source || null);
     
     // Scroll to form
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -475,6 +481,7 @@ const AdminPortal = () => {
       status: productStatus,
       slug,
       category_id: productCategoryId || null,
+      ancora_select_source: productAncoraSelectSource,
     };
 
     let error;
@@ -930,24 +937,41 @@ const AdminPortal = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="productCategory">Category</Label>
-                  <Select 
-                    value={productCategoryId || "none"} 
-                    onValueChange={(v) => setProductCategoryId(v === "none" ? null : v)}
-                  >
-                    <SelectTrigger className="bg-background border-border">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No category</SelectItem>
-                      {categories?.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.name} {cat.status === "draft" && "(Draft)"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="productCategory">Category</Label>
+                    <Select 
+                      value={productCategoryId || "none"} 
+                      onValueChange={(v) => setProductCategoryId(v === "none" ? null : v)}
+                    >
+                      <SelectTrigger className="bg-background border-border">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No category</SelectItem>
+                        {categories?.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name} {cat.status === "draft" && "(Draft)"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="productAncoraSelectSource">Ancora selects from</Label>
+                    <Select 
+                      value={productAncoraSelectSource || "none"} 
+                      onValueChange={(v) => setProductAncoraSelectSource(v === "none" ? null : v as AncoraSelectSource)}
+                    >
+                      <SelectTrigger className="bg-background border-border">
+                        <SelectValue placeholder="Select source" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">—</SelectItem>
+                        <SelectItem value="tradera">Tradera</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <Button type="submit" disabled={savingProduct} className="w-full">

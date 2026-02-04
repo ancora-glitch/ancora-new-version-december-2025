@@ -54,6 +54,9 @@ export type Database = {
         Row: {
           additional_images: Json | null
           affiliate_url: string | null
+          ancora_select_source:
+            | Database["public"]["Enums"]["ancora_select_source"]
+            | null
           brand: string
           category_id: string | null
           condition: string | null
@@ -82,6 +85,9 @@ export type Database = {
         Insert: {
           additional_images?: Json | null
           affiliate_url?: string | null
+          ancora_select_source?:
+            | Database["public"]["Enums"]["ancora_select_source"]
+            | null
           brand: string
           category_id?: string | null
           condition?: string | null
@@ -110,6 +116,9 @@ export type Database = {
         Update: {
           additional_images?: Json | null
           affiliate_url?: string | null
+          ancora_select_source?:
+            | Database["public"]["Enums"]["ancora_select_source"]
+            | null
           brand?: string
           category_id?: string | null
           condition?: string | null
@@ -291,6 +300,7 @@ export type Database = {
       }
     }
     Enums: {
+      ancora_select_source: "tradera"
       app_role: "admin" | "moderator" | "user"
       category_status: "draft" | "published"
       product_status:
@@ -426,6 +436,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ancora_select_source: ["tradera"],
       app_role: ["admin", "moderator", "user"],
       category_status: ["draft", "published"],
       product_status: [
