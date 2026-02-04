@@ -72,7 +72,7 @@ const ProductDetail = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("*")
+        .select("id, name, brand, price, image, additional_images, description, size, condition, material, affiliate_url, marketplace, slug, status, ancora_select_source, updated_at, category_id")
         .eq("slug", slug)
         // Support both legacy `published` and canonical `active` visible statuses
         .in("status", ["active", "published"])
