@@ -79,6 +79,15 @@ const ProductDetail = () => {
         .maybeSingle();
 
       if (error) throw error;
+      
+      // DEBUG: Log ancora_select_source field
+      console.log("[ProductDetail] Product payload:", {
+        id: data?.id,
+        name: data?.name,
+        ancora_select_source: data?.ancora_select_source,
+        marketplace: data?.marketplace,
+      });
+      
       return data;
     },
     enabled: !!slug,
