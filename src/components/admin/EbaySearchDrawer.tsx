@@ -251,12 +251,12 @@ export function EbaySearchDrawer({ open, onOpenChange, onImported }: EbaySearchD
               </div>
               <div className="space-y-2">
                 <Label htmlFor="condition">Condition</Label>
-                <Select value={condition} onValueChange={setCondition}>
+                <Select value={condition} onValueChange={(v) => setCondition(v === "__any__" ? "" : v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Any" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any</SelectItem>
+                    <SelectItem value="__any__">Any</SelectItem>
                     <SelectItem value="1000">New</SelectItem>
                     <SelectItem value="3000">Used</SelectItem>
                   </SelectContent>
