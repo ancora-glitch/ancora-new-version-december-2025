@@ -280,3 +280,30 @@ export function usePromoteToProduct() {
     },
   });
 }
+
+// Create new import item (manual)
+export function useCreateImportItem() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (data: ImportItemInsert) => {
+      const { signals, ...rest } = data;
+      const insertPayload: Record<string, unknown> = { ...rest };
+      if (signals !== undefined) {
+        insertPayload.signals = signals;
+      }
+      
+      const { data: created, error } = await supabase
+        .from("ancora_import_items")
+        .insert([insertPayload as any])
+        .select("id")
+        .single();
+      
+      if (error) throw error;
+      return created.id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["import-items"] });
+    },
+  });
+}
