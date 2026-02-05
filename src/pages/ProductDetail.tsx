@@ -72,7 +72,7 @@ const ProductDetail = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, brand, price, image, additional_images, description, size, condition, material, affiliate_url, marketplace, slug, status, ancora_select_source, updated_at, category_id")
+       .select("id, name, brand, price, image, additional_images, description, size, color, condition, material, affiliate_url, marketplace, slug, status, ancora_select_source, updated_at, category_id")
         .eq("slug", slug)
         // Support both legacy `published` and canonical `active` visible statuses
         .in("status", ["active", "published"])
@@ -315,8 +315,13 @@ const ProductDetail = () => {
                   
                   <div className="flex justify-between items-baseline gap-4">
                     <span className="text-sm text-muted-foreground uppercase tracking-wide flex-shrink-0">Material</span>
-                    <span className="text-foreground text-right">{product.material || "—"}</span>
-                  </div>
+                   <span className="text-foreground text-right">{product.material || "—"}</span>
+                 </div>
+                 
+                 <div className="flex justify-between items-baseline gap-4">
+                   <span className="text-sm text-muted-foreground uppercase tracking-wide flex-shrink-0">Color</span>
+                   <span className="text-foreground text-right">{(product as any).color || "—"}</span>
+                 </div>
                 </div>
 
                 {/* Description */}

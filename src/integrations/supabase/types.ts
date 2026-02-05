@@ -59,6 +59,8 @@ export type Database = {
             | null
           brand: string
           category_id: string | null
+          color: string | null
+          color_sv: string | null
           condition: string | null
           condition_sv: string | null
           created_at: string
@@ -90,6 +92,8 @@ export type Database = {
             | null
           brand: string
           category_id?: string | null
+          color?: string | null
+          color_sv?: string | null
           condition?: string | null
           condition_sv?: string | null
           created_at?: string
@@ -121,6 +125,8 @@ export type Database = {
             | null
           brand?: string
           category_id?: string | null
+          color?: string | null
+          color_sv?: string | null
           condition?: string | null
           condition_sv?: string | null
           created_at?: string
