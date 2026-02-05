@@ -2,12 +2,14 @@ import { useState } from "react";
 import { ImportItemsList } from "./ImportItemsList";
 import { ImportItemDetail } from "./ImportItemDetail";
 import { NewImportDialog } from "./NewImportDialog";
+import { EbaySearchDrawer } from "./EbaySearchDrawer";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 
 export function ImportsTab() {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [showNewDialog, setShowNewDialog] = useState(false);
+  const [showEbayDrawer, setShowEbayDrawer] = useState(false);
 
   const handleCreated = (id: string) => {
     setSelectedItemId(id);
@@ -24,10 +26,16 @@ export function ImportsTab() {
             This is an internal, editorial layer — nothing is auto-published.
           </p>
         </div>
-        <Button onClick={() => setShowNewDialog(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          New Import
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowEbayDrawer(true)}>
+            <Search className="w-4 h-4 mr-2" />
+            Search eBay
+          </Button>
+          <Button onClick={() => setShowNewDialog(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            New Import
+          </Button>
+        </div>
       </div>
 
       {/* Two-column layout on larger screens */}
@@ -59,7 +67,13 @@ export function ImportsTab() {
         onOpenChange={setShowNewDialog}
         onCreated={handleCreated}
       />
+
+      {/* eBay Search Drawer */}
+      <EbaySearchDrawer
+        open={showEbayDrawer}
+        onOpenChange={setShowEbayDrawer}
+        onImported={() => setSelectedItemId(null)}
+      />
     </div>
   );
 }
-
