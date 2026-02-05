@@ -14,6 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
+      ancora_import_items: {
+        Row: {
+          condition: Database["public"]["Enums"]["ais_condition"] | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          id: string
+          images: string[]
+          price: number | null
+          product_id: string | null
+          promoted_at: string | null
+          provenance: string | null
+          raw_payload: Json | null
+          reviewed_at: string | null
+          signals: Json | null
+          source_ref: string
+          source_type: Database["public"]["Enums"]["ais_source_type"]
+          source_url: string | null
+          status: Database["public"]["Enums"]["ais_status"]
+          title: string
+        }
+        Insert: {
+          condition?: Database["public"]["Enums"]["ais_condition"] | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          images?: string[]
+          price?: number | null
+          product_id?: string | null
+          promoted_at?: string | null
+          provenance?: string | null
+          raw_payload?: Json | null
+          reviewed_at?: string | null
+          signals?: Json | null
+          source_ref: string
+          source_type: Database["public"]["Enums"]["ais_source_type"]
+          source_url?: string | null
+          status?: Database["public"]["Enums"]["ais_status"]
+          title: string
+        }
+        Update: {
+          condition?: Database["public"]["Enums"]["ais_condition"] | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          images?: string[]
+          price?: number | null
+          product_id?: string | null
+          promoted_at?: string | null
+          provenance?: string | null
+          raw_payload?: Json | null
+          reviewed_at?: string | null
+          signals?: Json | null
+          source_ref?: string
+          source_type?: Database["public"]["Enums"]["ais_source_type"]
+          source_url?: string | null
+          status?: Database["public"]["Enums"]["ais_status"]
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ancora_import_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           created_at: string
@@ -306,6 +377,9 @@ export type Database = {
       }
     }
     Enums: {
+      ais_condition: "new" | "excellent" | "good" | "fair" | "unknown"
+      ais_source_type: "tradera" | "ebay" | "manual" | "csv" | "other"
+      ais_status: "draft" | "reviewed" | "promoted" | "discarded"
       ancora_select_source: "tradera"
       app_role: "admin" | "moderator" | "user"
       category_status: "draft" | "published"
@@ -442,6 +516,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ais_condition: ["new", "excellent", "good", "fair", "unknown"],
+      ais_source_type: ["tradera", "ebay", "manual", "csv", "other"],
+      ais_status: ["draft", "reviewed", "promoted", "discarded"],
       ancora_select_source: ["tradera"],
       app_role: ["admin", "moderator", "user"],
       category_status: ["draft", "published"],
