@@ -52,6 +52,7 @@ interface Product {
   condition?: string | null;
   material?: string | null;
   size?: string | null;
+  color?: string | null;
   status: ProductStatus;
   slug?: string | null;
   sort_order?: number | null;
@@ -203,6 +204,7 @@ const AdminPortal = () => {
   const [productName, setProductName] = useState("");
   const [productPrice, setProductPrice] = useState("");
   const [productSize, setProductSize] = useState("");
+ const [productColor, setProductColor] = useState("");
   const [productImages, setProductImages] = useState<string[]>([]);
   const [productDescription, setProductDescription] = useState("");
   const [productAffiliateUrl, setProductAffiliateUrl] = useState("");
@@ -263,6 +265,7 @@ const AdminPortal = () => {
     setProductName("");
     setProductPrice("");
     setProductSize("");
+   setProductColor("");
     setProductImages([]);
     setProductDescription("");
     setProductAffiliateUrl("");
@@ -382,6 +385,7 @@ const AdminPortal = () => {
     setProductName(product.name);
     setProductPrice(product.price);
     setProductSize(product.size || "");
+   setProductColor((product as any).color || "");
     const allImages = [product.image, ...(product.additional_images || [])];
     setProductImages(allImages);
     setProductDescription(product.description || "");
@@ -471,6 +475,7 @@ const AdminPortal = () => {
       name: productName.trim(),
       price: productPrice.trim(),
       size: productSize.trim() || null,
+     color: productColor.trim() || null,
       image: mainImage,
       additional_images: additionalImages,
       description: productDescription.trim() || null,
@@ -924,6 +929,10 @@ const AdminPortal = () => {
                     <Label htmlFor="productMaterial">Material</Label>
                     <Input id="productMaterial" value={productMaterial} onChange={(e) => setProductMaterial(e.target.value)} placeholder="e.g. Cotton, Leather" className="bg-background border-border" />
                   </div>
+                 <div className="space-y-2">
+                   <Label htmlFor="productColor">Color</Label>
+                   <Input id="productColor" value={productColor} onChange={(e) => setProductColor(e.target.value)} placeholder="e.g. Black, Beige, Navy" className="bg-background border-border" />
+                 </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
