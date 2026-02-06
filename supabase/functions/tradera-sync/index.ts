@@ -40,7 +40,7 @@ serve(async (req) => {
     // Fetch all active Tradera products
     const { data: products, error: fetchError } = await supabase
       .from('products')
-      .select('id, name, brand, price, affiliate_url')
+      .select('id, name, brand, price, affiliate_url, tradera_item_id')
       .eq('marketplace', 'Tradera')
       .eq('status', 'active');
 
@@ -71,8 +71,8 @@ serve(async (req) => {
     const results: TraderaSyncResult[] = [];
 
     for (const product of products) {
-      // Extract item ID from affiliate_url
-      const itemId = extractItemId(product.affiliate_url);
+      // Prefer explicit tradera_item_id when present; fall back to parsing affiliate_url.
+      const itemId = product.tradera_item_id || extractItemId(product.affiliate_url);
       
       if (!itemId) {
         console.log(`Could not extract item ID for product ${product.id}`);
@@ -143,9 +143,25 @@ serve(async (req) => {
           continue;
         }
 
+        // If we couldn't parse a valid price, do NOT overwrite the existing price.
+        // This prevents accidentally resetting manually set prices to "0 SEK".
+        if (!itemDetails.price || itemDetails.price <= 0) {
+          console.warn(
+            `Invalid price from Tradera for item ${itemId} (product ${product.id}) - skipping price update`,
+          );
+          results.push({
+            productId: product.id,
+            productName: `${product.brand} - ${product.name}`,
+            oldPrice: product.price,
+            newPrice: product.price,
+            status: 'error',
+            error: 'Invalid/missing price from Tradera response (skipped to avoid overwriting with 0 SEK)',
+          });
+          continue;
+        }
+
         // Format new price
         const newPrice = `${Math.round(itemDetails.price)} SEK`;
-        
         if (newPrice !== product.price) {
           console.log(`Price changed for ${product.id}: ${product.price} -> ${newPrice}`);
           await supabase
@@ -209,10 +225,21 @@ serve(async (req) => {
 
 function extractItemId(url: string | null): string | null {
   if (!url) return null;
-  
-  // Match patterns like tradera.com/item/123456 or /item/123456
-  const match = url.match(/\/item\/(\d+)/i);
-  return match ? match[1] : null;
+
+  // Tradera commonly uses URLs like:
+  // - https://www.tradera.com/item/<categoryId>/<itemId>/<slug>
+  // - https://www.tradera.com/item/<itemId>
+  // Our old regex accidentally captured <categoryId>, leading to bad lookups and "0 SEK" overwrites.
+  const twoSegment = url.match(/\/item\/\d+\/(\d+)/i);
+  if (twoSegment?.[1]) return twoSegment[1];
+
+  const oneSegment = url.match(/\/item\/(\d+)/i);
+  if (oneSegment?.[1]) return oneSegment[1];
+
+  const queryParam = url.match(/[?&]itemId=(\d+)/i);
+  if (queryParam?.[1]) return queryParam[1];
+
+  return null;
 }
 
 interface TraderaItemDetails {
