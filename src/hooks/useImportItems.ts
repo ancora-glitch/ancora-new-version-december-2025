@@ -236,13 +236,9 @@ export function usePromoteToProduct() {
       const mainImage = item.images[0] || "";
       const additionalImages = item.images.slice(1);
       const slug = item.title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-      
-      // Map source_type directly to marketplace - no defaults, no fallbacks
-      const marketplace = item.source_type;
-      
+
       console.log("[AIS Promote] Source type:", item.source_type);
-      console.log("[AIS Promote] Mapped marketplace:", marketplace);
-      
+
       const productData = {
         brand: "Unknown", // Will need to be edited in product view
         name: item.title,
@@ -255,9 +251,10 @@ export function usePromoteToProduct() {
         color: item.signals.colors?.join(", ") || null,
         status: "draft" as const,
         slug,
-        ancora_select_source: item.source_type === "tradera" ? "tradera" as const : null,
+        marketplace: item.source_type,
+        // Leave editorial override unset by default
+        ancora_select_source: null,
         affiliate_url: item.affiliate_url || item.source_url || null,
-        marketplace,
       };
       
       console.log("[AIS Promote] Product payload:", JSON.stringify(productData, null, 2));
