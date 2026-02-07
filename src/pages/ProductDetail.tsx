@@ -331,16 +331,13 @@ const ProductDetail = () => {
                   </p>
                 )}
 
-                {/* Source Badge - Generic support for eBay, Tradera, and future partners */}
+                {/* Source Badge - eBay, Tradera, and future partners */}
                 {(() => {
-                  // Determine which badge to show based on ancora_select_source or marketplace
                   const source = product.ancora_select_source || product.marketplace?.toLowerCase();
-                  
-                  console.log("[ProductDetail Badge] source:", source, "| ancora_select_source:", product.ancora_select_source, "| marketplace:", product.marketplace);
                   
                   if (source === "tradera") {
                     return (
-                      <span className="inline-flex items-center px-3 py-1 text-xs uppercase tracking-wider text-muted-foreground bg-muted rounded-full">
+                      <span className="inline-flex items-center px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-foreground bg-accent border border-border rounded-full">
                         Ancora selects from Tradera
                       </span>
                     );
@@ -348,7 +345,7 @@ const ProductDetail = () => {
                   
                   if (source === "ebay") {
                     return (
-                      <span className="inline-flex items-center px-3 py-1 text-xs uppercase tracking-wider text-muted-foreground bg-muted rounded-full">
+                      <span className="inline-flex items-center px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-foreground bg-accent border border-border rounded-full">
                         Ancora selects from eBay
                       </span>
                     );
