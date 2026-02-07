@@ -141,6 +141,7 @@ export type Database = {
           image: string
           import_queued_at: string | null
           import_retry_count: number | null
+          in_weekly_edit: boolean
           marketplace: string | null
           material: string | null
           material_sv: string | null
@@ -174,6 +175,7 @@ export type Database = {
           image: string
           import_queued_at?: string | null
           import_retry_count?: number | null
+          in_weekly_edit?: boolean
           marketplace?: string | null
           material?: string | null
           material_sv?: string | null
@@ -207,6 +209,7 @@ export type Database = {
           image?: string
           import_queued_at?: string | null
           import_retry_count?: number | null
+          in_weekly_edit?: boolean
           marketplace?: string | null
           material?: string | null
           material_sv?: string | null

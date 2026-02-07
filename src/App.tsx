@@ -39,7 +39,8 @@ const App = () => (
             <Route path="/stories" element={<Stories />} />
             <Route path="/style-guides/:slug" element={<StyleGuide />} />
             <Route path="/product/:slug" element={<ProductDetail />} />
-            <Route path="/edits" element={<Edits />} />
+            <Route path="/this-weeks-edit" element={<Edits />} />
+            <Route path="/edits" element={<Navigate to="/this-weeks-edit" replace />} />
             <Route path="/category/:slug" element={<CategoryPage />} />
             <Route
               path="/admin-portal"

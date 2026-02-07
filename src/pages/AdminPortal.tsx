@@ -13,7 +13,8 @@ import { useAllCategories, type Category, type CategoryStatus } from "@/hooks/us
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Trash2, Pencil, X, GripVertical, Bold, Italic, RefreshCw, Loader2, Image as ImageIcon, Eye, EyeOff, Filter } from "lucide-react";
+import { Trash2, Pencil, X, GripVertical, Bold, Italic, RefreshCw, Loader2, Image as ImageIcon, Eye, EyeOff, Filter, Star } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StorageImagePicker } from "@/components/StorageImagePicker";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
@@ -59,6 +60,7 @@ interface Product {
   sort_order?: number | null;
   category_id?: string | null;
   ancora_select_source?: AncoraSelectSource;
+  in_weekly_edit?: boolean;
 }
 
 const isPublishedStatus = (status: ProductStatus) => status === "active" || status === "published";
@@ -84,9 +86,10 @@ interface SortableProductItemProps {
   onEdit: (product: Product) => void;
   onDelete: (id: string, name: string) => void;
   onTogglePublish: (product: Product) => void;
+  onToggleWeeklyEdit: (product: Product) => void;
 }
 
-const SortableProductItem = ({ product, editingProductId, onEdit, onDelete, onTogglePublish }: SortableProductItemProps) => {
+const SortableProductItem = ({ product, editingProductId, onEdit, onDelete, onTogglePublish, onToggleWeeklyEdit }: SortableProductItemProps) => {
   const {
     attributes,
     listeners,
@@ -129,6 +132,12 @@ const SortableProductItem = ({ product, editingProductId, onEdit, onDelete, onTo
           <div className="flex items-center gap-2 mb-0.5">
             <h3 className="font-medium text-primary truncate">{product.brand} - {product.name}</h3>
             {getStatusBadge(product.status)}
+            {product.in_weekly_edit && (
+              <Badge variant="outline" className="text-amber-600 border-amber-400 bg-amber-50">
+                <Star className="w-3 h-3 mr-1 fill-amber-500" />
+                Edit
+              </Badge>
+            )}
           </div>
           <p className="text-muted-foreground text-sm">
             {product.price}
@@ -138,18 +147,32 @@ const SortableProductItem = ({ product, editingProductId, onEdit, onDelete, onTo
       </div>
       <div className="flex items-center gap-1 flex-shrink-0">
         {product.status !== "sold" && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={(e) => {
-              e.stopPropagation();
-              onTogglePublish(product);
-            }}
-            className="text-muted-foreground hover:text-primary hover:bg-primary/10"
-            title={isPublishedStatus(product.status) ? "Unpublish (move to draft)" : "Publish"}
-          >
-            {isPublishedStatus(product.status) ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          </Button>
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleWeeklyEdit(product);
+              }}
+              className={product.in_weekly_edit ? "text-amber-500 hover:text-amber-600 hover:bg-amber-50" : "text-muted-foreground hover:text-amber-500 hover:bg-amber-50"}
+              title={product.in_weekly_edit ? "Remove from This Week's Edit" : "Add to This Week's Edit"}
+            >
+              <Star className={`w-4 h-4 ${product.in_weekly_edit ? 'fill-amber-500' : ''}`} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                onTogglePublish(product);
+              }}
+              className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+              title={isPublishedStatus(product.status) ? "Unpublish (move to draft)" : "Publish"}
+            >
+              {isPublishedStatus(product.status) ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </Button>
+          </>
         )}
         <Button
           variant="ghost"
@@ -215,6 +238,7 @@ const AdminPortal = () => {
   const [productStatus, setProductStatus] = useState<ProductStatus>("draft");
   const [productCategoryId, setProductCategoryId] = useState<string | null>(null);
   const [productAncoraSelectSource, setProductAncoraSelectSource] = useState<AncoraSelectSource>(null);
+  const [productInWeeklyEdit, setProductInWeeklyEdit] = useState(false);
   const [savingProduct, setSavingProduct] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "active" | "sold">("all");
 
@@ -276,6 +300,7 @@ const AdminPortal = () => {
     setProductStatus("draft");
     setProductCategoryId(null);
     setProductAncoraSelectSource(null);
+    setProductInWeeklyEdit(false);
   };
 
   // Category form helpers
@@ -398,6 +423,7 @@ const AdminPortal = () => {
     setProductStatus(product.status === "published" ? "active" : product.status);
     setProductCategoryId(product.category_id || null);
     setProductAncoraSelectSource(product.ancora_select_source || null);
+    setProductInWeeklyEdit(product.in_weekly_edit || false);
     
     // Scroll to form
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -488,6 +514,7 @@ const AdminPortal = () => {
       slug,
       category_id: productCategoryId || null,
       ancora_select_source: productAncoraSelectSource,
+      in_weekly_edit: productInWeeklyEdit,
     };
 
     let error;
@@ -512,6 +539,7 @@ const AdminPortal = () => {
       resetProductForm();
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["products-all"] });
+      queryClient.invalidateQueries({ queryKey: ["products-weekly-edit"] });
     }
     setSavingProduct(false);
   };
@@ -544,6 +572,24 @@ const AdminPortal = () => {
       toast.success(newStatus === "active" ? "Product published" : "Product moved to drafts");
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["products-all"] });
+      queryClient.invalidateQueries({ queryKey: ["products-weekly-edit"] });
+    }
+  };
+
+  const handleToggleWeeklyEdit = async (product: Product) => {
+    const newValue = !product.in_weekly_edit;
+    const { error } = await supabase
+      .from("products")
+      .update({ in_weekly_edit: newValue })
+      .eq("id", product.id);
+
+    if (error) {
+      toast.error("Failed to update: " + error.message);
+    } else {
+      toast.success(newValue ? "Added to This Week's Edit" : "Removed from This Week's Edit");
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["products-all"] });
+      queryClient.invalidateQueries({ queryKey: ["products-weekly-edit"] });
     }
   };
 
@@ -990,6 +1036,24 @@ const AdminPortal = () => {
                   </div>
                 </div>
 
+                {/* This Week's Edit Toggle */}
+                <div className="flex items-center justify-between p-4 border border-border rounded-sm bg-secondary/20">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="productInWeeklyEdit" className="text-base font-medium flex items-center gap-2">
+                      <Star className="w-4 h-4 text-amber-500" />
+                      Include in This Week's Edit
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Products in the edit appear on the homepage
+                    </p>
+                  </div>
+                  <Switch
+                    id="productInWeeklyEdit"
+                    checked={productInWeeklyEdit}
+                    onCheckedChange={setProductInWeeklyEdit}
+                  />
+                </div>
+
                 <Button type="submit" disabled={savingProduct} className="w-full">
                   {savingProduct ? "Saving..." : editingProductId ? "Update Product" : "Save Product"}
                 </Button>
@@ -1038,6 +1102,7 @@ const AdminPortal = () => {
                             onEdit={handleEditProduct}
                             onDelete={handleDeleteProduct}
                             onTogglePublish={handleTogglePublish}
+                            onToggleWeeklyEdit={handleToggleWeeklyEdit}
                           />
                         ))}
                       </div>

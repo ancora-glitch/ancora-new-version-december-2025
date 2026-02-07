@@ -11,7 +11,7 @@ interface MenuItem {
 
 const staticMenuItems: MenuItem[] = [
   { label: "Home", href: "/home" },
-  { label: "Edits", href: "/edits" },
+  { label: "This Week's Edit", href: "/this-weeks-edit" },
   { label: "Stories", href: "/stories" },
   { label: "About", href: "/about" }
 ];
