@@ -4,7 +4,7 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/ProductCard";
 import { GuideCard } from "@/components/GuideCard";
-import { useProducts, formatPrice } from "@/hooks/useProducts";
+import { useWeeklyEditProducts, formatPrice } from "@/hooks/useProducts";
 import { useStyleGuides } from "@/hooks/useStyleGuides";
 import heroImage from "@/assets/hero-fashion.jpg";
 const Index = () => {
@@ -12,7 +12,7 @@ const Index = () => {
   const {
     data: products,
     isLoading
-  } = useProducts();
+  } = useWeeklyEditProducts();
   const {
     data: styleGuides,
     isLoading: guidesLoading
@@ -46,9 +46,9 @@ const Index = () => {
 
         {/* This Week's Edit Section */}
         <section className="px-4 md:px-8 lg:px-12 py-20 md:py-28 lg:py-32 bg-secondary/40">
-          <Link to="/edits" className="block text-center mb-4 hover:opacity-80 transition-opacity">
+          <Link to="/this-weeks-edit" className="block text-center mb-4 hover:opacity-80 transition-opacity">
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-normal">
-              Latest edit
+              This week's edit
             </h2>
           </Link>
           <p className="text-center text-muted-foreground mb-14 md:mb-16 text-base md:text-lg">Curated second hand pieces, selected exclusively.</p>
@@ -72,7 +72,7 @@ const Index = () => {
                 </Link>) : <p className="col-span-full text-center text-muted-foreground">No products available</p>}
           </div>
           <div className="text-center mt-12">
-            <Button variant="outline" className="px-10 py-4 h-auto uppercase tracking-wide" onClick={() => navigate('/edits')}>
+            <Button variant="outline" className="px-10 py-4 h-auto uppercase tracking-wide" onClick={() => navigate('/this-weeks-edit')}>
               View all
             </Button>
           </div>

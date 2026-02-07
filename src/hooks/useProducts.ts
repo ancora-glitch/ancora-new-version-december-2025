@@ -27,6 +27,24 @@ export const useProducts = () => {
   });
 };
 
+// Public hook - fetches products marked for "This Week's Edit" (homepage display)
+export const useWeeklyEditProducts = () => {
+  return useQuery({
+    queryKey: ["products-weekly-edit"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .in("status", PUBLIC_VISIBLE_PRODUCT_STATUSES)
+        .eq("in_weekly_edit", true)
+        .order("sort_order", { ascending: true });
+
+      if (error) throw error;
+      return data as Product[];
+    },
+  });
+};
+
 // Hook for admin - fetches all products EXCEPT sold (which have their own archive)
 // Sorts pending_import first, then drafts, then by sort_order
 export const useAllProducts = () => {
