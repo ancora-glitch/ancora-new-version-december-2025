@@ -218,6 +218,8 @@ serve(async (req) => {
     // Replace with s-l1600 for high-res images
     function normalizeImageUrl(url: string): string {
       if (!url) return url;
+      // Only normalize eBay image URLs (i.ebayimg.com domain)
+      if (!url.includes('i.ebayimg.com')) return url;
       // Replace common eBay thumbnail size patterns with high-res version
       return url.replace(/s-l(64|140|225|300|400|500)\b/gi, 's-l1600');
     }
