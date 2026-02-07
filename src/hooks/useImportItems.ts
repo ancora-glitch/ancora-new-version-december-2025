@@ -237,10 +237,11 @@ export function usePromoteToProduct() {
       const additionalImages = item.images.slice(1);
       const slug = item.title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
       
-      // Determine marketplace from source_type
-      const marketplace = item.source_type === "tradera" ? "tradera" 
-        : item.source_type === "ebay" ? "ebay" 
-        : null;
+      // Map source_type directly to marketplace - no defaults, no fallbacks
+      const marketplace = item.source_type;
+      
+      console.log("[AIS Promote] Source type:", item.source_type);
+      console.log("[AIS Promote] Mapped marketplace:", marketplace);
       
       const productData = {
         brand: "Unknown", // Will need to be edited in product view
@@ -258,6 +259,8 @@ export function usePromoteToProduct() {
         affiliate_url: item.affiliate_url || item.source_url || null,
         marketplace,
       };
+      
+      console.log("[AIS Promote] Product payload:", JSON.stringify(productData, null, 2));
 
       const { data: product, error: productError } = await supabase
         .from("products")
