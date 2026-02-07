@@ -336,6 +336,8 @@ const ProductDetail = () => {
                   // Determine which badge to show based on ancora_select_source or marketplace
                   const source = product.ancora_select_source || product.marketplace?.toLowerCase();
                   
+                  console.log("[ProductDetail Badge] source:", source, "| ancora_select_source:", product.ancora_select_source, "| marketplace:", product.marketplace);
+                  
                   if (source === "tradera") {
                     return (
                       <span className="inline-flex items-center px-3 py-1 text-xs uppercase tracking-wider text-muted-foreground bg-muted rounded-full">
