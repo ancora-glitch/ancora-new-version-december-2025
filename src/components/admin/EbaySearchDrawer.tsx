@@ -33,6 +33,7 @@ interface EbayItem {
   conditionText: string | null;
   seller: string | null;
   itemUrl: string | null;
+  affiliateUrl: string | null;
   keywords: string[];
 }
 
@@ -154,6 +155,7 @@ export function EbaySearchDrawer({ open, onOpenChange, onImported }: EbaySearchD
           source_type: "ebay",
           source_ref: item.itemId,
           source_url: item.itemUrl,
+          affiliate_url: item.affiliateUrl,
           title: item.title,
           description: null, // Empty for v1
           images: item.images,

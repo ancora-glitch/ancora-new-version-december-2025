@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       ancora_import_items: {
         Row: {
+          affiliate_url: string | null
           condition: Database["public"]["Enums"]["ais_condition"] | null
           created_at: string
           currency: string | null
@@ -36,6 +37,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          affiliate_url?: string | null
           condition?: Database["public"]["Enums"]["ais_condition"] | null
           created_at?: string
           currency?: string | null
@@ -56,6 +58,7 @@ export type Database = {
           title: string
         }
         Update: {
+          affiliate_url?: string | null
           condition?: Database["public"]["Enums"]["ais_condition"] | null
           created_at?: string
           currency?: string | null
