@@ -2,12 +2,12 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { useProducts, formatPrice } from "@/hooks/useProducts";
+import { useWeeklyEditProducts, formatPrice } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
 import { cn } from "@/lib/utils";
 
 const Edits = () => {
-  const { data: products, isLoading: productsLoading } = useProducts();
+  const { data: products, isLoading: productsLoading } = useWeeklyEditProducts();
   const { data: categories, isLoading: categoriesLoading } = useCategories();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
