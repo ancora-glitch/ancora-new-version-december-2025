@@ -213,18 +213,35 @@ serve(async (req) => {
     const searchData = await searchResponse.json();
     console.log(`Found ${searchData.total || 0} items`);
 
+    // Normalize eBay image URLs to high-resolution versions
+    // eBay uses size params like s-l64, s-l140, s-l225 for thumbnails
+    // Replace with s-l1600 for high-res images
+    function normalizeImageUrl(url: string): string {
+      if (!url) return url;
+      // Replace common eBay thumbnail size patterns with high-res version
+      return url.replace(/s-l(64|140|225|300|400|500)\b/gi, 's-l1600');
+    }
+
     // Map eBay items to AIS format
     const items = (searchData.itemSummaries || []).map((item: any) => {
-      // Collect all images
+      // Collect all images - prefer additionalImages (usually higher quality)
       const images: string[] = [];
-      if (item.image?.imageUrl) {
-        images.push(item.image.imageUrl);
-      }
-      if (item.additionalImages) {
+      
+      // First add additionalImages if available (often better quality)
+      if (item.additionalImages && item.additionalImages.length > 0) {
         for (const img of item.additionalImages) {
           if (img.imageUrl) {
-            images.push(img.imageUrl);
+            images.push(normalizeImageUrl(img.imageUrl));
           }
+        }
+      }
+      
+      // Then add main image (may be the same or a thumbnail)
+      if (item.image?.imageUrl) {
+        const mainImageUrl = normalizeImageUrl(item.image.imageUrl);
+        // Only add if not already in the list
+        if (!images.includes(mainImageUrl)) {
+          images.unshift(mainImageUrl); // Put main image first
         }
       }
 
@@ -238,6 +255,7 @@ serve(async (req) => {
         conditionText: item.condition || null,
         seller: item.seller?.username || null,
         itemUrl: item.itemWebUrl || null,
+        affiliateUrl: item.itemWebUrl || null, // For purchase link
         keywords: extractKeywords(item.title),
       };
     });

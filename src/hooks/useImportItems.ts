@@ -18,6 +18,7 @@ export interface ImportItem {
   source_type: AisSourceType;
   source_ref: string;
   source_url: string | null;
+  affiliate_url: string | null;
   title: string;
   description: string | null;
   images: string[];
@@ -38,6 +39,7 @@ export interface ImportItemInsert {
   source_type: AisSourceType;
   source_ref: string;
   source_url?: string | null;
+  affiliate_url?: string | null;
   title: string;
   description?: string | null;
   images?: string[];
@@ -235,6 +237,11 @@ export function usePromoteToProduct() {
       const additionalImages = item.images.slice(1);
       const slug = item.title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
       
+      // Determine marketplace from source_type
+      const marketplace = item.source_type === "tradera" ? "tradera" 
+        : item.source_type === "ebay" ? "ebay" 
+        : null;
+      
       const productData = {
         brand: "Unknown", // Will need to be edited in product view
         name: item.title,
@@ -248,6 +255,8 @@ export function usePromoteToProduct() {
         status: "draft" as const,
         slug,
         ancora_select_source: item.source_type === "tradera" ? "tradera" as const : null,
+        affiliate_url: item.affiliate_url || item.source_url || null,
+        marketplace,
       };
 
       const { data: product, error: productError } = await supabase

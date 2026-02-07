@@ -331,19 +331,29 @@ const ProductDetail = () => {
                   </p>
                 )}
 
-                {/* Source Badge - Editorial override (highest priority), otherwise marketplace fallback */}
-                {product.ancora_select_source === "tradera" && (
-                  <span className="inline-flex items-center px-3 py-1 text-xs uppercase tracking-wider text-muted-foreground bg-muted rounded-full">
-                    Ancora selects from Tradera
-                  </span>
-                )}
-
-                {product.ancora_select_source !== "tradera" &&
-                  product.marketplace?.toLowerCase() === "tradera" && (
-                    <span className="inline-flex items-center px-3 py-1 text-xs uppercase tracking-wider text-muted-foreground bg-muted rounded-full">
-                      Tradera
-                    </span>
-                  )}
+                {/* Source Badge - Generic support for eBay, Tradera, and future partners */}
+                {(() => {
+                  // Determine which badge to show based on ancora_select_source or marketplace
+                  const source = product.ancora_select_source || product.marketplace?.toLowerCase();
+                  
+                  if (source === "tradera") {
+                    return (
+                      <span className="inline-flex items-center px-3 py-1 text-xs uppercase tracking-wider text-muted-foreground bg-muted rounded-full">
+                        Ancora selects from Tradera
+                      </span>
+                    );
+                  }
+                  
+                  if (source === "ebay") {
+                    return (
+                      <span className="inline-flex items-center px-3 py-1 text-xs uppercase tracking-wider text-muted-foreground bg-muted rounded-full">
+                        Ancora selects from eBay
+                      </span>
+                    );
+                  }
+                  
+                  return null;
+                })()}
 
                 {/* Divider */}
                 <div className="border-t border-border" />
