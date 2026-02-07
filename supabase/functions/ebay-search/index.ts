@@ -5,6 +5,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Token cache for OAuth access token
+let cachedToken: { token: string; expiresAt: number } | null = null;
+
+// Get eBay API base URL based on environment
+function getEbayBaseUrl(): string {
+  const env = Deno.env.get('EBAY_ENV') || 'production';
+  return env === 'sandbox' 
+    ? 'https://api.sandbox.ebay.com' 
+    : 'https://api.ebay.com';
+}
+
 // eBay condition ID to AIS condition mapping
 function mapCondition(conditionId: string | undefined): string {
   const map: Record<string, string> = {
@@ -45,6 +56,68 @@ function extractKeywords(title: string): string[] {
     .slice(0, 10);
 }
 
+// Get OAuth access token with caching
+async function getAccessToken(clientId: string, clientSecret: string): Promise<{ token: string } | { error: string }> {
+  const now = Date.now();
+  
+  // Return cached token if still valid (with 60s buffer)
+  if (cachedToken && cachedToken.expiresAt > now + 60000) {
+    console.log('Using cached eBay OAuth token');
+    return { token: cachedToken.token };
+  }
+
+  const baseUrl = getEbayBaseUrl();
+  const tokenUrl = `${baseUrl}/identity/v1/oauth2/token`;
+  const credentials = btoa(`${clientId}:${clientSecret}`);
+  
+  console.log(`Requesting eBay OAuth token from ${tokenUrl}`);
+  console.log('Scope: https://api.ebay.com/oauth/api_scope');
+  
+  try {
+    const response = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${credentials}`,
+      },
+      body: 'grant_type=client_credentials&scope=https://api.ebay.com/oauth/api_scope',
+    });
+
+    const responseText = await response.text();
+    
+    if (!response.ok) {
+      console.error('eBay OAuth token generation failed:', response.status);
+      console.error('Response:', responseText);
+      
+      try {
+        const errorJson = JSON.parse(responseText);
+        if (errorJson.error === 'invalid_client') {
+          console.error('CRITICAL: Invalid eBay credentials. Verify EBAY_CLIENT_ID and EBAY_CLIENT_SECRET are from Production keyset.');
+          return { error: 'Invalid eBay credentials. Please verify your Client ID and Client Secret from the eBay Developer Portal (Production keyset).' };
+        }
+        return { error: errorJson.error_description || errorJson.error || 'OAuth token generation failed' };
+      } catch (_) {
+        return { error: 'OAuth token generation failed' };
+      }
+    }
+
+    const tokenData = JSON.parse(responseText);
+    const expiresIn = tokenData.expires_in || 7200; // Default 2 hours
+    
+    // Cache the token
+    cachedToken = {
+      token: tokenData.access_token,
+      expiresAt: now + (expiresIn * 1000),
+    };
+    
+    console.log(`Successfully obtained eBay OAuth token (expires in ${expiresIn}s)`);
+    return { token: tokenData.access_token };
+  } catch (error: any) {
+    console.error('eBay OAuth token request error:', error.message);
+    return { error: `OAuth request failed: ${error.message}` };
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -52,12 +125,14 @@ serve(async (req) => {
   }
 
   // Check credentials on every request (fail fast)
-  // Support both naming conventions: EBAY_CLIENT_ID/EBAY_APP_ID, EBAY_CLIENT_SECRET/EBAY_CERT_ID
   const EBAY_CLIENT_ID = Deno.env.get('EBAY_CLIENT_ID') || Deno.env.get('EBAY_APP_ID');
   const EBAY_CLIENT_SECRET = Deno.env.get('EBAY_CLIENT_SECRET') || Deno.env.get('EBAY_CERT_ID');
+  const EBAY_ENV = Deno.env.get('EBAY_ENV') || 'production';
+
+  console.log(`eBay environment: ${EBAY_ENV}`);
 
   if (!EBAY_CLIENT_ID || !EBAY_CLIENT_SECRET) {
-    console.error('eBay credentials missing or invalid – search disabled. Expected: EBAY_CLIENT_ID and EBAY_CLIENT_SECRET (or EBAY_APP_ID and EBAY_CERT_ID)');
+    console.error('eBay credentials missing – search disabled');
     return new Response(
       JSON.stringify({ error: 'eBay API credentials not configured. Please add EBAY_CLIENT_ID and EBAY_CLIENT_SECRET.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -74,47 +149,18 @@ serve(async (req) => {
       );
     }
 
-    // Get OAuth token using client credentials flow
-    // Required scope for Browse API: https://api.ebay.com/oauth/api_scope
-    console.log('Requesting eBay OAuth token with scope: https://api.ebay.com/oauth/api_scope');
-    const credentials = btoa(`${EBAY_CLIENT_ID}:${EBAY_CLIENT_SECRET}`);
+    // Get OAuth access token (with caching)
+    const tokenResult = await getAccessToken(EBAY_CLIENT_ID, EBAY_CLIENT_SECRET);
     
-    const tokenResponse = await fetch('https://api.ebay.com/identity/v1/oauth2/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${credentials}`,
-      },
-      body: 'grant_type=client_credentials&scope=https://api.ebay.com/oauth/api_scope',
-    });
-
-    if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      console.error('eBay OAuth token request failed:', tokenResponse.status, errorText);
-      console.error('eBay credentials missing or invalid – search disabled. Check that EBAY_CLIENT_ID and EBAY_CLIENT_SECRET are correct.');
-      
-      // Parse error for more helpful message
-      let errorDetail = 'Authentication failed';
-      try {
-        const errorJson = JSON.parse(errorText);
-        if (errorJson.error === 'invalid_client') {
-          errorDetail = 'Invalid eBay credentials. Please verify your Client ID and Client Secret from the eBay Developer Portal.';
-        } else {
-          errorDetail = errorJson.error_description || errorJson.error || errorDetail;
-        }
-      } catch (_) {
-        // Use default error detail
-      }
-      
+    if ('error' in tokenResult) {
+      console.error('eBay OAuth token generation failed – aborting search');
       return new Response(
-        JSON.stringify({ error: errorDetail }),
+        JSON.stringify({ error: tokenResult.error }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const tokenData = await tokenResponse.json();
-    const accessToken = tokenData.access_token;
-    console.log('Successfully obtained eBay OAuth token');
+    const accessToken = tokenResult.token;
 
     // Build search URL
     const searchParams = new URLSearchParams({
@@ -143,7 +189,8 @@ serve(async (req) => {
       searchParams.set('filter', currentFilter ? `${currentFilter},${conditionFilter}` : conditionFilter);
     }
 
-    const searchUrl = `https://api.ebay.com/buy/browse/v1/item_summary/search?${searchParams.toString()}`;
+    const baseUrl = getEbayBaseUrl();
+    const searchUrl = `${baseUrl}/buy/browse/v1/item_summary/search?${searchParams.toString()}`;
     console.log('Searching eBay:', searchUrl);
 
     const searchResponse = await fetch(searchUrl, {
