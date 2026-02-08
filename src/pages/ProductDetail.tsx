@@ -106,6 +106,11 @@ const ProductDetail = () => {
     return null;
   }, [isSoldOrUnavailable, product]);
 
+  // INVARIANT:
+  // Tradera imports must always use GetItem images (/images/) and render multi-image carousel.
+  // If this fails, the import pipeline is broken.
+  // Tradera carousels must behave identically to eBay carousels.
+  
   // Deduplicate and prioritize high-quality images - must be before early returns
   const allImages = useMemo(() => {
     if (!product) return [];
@@ -128,22 +133,24 @@ const ProductDetail = () => {
     
     const dedupedImages = deduplicateImages(product.image, additionalImages);
     
-    // === INVARIANT CHECK: Tradera products should have multiple images ===
+    // === INVARIANT CHECK: Tradera products must have multi-image carousel ===
+    // Tradera almost always has 4-10 images. <3 means the import pipeline is broken.
     const isTraderaProduct = product.marketplace?.toLowerCase() === "tradera";
     const isPublished = product.status === "active" || product.status === "published";
     
     if (isTraderaProduct && isPublished) {
-      if (dedupedImages.length < 2) {
-        console.error("[ProductDetail] INVARIANT VIOLATION: Published Tradera product has < 2 images", {
+      if (dedupedImages.length < 3) {
+        console.error("[ProductDetail] INVARIANT VIOLATION: Published Tradera product has < 3 images", {
           product_id: product.id,
           product_name: product.name,
           image_count: dedupedImages.length,
           main_image: product.image,
           additional_images_raw: product.additional_images,
+          note: "Tradera imports should use GetItem API for full image gallery"
         });
       }
       
-      // Check for non-HD images (should contain /images/ path for Tradera)
+      // Check for non-HD images (must contain /images/ path for Tradera)
       const nonHdImages = dedupedImages.filter(url => 
         url.includes("tradera.net") && !url.includes("/images/")
       );
@@ -151,6 +158,7 @@ const ProductDetail = () => {
         console.error("[ProductDetail] INVARIANT VIOLATION: Tradera product has non-HD images", {
           product_id: product.id,
           non_hd_urls: nonHdImages,
+          note: "Images must use /images/ path segment for high resolution"
         });
       }
     }

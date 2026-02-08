@@ -226,6 +226,11 @@ export function useRevertToDraft() {
   });
 }
 
+// INVARIANT:
+// Tradera imports must always use GetItem images (/images/) and render multi-image carousel.
+// If this fails, the import pipeline is broken.
+// Tradera carousels must behave identically to eBay carousels.
+
 // Promote to product
 export function usePromoteToProduct() {
   const queryClient = useQueryClient();
@@ -233,9 +238,10 @@ export function usePromoteToProduct() {
   return useMutation({
     mutationFn: async (item: ImportItem) => {
       // === PRE-PROMOTION ASSERTIONS ===
+      // These assertions ensure import quality. Do NOT remove or weaken them.
       const isTradera = item.source_type === "tradera";
       
-      // Assertion 1: Image count check
+      // Assertion 1: No images = broken import
       if (item.images.length === 0) {
         console.error("[AIS Promote] ASSERTION FAILED: No images on item", {
           source_ref: item.source_ref,
@@ -244,24 +250,26 @@ export function usePromoteToProduct() {
         throw new Error("Cannot promote item with no images");
       }
       
+      // Assertion 2: Tradera should always have 3+ images (they typically have 4-10)
       if (isTradera && item.images.length < 3) {
-        console.warn("[AIS Promote] LOW IMAGE COUNT: Tradera item has < 3 images", {
+        console.error("[AIS Promote] INVARIANT VIOLATION: Tradera item has < 3 images", {
           source_ref: item.source_ref,
           image_count: item.images.length,
           image_urls: item.images,
+          note: "Tradera imports should use GetItem API for full image gallery"
         });
       }
       
-      // Assertion 2: High-resolution image check for Tradera
+      // Assertion 3: All Tradera images must be HD (/images/ path)
       if (isTradera) {
         const nonHdImages = item.images.filter(url => 
           url.includes("tradera.net") && !url.includes("/images/")
         );
         if (nonHdImages.length > 0) {
-          console.error("[AIS Promote] ASSERTION FAILED: Non-HD images detected", {
+          console.error("[AIS Promote] INVARIANT VIOLATION: Non-HD images detected", {
             source_ref: item.source_ref,
             non_hd_urls: nonHdImages,
-            note: "Images should use /images/ path for high resolution"
+            note: "Images must use /images/ path segment for high resolution"
           });
         }
       }

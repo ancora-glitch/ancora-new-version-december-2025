@@ -309,29 +309,34 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
               status: "draft",
             });
           } else {
+            // INVARIANT:
+            // Tradera imports must always use GetItem images (/images/) and render multi-image carousel.
+            // If this fails, the import pipeline is broken.
+            
             // Use full item details with ALL high-res images
             const rawImages = itemDetails.imageLinks;
             
             // === INTERNAL MONITORING: Image Import Assertions ===
+            // These assertions detect API regressions or quality issues. Do NOT remove.
             console.info(`[AIS Import] Item ${sourceRef}: ${rawImages.length} images imported`);
             
-            // Assert all image URLs use high-res /images/ path
+            // Assertion 1: All image URLs must use high-res /images/ path
             const nonHighResImages = rawImages.filter(url => !url.includes('/images/'));
             if (nonHighResImages.length > 0) {
-              console.warn(`[AIS Import] ASSERTION FAILED: Non-high-res images detected`, {
+              console.error(`[AIS Import] INVARIANT VIOLATION: Non-high-res images detected`, {
                 source_ref: sourceRef,
                 non_highres_urls: nonHighResImages,
-                note: "Expected all URLs to contain /images/ path segment"
+                note: "All URLs must contain /images/ path segment for HD quality"
               });
             }
             
-            // Warn if fewer than 3 images (potential API change or edge case)
+            // Assertion 2: Tradera should always have 3+ images (they typically have 4-10)
             if (rawImages.length < 3) {
-              console.warn(`[AIS Import] LOW IMAGE COUNT WARNING`, {
+              console.error(`[AIS Import] INVARIANT VIOLATION: Tradera import has < 3 images`, {
                 source_ref: sourceRef,
                 image_count: rawImages.length,
                 image_urls: rawImages,
-                note: "Tradera import returned fewer than expected images"
+                note: "Tradera listings typically have 4-10 images. <3 indicates API issue."
               });
             }
             // === END MONITORING ===
