@@ -3,6 +3,7 @@ import { ImportItemsList } from "./ImportItemsList";
 import { ImportItemDetail } from "./ImportItemDetail";
 import { NewImportDialog } from "./NewImportDialog";
 import { EbaySearchDrawer } from "./EbaySearchDrawer";
+import { TraderaSearchDrawer } from "./TraderaSearchDrawer";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
 
@@ -10,6 +11,7 @@ export function ImportsTab() {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [showEbayDrawer, setShowEbayDrawer] = useState(false);
+  const [showTraderaDrawer, setShowTraderaDrawer] = useState(false);
 
   const handleCreated = (id: string) => {
     setSelectedItemId(id);
@@ -27,6 +29,10 @@ export function ImportsTab() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowTraderaDrawer(true)}>
+            <Search className="w-4 h-4 mr-2" />
+            Search Tradera
+          </Button>
           <Button variant="outline" onClick={() => setShowEbayDrawer(true)}>
             <Search className="w-4 h-4 mr-2" />
             Search eBay
@@ -72,6 +78,13 @@ export function ImportsTab() {
       <EbaySearchDrawer
         open={showEbayDrawer}
         onOpenChange={setShowEbayDrawer}
+        onImported={() => setSelectedItemId(null)}
+      />
+
+      {/* Tradera Search Drawer */}
+      <TraderaSearchDrawer
+        open={showTraderaDrawer}
+        onOpenChange={setShowTraderaDrawer}
         onImported={() => setSelectedItemId(null)}
       />
     </div>
