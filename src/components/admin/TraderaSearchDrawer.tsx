@@ -14,9 +14,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCreateImportItem, type AisCondition, type AisSignals } from "@/hooks/useImportItems";
 import { useTraderaUsage } from "@/hooks/useTraderaUsage";
 import { toast } from "sonner";
-import { Loader2, Search, Package, AlertCircle, AlertTriangle, Clock, Zap, ImageIcon } from "lucide-react";
+import { Loader2, Search, Package, AlertCircle, AlertTriangle, Clock, Zap, ImageIcon, Sparkles } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
+import { selectHeroImage } from "@/lib/heroImageSelector";
 
 interface TraderaSearchItem {
   id: number;
@@ -309,13 +310,13 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
             });
           } else {
             // Use full item details with ALL high-res images
-            const images = itemDetails.imageLinks;
+            const rawImages = itemDetails.imageLinks;
             
             // === INTERNAL MONITORING: Image Import Assertions ===
-            console.info(`[AIS Import] Item ${sourceRef}: ${images.length} images imported`);
+            console.info(`[AIS Import] Item ${sourceRef}: ${rawImages.length} images imported`);
             
             // Assert all image URLs use high-res /images/ path
-            const nonHighResImages = images.filter(url => !url.includes('/images/'));
+            const nonHighResImages = rawImages.filter(url => !url.includes('/images/'));
             if (nonHighResImages.length > 0) {
               console.warn(`[AIS Import] ASSERTION FAILED: Non-high-res images detected`, {
                 source_ref: sourceRef,
@@ -325,15 +326,33 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
             }
             
             // Warn if fewer than 3 images (potential API change or edge case)
-            if (images.length < 3) {
+            if (rawImages.length < 3) {
               console.warn(`[AIS Import] LOW IMAGE COUNT WARNING`, {
                 source_ref: sourceRef,
-                image_count: images.length,
-                image_urls: images,
+                image_count: rawImages.length,
+                image_urls: rawImages,
                 note: "Tradera import returned fewer than expected images"
               });
             }
             // === END MONITORING ===
+
+            // === AUTOMATIC HERO IMAGE SELECTION ===
+            // Analyze images and reorder with best hero first
+            let images = rawImages;
+            try {
+              images = await selectHeroImage(rawImages);
+              if (images[0] !== rawImages[0]) {
+                console.info(`[AIS Import] Hero image auto-selected:`, {
+                  source_ref: sourceRef,
+                  original_first: rawImages[0]?.substring(0, 60) + '...',
+                  selected_hero: images[0]?.substring(0, 60) + '...',
+                });
+              }
+            } catch (heroError) {
+              console.warn(`[AIS Import] Hero selection failed, using original order:`, heroError);
+              images = rawImages;
+            }
+            // === END HERO SELECTION ===
 
             const signals: AisSignals = {
               keywords: extractKeywords(itemDetails.shortDescription),
@@ -350,7 +369,7 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
               affiliate_url: itemDetails.itemLink,
               title: itemDetails.shortDescription,
               description: itemDetails.longDescription || null,
-              images, // ALL high-res images
+              images, // Reordered with best hero first
               price: itemDetails.buyItNowPrice || itemDetails.price || null,
               currency: "SEK",
               condition: mapCondition(itemDetails.condition),
