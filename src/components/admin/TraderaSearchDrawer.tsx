@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Sheet,
   SheetContent,
@@ -12,9 +12,11 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useCreateImportItem, type AisCondition, type AisSignals } from "@/hooks/useImportItems";
+import { useTraderaUsage } from "@/hooks/useTraderaUsage";
 import { toast } from "sonner";
-import { Loader2, Search, Package, AlertCircle } from "lucide-react";
+import { Loader2, Search, Package, AlertCircle, AlertTriangle, Clock, Zap } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
 
 interface TraderaItem {
   id: number;
@@ -68,6 +70,7 @@ function extractKeywords(title: string): string[] {
 
 export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaSearchDrawerProps) {
   const createMutation = useCreateImportItem();
+  const { data: usage, refetch: refetchUsage } = useTraderaUsage();
   
   // Search form state
   const [keywords, setKeywords] = useState("");
@@ -78,10 +81,19 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [hasSearched, setHasSearched] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const [fromCache, setFromCache] = useState(false);
   
   // Import state
   const [isImporting, setIsImporting] = useState(false);
   const [existingRefs, setExistingRefs] = useState<Set<string>>(new Set());
+
+  // Refetch usage when drawer opens
+  useEffect(() => {
+    if (open) {
+      refetchUsage();
+    }
+  }, [open, refetchUsage]);
 
   const handleSearch = async () => {
     if (!keywords.trim()) {
@@ -89,8 +101,17 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
       return;
     }
 
+    // Check if rate limited before even trying
+    if (usage?.limit_reached) {
+      setIsRateLimited(true);
+      setSearchError("Tradera API-kvoten har nåtts för idag. Försök igen imorgon.");
+      return;
+    }
+
     setIsSearching(true);
     setSearchError(null);
+    setIsRateLimited(false);
+    setFromCache(false);
     setSelectedItems(new Set());
 
     try {
@@ -103,26 +124,51 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
       const existingSet = new Set((existingItems || []).map(item => item.source_ref));
       setExistingRefs(existingSet);
 
-      // Call the existing tradera-search edge function
+      // Call the tradera-search edge function
       const { data, error } = await supabase.functions.invoke("tradera-search", {
         body: {
           keywords: keywords.trim(),
         },
       });
 
+      // Handle rate limit error
+      if (error?.message?.includes("429") || data?.error === "rate_limit_exceeded") {
+        setIsRateLimited(true);
+        setSearchError(data?.message || "Tradera API-kvoten har nåtts för idag. Försök igen imorgon.");
+        refetchUsage();
+        return;
+      }
+
       if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (data.error && data.error !== "rate_limit_exceeded") {
+        throw new Error(data.error);
+      }
 
       setSearchResults(data.items || []);
       setHasSearched(true);
+      setFromCache(data.fromCache || false);
+
+      // Update usage from response
+      if (data.usage) {
+        refetchUsage();
+      }
 
       if (data.items?.length === 0) {
         toast.info("Inga objekt hittades");
+      } else if (data.fromCache) {
+        toast.info("Resultat från cache (sparar API-anrop)");
       }
     } catch (error: any) {
       console.error("Tradera search error:", error);
-      setSearchError(error.message || "Sökning misslyckades");
-      toast.error("Sökning misslyckades: " + error.message);
+      
+      // Check for rate limit in error
+      if (error.message?.includes("rate_limit") || error.message?.includes("quota")) {
+        setIsRateLimited(true);
+        setSearchError("Tradera API-kvoten har nåtts för idag. Försök igen imorgon.");
+      } else {
+        setSearchError(error.message || "Sökning misslyckades");
+        toast.error("Sökning misslyckades: " + error.message);
+      }
     } finally {
       setIsSearching(false);
     }
@@ -181,7 +227,7 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
           source_type: "tradera",
           source_ref: sourceRef,
           source_url: item.itemLink,
-          affiliate_url: item.itemLink, // Tradera doesn't have affiliate URLs
+          affiliate_url: item.itemLink,
           title: item.shortDescription,
           description: item.longDescription || null,
           images,
@@ -220,6 +266,9 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
 
   const selectableResults = searchResults.filter(item => !existingRefs.has(String(item.id)));
 
+  const usagePercent = usage ? (usage.current_count / usage.daily_limit) * 100 : 0;
+  const isNearLimit = usage && usage.remaining <= 10;
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-xl flex flex-col">
@@ -231,6 +280,73 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
         </SheetHeader>
 
         <div className="flex-1 flex flex-col gap-6 mt-6 overflow-hidden">
+          {/* API Usage Indicator */}
+          {usage && (
+            <div className={`p-3 rounded-md border ${
+              usage.limit_reached 
+                ? "bg-destructive/10 border-destructive/30" 
+                : isNearLimit 
+                  ? "bg-amber-500/10 border-amber-500/30"
+                  : "bg-muted/50 border-border"
+            }`}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  {usage.limit_reached ? (
+                    <AlertCircle className="w-4 h-4 text-destructive" />
+                  ) : isNearLimit ? (
+                    <AlertTriangle className="w-4 h-4 text-amber-500" />
+                  ) : (
+                    <Zap className="w-4 h-4 text-muted-foreground" />
+                  )}
+                  <span className="text-sm font-medium">
+                    API-kvot: {usage.current_count} / {usage.daily_limit}
+                  </span>
+                </div>
+                <span className={`text-xs ${
+                  usage.limit_reached 
+                    ? "text-destructive" 
+                    : isNearLimit 
+                      ? "text-amber-600"
+                      : "text-muted-foreground"
+                }`}>
+                  {usage.limit_reached 
+                    ? "Kvot nådd" 
+                    : `${usage.remaining} kvar`
+                  }
+                </span>
+              </div>
+              <Progress 
+                value={usagePercent} 
+                className={`h-1.5 ${
+                  usage.limit_reached 
+                    ? "[&>div]:bg-destructive" 
+                    : isNearLimit 
+                      ? "[&>div]:bg-amber-500"
+                      : ""
+                }`}
+              />
+              {fromCache && (
+                <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                  <Clock className="w-3 h-3" />
+                  <span>Senaste sökningen hämtades från cache</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Rate Limit Warning */}
+          {(isRateLimited || usage?.limit_reached) && (
+            <div className="flex items-start gap-3 p-4 bg-destructive/10 text-destructive rounded-md border border-destructive/30">
+              <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium">Tradera API-kvoten har nåtts för idag</p>
+                <p className="text-sm mt-1 opacity-80">
+                  Kvoten återställs vid midnatt (UTC). Försök igen imorgon eller använd cachade sökresultat.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Search Form */}
           <div className="space-y-4">
             <div className="space-y-2">
@@ -245,8 +361,12 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
                   placeholder="vintage ullkappa"
                   className="flex-1"
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  disabled={usage?.limit_reached}
                 />
-                <Button onClick={handleSearch} disabled={isSearching}>
+                <Button 
+                  onClick={handleSearch} 
+                  disabled={isSearching || usage?.limit_reached}
+                >
                   {isSearching ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
@@ -259,7 +379,7 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
 
           {/* Results */}
           <div className="flex-1 overflow-hidden flex flex-col">
-            {searchError && (
+            {searchError && !isRateLimited && (
               <div className="flex items-center gap-2 p-3 bg-destructive/10 text-destructive rounded-md mb-4">
                 <AlertCircle className="w-4 h-4" />
                 <span className="text-sm">{searchError}</span>
@@ -279,6 +399,7 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm text-muted-foreground">
                     {searchResults.length} resultat ({selectableResults.length} nya)
+                    {fromCache && " • från cache"}
                   </span>
                   {selectableResults.length > 0 && (
                     <Button

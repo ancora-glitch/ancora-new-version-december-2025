@@ -345,6 +345,60 @@ export type Database = {
         }
         Relationships: []
       }
+      tradera_api_usage: {
+        Row: {
+          call_count: number
+          created_at: string
+          id: string
+          updated_at: string
+          usage_date: string
+        }
+        Insert: {
+          call_count?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          usage_date?: string
+        }
+        Update: {
+          call_count?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          usage_date?: string
+        }
+        Relationships: []
+      }
+      tradera_cache: {
+        Row: {
+          cache_key: string
+          cache_type: string
+          created_at: string
+          expires_at: string
+          fetched_at: string
+          id: string
+          raw_payload: Json
+        }
+        Insert: {
+          cache_key: string
+          cache_type: string
+          created_at?: string
+          expires_at?: string
+          fetched_at?: string
+          id?: string
+          raw_payload: Json
+        }
+        Update: {
+          cache_key?: string
+          cache_type?: string
+          created_at?: string
+          expires_at?: string
+          fetched_at?: string
+          id?: string
+          raw_payload?: Json
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -396,6 +450,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      tradera_get_usage: { Args: never; Returns: Json }
+      tradera_increment_usage: { Args: { daily_limit?: number }; Returns: Json }
     }
     Enums: {
       ais_condition: "new" | "excellent" | "good" | "fair" | "unknown"
