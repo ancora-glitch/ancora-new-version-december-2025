@@ -309,7 +309,31 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
             });
           } else {
             // Use full item details with ALL high-res images
-            console.log(`Item ${itemId} has ${itemDetails.imageLinks.length} high-res images`);
+            const images = itemDetails.imageLinks;
+            
+            // === INTERNAL MONITORING: Image Import Assertions ===
+            console.info(`[AIS Import] Item ${sourceRef}: ${images.length} images imported`);
+            
+            // Assert all image URLs use high-res /images/ path
+            const nonHighResImages = images.filter(url => !url.includes('/images/'));
+            if (nonHighResImages.length > 0) {
+              console.warn(`[AIS Import] ASSERTION FAILED: Non-high-res images detected`, {
+                source_ref: sourceRef,
+                non_highres_urls: nonHighResImages,
+                note: "Expected all URLs to contain /images/ path segment"
+              });
+            }
+            
+            // Warn if fewer than 3 images (potential API change or edge case)
+            if (images.length < 3) {
+              console.warn(`[AIS Import] LOW IMAGE COUNT WARNING`, {
+                source_ref: sourceRef,
+                image_count: images.length,
+                image_urls: images,
+                note: "Tradera import returned fewer than expected images"
+              });
+            }
+            // === END MONITORING ===
 
             const signals: AisSignals = {
               keywords: extractKeywords(itemDetails.shortDescription),
@@ -326,7 +350,7 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
               affiliate_url: itemDetails.itemLink,
               title: itemDetails.shortDescription,
               description: itemDetails.longDescription || null,
-              images: itemDetails.imageLinks, // ALL high-res images
+              images, // ALL high-res images
               price: itemDetails.buyItNowPrice || itemDetails.price || null,
               currency: "SEK",
               condition: mapCondition(itemDetails.condition),
