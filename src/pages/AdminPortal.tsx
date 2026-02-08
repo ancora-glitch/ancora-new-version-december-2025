@@ -540,6 +540,7 @@ const AdminPortal = () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["products-all"] });
       queryClient.invalidateQueries({ queryKey: ["products-weekly-edit"] });
+      queryClient.invalidateQueries({ queryKey: ["category-products"] });
     }
     setSavingProduct(false);
   };
@@ -556,6 +557,8 @@ const AdminPortal = () => {
       }
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["products-all"] });
+      queryClient.invalidateQueries({ queryKey: ["products-weekly-edit"] });
+      queryClient.invalidateQueries({ queryKey: ["category-products"] });
     }
   };
 
@@ -573,6 +576,7 @@ const AdminPortal = () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["products-all"] });
       queryClient.invalidateQueries({ queryKey: ["products-weekly-edit"] });
+      queryClient.invalidateQueries({ queryKey: ["category-products"] });
     }
   };
 
@@ -590,6 +594,7 @@ const AdminPortal = () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["products-all"] });
       queryClient.invalidateQueries({ queryKey: ["products-weekly-edit"] });
+      queryClient.invalidateQueries({ queryKey: ["category-products"] });
     }
   };
 
@@ -648,6 +653,7 @@ const AdminPortal = () => {
 
     // Also invalidate the active products query
     queryClient.invalidateQueries({ queryKey: ["products"] });
+    queryClient.invalidateQueries({ queryKey: ["category-products"] });
     toast.success("Order saved");
   };
 
@@ -878,8 +884,10 @@ const AdminPortal = () => {
                       toast.success(
                         `Sync complete: ${summary.updated} updated, ${summary.ended} ended, ${summary.unchanged} unchanged`
                       );
-                      queryClient.invalidateQueries({ queryKey: ['products'] });
-                      queryClient.invalidateQueries({ queryKey: ['products-all'] });
+                       queryClient.invalidateQueries({ queryKey: ['products'] });
+                       queryClient.invalidateQueries({ queryKey: ['products-all'] });
+                       queryClient.invalidateQueries({ queryKey: ['products-weekly-edit'] });
+                       queryClient.invalidateQueries({ queryKey: ['category-products'] });
                     } catch (e) {
                       toast.error('Sync failed');
                       console.error(e);

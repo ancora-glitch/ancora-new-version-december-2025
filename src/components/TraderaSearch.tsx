@@ -513,6 +513,8 @@ const TraderaSearch = () => {
         setImportedIds((prev) => new Set(prev).add(item.id));
         queryClient.invalidateQueries({ queryKey: ["products"] });
         queryClient.invalidateQueries({ queryKey: ["products-all"] });
+        queryClient.invalidateQueries({ queryKey: ["products-weekly-edit"] });
+        queryClient.invalidateQueries({ queryKey: ["category-products"] });
         return;
       }
 
@@ -532,6 +534,8 @@ const TraderaSearch = () => {
       setImportedIds((prev) => new Set(prev).add(item.id));
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["products-all"] });
+      queryClient.invalidateQueries({ queryKey: ["products-weekly-edit"] });
+      queryClient.invalidateQueries({ queryKey: ["category-products"] });
 
     } catch (error) {
       console.error("Import error:", error);

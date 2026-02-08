@@ -286,6 +286,8 @@ export function usePromoteToProduct() {
       queryClient.invalidateQueries({ queryKey: ["import-item"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["products-all"] });
+      queryClient.invalidateQueries({ queryKey: ["products-weekly-edit"] });
+      queryClient.invalidateQueries({ queryKey: ["category-products"] });
     },
   });
 }
