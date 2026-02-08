@@ -33,7 +33,7 @@ const Index = () => {
               </h1>
               <p className="text-base md:text-lg lg:text-xl mb-8 md:mb-10 leading-relaxed text-white/90">A new way to shop second hand.</p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button className="font-medium text-sm tracking-wide px-8 py-4 h-auto" onClick={() => navigate('/edits')}>
+                <Button className="font-medium text-sm tracking-wide px-8 py-4 h-auto" onClick={() => navigate('/shop')}>
                   Explore the edit
                 </Button>
                 <Button className="font-medium text-sm tracking-wide px-8 py-4 h-auto" onClick={() => navigate('/stories')}>
@@ -72,7 +72,7 @@ const Index = () => {
                 </Link>) : <p className="col-span-full text-center text-muted-foreground">No products available</p>}
           </div>
           <div className="text-center mt-12">
-            <Button variant="outline" className="px-10 py-4 h-auto uppercase tracking-wide" onClick={() => navigate('/this-weeks-edit')}>
+            <Button variant="outline" className="px-10 py-4 h-auto uppercase tracking-wide" onClick={() => navigate('/shop')}>
               View all
             </Button>
           </div>

@@ -13,6 +13,7 @@ import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
 import ProductDetail from "./pages/ProductDetail";
 import Edits from "./pages/Edits";
+import Shop from "./pages/Shop";
 import CategoryPage from "./pages/CategoryPage";
 import AdminPortal from "./pages/AdminPortal";
 import Auth from "./pages/Auth";
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/product/:slug" element={<ProductDetail />} />
             <Route path="/this-weeks-edit" element={<Edits />} />
             <Route path="/edits" element={<Navigate to="/this-weeks-edit" replace />} />
+            <Route path="/shop" element={<Shop />} />
             <Route path="/category/:slug" element={<CategoryPage />} />
             <Route
               path="/admin-portal"
