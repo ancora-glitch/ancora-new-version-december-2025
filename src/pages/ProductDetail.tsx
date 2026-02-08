@@ -109,10 +109,59 @@ const ProductDetail = () => {
   // Deduplicate and prioritize high-quality images - must be before early returns
   const allImages = useMemo(() => {
     if (!product) return [];
-    const additionalImages = Array.isArray(product.additional_images) 
-      ? (product.additional_images as string[]) 
-      : [];
-    return deduplicateImages(product.image, additionalImages);
+    
+    // Robust parsing of additional_images (handles JSONB as string, array, or null)
+    let additionalImages: string[] = [];
+    if (product.additional_images) {
+      if (Array.isArray(product.additional_images)) {
+        additionalImages = product.additional_images as string[];
+      } else if (typeof product.additional_images === "string") {
+        try {
+          const parsed = JSON.parse(product.additional_images);
+          additionalImages = Array.isArray(parsed) ? parsed : [];
+        } catch {
+          console.warn("[ProductDetail] Failed to parse additional_images:", product.additional_images);
+          additionalImages = [];
+        }
+      }
+    }
+    
+    const dedupedImages = deduplicateImages(product.image, additionalImages);
+    
+    // === INVARIANT CHECK: Tradera products should have multiple images ===
+    const isTraderaProduct = product.marketplace?.toLowerCase() === "tradera";
+    const isPublished = product.status === "active" || product.status === "published";
+    
+    if (isTraderaProduct && isPublished) {
+      if (dedupedImages.length < 2) {
+        console.error("[ProductDetail] INVARIANT VIOLATION: Published Tradera product has < 2 images", {
+          product_id: product.id,
+          product_name: product.name,
+          image_count: dedupedImages.length,
+          main_image: product.image,
+          additional_images_raw: product.additional_images,
+        });
+      }
+      
+      // Check for non-HD images (should contain /images/ path for Tradera)
+      const nonHdImages = dedupedImages.filter(url => 
+        url.includes("tradera.net") && !url.includes("/images/")
+      );
+      if (nonHdImages.length > 0) {
+        console.error("[ProductDetail] INVARIANT VIOLATION: Tradera product has non-HD images", {
+          product_id: product.id,
+          non_hd_urls: nonHdImages,
+        });
+      }
+    }
+    
+    console.debug("[ProductDetail] Image carousel loaded:", {
+      product_id: product.id,
+      image_count: dedupedImages.length,
+      marketplace: product.marketplace,
+    });
+    
+    return dedupedImages;
   }, [product]);
 
   // Track product page view when product loads (excludes admins)

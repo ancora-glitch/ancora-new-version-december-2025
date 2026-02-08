@@ -232,19 +232,60 @@ export function usePromoteToProduct() {
   
   return useMutation({
     mutationFn: async (item: ImportItem) => {
+      // === PRE-PROMOTION ASSERTIONS ===
+      const isTradera = item.source_type === "tradera";
+      
+      // Assertion 1: Image count check
+      if (item.images.length === 0) {
+        console.error("[AIS Promote] ASSERTION FAILED: No images on item", {
+          source_ref: item.source_ref,
+          source_type: item.source_type,
+        });
+        throw new Error("Cannot promote item with no images");
+      }
+      
+      if (isTradera && item.images.length < 3) {
+        console.warn("[AIS Promote] LOW IMAGE COUNT: Tradera item has < 3 images", {
+          source_ref: item.source_ref,
+          image_count: item.images.length,
+          image_urls: item.images,
+        });
+      }
+      
+      // Assertion 2: High-resolution image check for Tradera
+      if (isTradera) {
+        const nonHdImages = item.images.filter(url => 
+          url.includes("tradera.net") && !url.includes("/images/")
+        );
+        if (nonHdImages.length > 0) {
+          console.error("[AIS Promote] ASSERTION FAILED: Non-HD images detected", {
+            source_ref: item.source_ref,
+            non_hd_urls: nonHdImages,
+            note: "Images should use /images/ path for high resolution"
+          });
+        }
+      }
+      // === END ASSERTIONS ===
+      
       // Create a new product from the import item
       const mainImage = item.images[0] || "";
       const additionalImages = item.images.slice(1);
       const slug = item.title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 
-      console.log("[AIS Promote] Source type:", item.source_type);
+      console.log("[AIS Promote] Promoting item:", {
+        source_type: item.source_type,
+        source_ref: item.source_ref,
+        total_images: item.images.length,
+        main_image: mainImage.substring(0, 60) + "...",
+        additional_count: additionalImages.length,
+      });
 
       const productData = {
         brand: "Unknown", // Will need to be edited in product view
         name: item.title,
         price: item.price ? `${item.price} ${item.currency || "SEK"}` : "0",
         image: mainImage,
-        additional_images: additionalImages,
+        additional_images: additionalImages, // JSONB array - all additional images
         description: item.description || null,
         condition: item.condition || null,
         material: item.signals.material?.join(", ") || null,
@@ -256,8 +297,6 @@ export function usePromoteToProduct() {
         ancora_select_source: null,
         affiliate_url: item.affiliate_url || item.source_url || null,
       };
-      
-      console.log("[AIS Promote] Product payload:", JSON.stringify(productData, null, 2));
 
       const { data: product, error: productError } = await supabase
         .from("products")
@@ -278,6 +317,12 @@ export function usePromoteToProduct() {
         .eq("id", item.id);
 
       if (updateError) throw updateError;
+
+      console.log("[AIS Promote] Successfully promoted item to product:", {
+        product_id: product.id,
+        source_ref: item.source_ref,
+        images_transferred: item.images.length,
+      });
 
       return product.id;
     },
