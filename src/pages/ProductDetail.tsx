@@ -74,8 +74,8 @@ const ProductDetail = () => {
         .from("products")
        .select("id, name, brand, price, image, additional_images, description, size, color, condition, material, affiliate_url, marketplace, slug, status, ancora_select_source, updated_at, category_id")
         .eq("slug", slug)
-        // Support both legacy `published` and canonical `active` visible statuses
-        .in("status", ["active", "published"])
+        // Include sold products to preserve editorial value and SEO
+        .in("status", ["active", "published", "sold"])
         .maybeSingle();
 
       if (error) throw error;
@@ -84,6 +84,7 @@ const ProductDetail = () => {
       console.log("[ProductDetail] Product payload:", {
         id: data?.id,
         name: data?.name,
+        status: data?.status,
         ancora_select_source: data?.ancora_select_source,
         marketplace: data?.marketplace,
       });
@@ -92,6 +93,18 @@ const ProductDetail = () => {
     },
     enabled: !!slug,
   });
+
+  // Determine if product is sold/unavailable (non-purchasable state)
+  const isSoldOrUnavailable = product?.status === "sold";
+  
+  // Determine provenance source for sold items
+  const provenanceSource = useMemo(() => {
+    if (!isSoldOrUnavailable || !product) return null;
+    const source = product.marketplace?.toLowerCase();
+    if (source === "tradera") return "Tradera";
+    if (source === "ebay") return "eBay";
+    return null;
+  }, [isSoldOrUnavailable, product]);
 
   // Deduplicate and prioritize high-quality images - must be before early returns
   const allImages = useMemo(() => {
@@ -331,8 +344,17 @@ const ProductDetail = () => {
                   </p>
                 )}
 
-                {/* Source Badge - eBay, Tradera, and future partners */}
-                {(() => {
+                {/* Sold/Unavailable Provenance Notice - SEO indexable */}
+                {isSoldOrUnavailable && provenanceSource && (
+                  <div className="p-4 bg-muted/50 border border-border rounded-sm">
+                    <p className="text-sm text-muted-foreground italic">
+                      Originally found on {provenanceSource}
+                    </p>
+                  </div>
+                )}
+
+                {/* Source Badge - eBay, Tradera, and future partners (only for active products) */}
+                {!isSoldOrUnavailable && (() => {
                   const source = product.ancora_select_source || product.marketplace?.toLowerCase();
                   
                   if (source === "tradera") {
@@ -357,16 +379,27 @@ const ProductDetail = () => {
                 {/* Divider */}
                 <div className="border-t border-border" />
 
-                {/* Purchase CTA - Native anchor link for reliable navigation */}
-                <a
-                  href={cleanUrl(product.affiliate_url)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={handleBuyNowClick}
-                  className="inline-flex items-center justify-center px-8 py-3 min-h-[44px] min-w-[44px] bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors touch-manipulation select-none"
-                >
-                  Buy now
-                </a>
+                {/* Purchase CTA - Disabled for sold/unavailable products */}
+                {isSoldOrUnavailable ? (
+                  <div className="space-y-3">
+                    <span className="inline-flex items-center justify-center px-8 py-3 min-h-[44px] bg-muted text-muted-foreground font-medium rounded-sm cursor-not-allowed select-none">
+                      No longer available
+                    </span>
+                    <p className="text-xs text-muted-foreground">
+                      This item has been sold or is no longer listed.
+                    </p>
+                  </div>
+                ) : (
+                  <a
+                    href={cleanUrl(product.affiliate_url)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={handleBuyNowClick}
+                    className="inline-flex items-center justify-center px-8 py-3 min-h-[44px] min-w-[44px] bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors touch-manipulation select-none"
+                  >
+                    Buy now
+                  </a>
+                )}
               </div>
             </div>
           </div>
