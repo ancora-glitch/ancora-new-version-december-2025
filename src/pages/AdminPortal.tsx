@@ -61,6 +61,10 @@ interface Product {
   category_id?: string | null;
   ancora_select_source?: AncoraSelectSource;
   in_weekly_edit?: boolean;
+  affiliate_status?: string | null;
+  affiliate_auto_handling?: boolean;
+  affiliate_last_checked_at?: string | null;
+  unpublished_reason?: string | null;
 }
 
 const isPublishedStatus = (status: ProductStatus) => status === "active" || status === "published";
@@ -239,6 +243,7 @@ const AdminPortal = () => {
   const [productCategoryId, setProductCategoryId] = useState<string | null>(null);
   const [productAncoraSelectSource, setProductAncoraSelectSource] = useState<AncoraSelectSource>(null);
   const [productInWeeklyEdit, setProductInWeeklyEdit] = useState(false);
+  const [productAffiliateAutoHandling, setProductAffiliateAutoHandling] = useState(true);
   const [savingProduct, setSavingProduct] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "active" | "sold">("all");
 
@@ -301,6 +306,7 @@ const AdminPortal = () => {
     setProductCategoryId(null);
     setProductAncoraSelectSource(null);
     setProductInWeeklyEdit(false);
+    setProductAffiliateAutoHandling(true);
   };
 
   // Category form helpers
@@ -424,6 +430,7 @@ const AdminPortal = () => {
     setProductCategoryId(product.category_id || null);
     setProductAncoraSelectSource(product.ancora_select_source || null);
     setProductInWeeklyEdit(product.in_weekly_edit || false);
+    setProductAffiliateAutoHandling(product.affiliate_auto_handling !== false);
     
     // Scroll to form
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -515,6 +522,7 @@ const AdminPortal = () => {
       category_id: productCategoryId || null,
       ancora_select_source: productAncoraSelectSource,
       in_weekly_edit: productInWeeklyEdit,
+      affiliate_auto_handling: productAffiliateAutoHandling,
     };
 
     let error;
@@ -1061,6 +1069,25 @@ const AdminPortal = () => {
                     onCheckedChange={setProductInWeeklyEdit}
                   />
                 </div>
+
+                {/* Affiliate Auto-Handling Toggle */}
+                {productAffiliateUrl && (
+                  <div className="flex items-center justify-between p-4 border border-border rounded-sm bg-secondary/20">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="productAffiliateAutoHandling" className="text-base font-medium">
+                        Auto-unpublish when sold
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        Automatically mark as sold when affiliate link becomes unavailable
+                      </p>
+                    </div>
+                    <Switch
+                      id="productAffiliateAutoHandling"
+                      checked={productAffiliateAutoHandling}
+                      onCheckedChange={setProductAffiliateAutoHandling}
+                    />
+                  </div>
+                )}
 
                 <Button type="submit" disabled={savingProduct} className="w-full">
                   {savingProduct ? "Saving..." : editingProductId ? "Update Product" : "Save Product"}

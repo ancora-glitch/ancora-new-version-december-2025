@@ -6,12 +6,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+type AffiliateStatus = 'active' | 'sold' | 'unavailable' | 'unknown';
+
 interface TraderaSyncResult {
   productId: string;
   productName: string;
   oldPrice: string;
   newPrice: string;
   status: 'updated' | 'ended' | 'unchanged' | 'error';
+  affiliateStatus?: AffiliateStatus;
+  autoUnpublished?: boolean;
   error?: string;
 }
 
@@ -37,12 +41,12 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch all active Tradera products
+    // Fetch all active Tradera products (include new affiliate fields)
     const { data: products, error: fetchError } = await supabase
       .from('products')
-      .select('id, name, brand, price, affiliate_url, tradera_item_id')
+      .select('id, name, brand, price, affiliate_url, tradera_item_id, affiliate_auto_handling, affiliate_status')
       .eq('marketplace', 'Tradera')
-      .eq('status', 'active');
+      .in('status', ['active', 'published']);
 
     if (fetchError) {
       console.error('Error fetching products:', fetchError);
@@ -127,10 +131,27 @@ serve(async (req) => {
 
         // Check if auction has ended
         if (itemDetails.hasEnded) {
-          console.log(`Auction ended for item ${itemId}, marking as sold`);
+          console.log(`Auction ended for item ${itemId}, updating affiliate status to 'sold'`);
+          
+          const affiliateAutoHandling = product.affiliate_auto_handling !== false; // default true
+          const updateData: Record<string, any> = {
+            affiliate_status: 'sold',
+            affiliate_last_checked_at: new Date().toISOString(),
+            affiliate_checked_via: 'tradera',
+            updated_at: new Date().toISOString(),
+          };
+          
+          // Auto-unpublish if enabled
+          let autoUnpublished = false;
+          if (affiliateAutoHandling) {
+            updateData.status = 'sold';
+            updateData.unpublished_reason = 'affiliate_unavailable';
+            autoUnpublished = true;
+          }
+          
           await supabase
             .from('products')
-            .update({ status: 'sold', updated_at: new Date().toISOString() })
+            .update(updateData)
             .eq('id', product.id);
           
           results.push({
@@ -139,6 +160,8 @@ serve(async (req) => {
             oldPrice: product.price,
             newPrice: product.price,
             status: 'ended',
+            affiliateStatus: 'sold',
+            autoUnpublished,
           });
           continue;
         }
@@ -162,29 +185,34 @@ serve(async (req) => {
 
         // Format new price
         const newPrice = `${Math.round(itemDetails.price)} SEK`;
-        if (newPrice !== product.price) {
+        const priceChanged = newPrice !== product.price;
+        
+        // Update product with affiliate status and optionally price
+        const updateData: Record<string, any> = {
+          affiliate_status: 'active',
+          affiliate_last_checked_at: new Date().toISOString(),
+          affiliate_checked_via: 'tradera',
+          updated_at: new Date().toISOString(),
+        };
+        
+        if (priceChanged) {
           console.log(`Price changed for ${product.id}: ${product.price} -> ${newPrice}`);
-          await supabase
-            .from('products')
-            .update({ price: newPrice, updated_at: new Date().toISOString() })
-            .eq('id', product.id);
-          
-          results.push({
-            productId: product.id,
-            productName: `${product.brand} - ${product.name}`,
-            oldPrice: product.price,
-            newPrice: newPrice,
-            status: 'updated',
-          });
-        } else {
-          results.push({
-            productId: product.id,
-            productName: `${product.brand} - ${product.name}`,
-            oldPrice: product.price,
-            newPrice: newPrice,
-            status: 'unchanged',
-          });
+          updateData.price = newPrice;
         }
+        
+        await supabase
+          .from('products')
+          .update(updateData)
+          .eq('id', product.id);
+        
+        results.push({
+          productId: product.id,
+          productName: `${product.brand} - ${product.name}`,
+          oldPrice: product.price,
+          newPrice: priceChanged ? newPrice : product.price,
+          status: priceChanged ? 'updated' : 'unchanged',
+          affiliateStatus: 'active',
+        });
       } catch (e) {
         console.error(`Error processing item ${itemId}:`, e);
         results.push({

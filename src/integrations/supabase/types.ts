@@ -127,6 +127,10 @@ export type Database = {
       products: {
         Row: {
           additional_images: Json | null
+          affiliate_auto_handling: boolean | null
+          affiliate_checked_via: string | null
+          affiliate_last_checked_at: string | null
+          affiliate_status: string | null
           affiliate_url: string | null
           ancora_select_source:
             | Database["public"]["Enums"]["ancora_select_source"]
@@ -157,10 +161,15 @@ export type Database = {
           sort_order: number | null
           status: Database["public"]["Enums"]["product_status"]
           tradera_item_id: string | null
+          unpublished_reason: string | null
           updated_at: string
         }
         Insert: {
           additional_images?: Json | null
+          affiliate_auto_handling?: boolean | null
+          affiliate_checked_via?: string | null
+          affiliate_last_checked_at?: string | null
+          affiliate_status?: string | null
           affiliate_url?: string | null
           ancora_select_source?:
             | Database["public"]["Enums"]["ancora_select_source"]
@@ -191,10 +200,15 @@ export type Database = {
           sort_order?: number | null
           status?: Database["public"]["Enums"]["product_status"]
           tradera_item_id?: string | null
+          unpublished_reason?: string | null
           updated_at?: string
         }
         Update: {
           additional_images?: Json | null
+          affiliate_auto_handling?: boolean | null
+          affiliate_checked_via?: string | null
+          affiliate_last_checked_at?: string | null
+          affiliate_status?: string | null
           affiliate_url?: string | null
           ancora_select_source?:
             | Database["public"]["Enums"]["ancora_select_source"]
@@ -225,6 +239,7 @@ export type Database = {
           sort_order?: number | null
           status?: Database["public"]["Enums"]["product_status"]
           tradera_item_id?: string | null
+          unpublished_reason?: string | null
           updated_at?: string
         }
         Relationships: [
