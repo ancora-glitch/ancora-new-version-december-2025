@@ -14,11 +14,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCreateImportItem, type AisCondition, type AisSignals } from "@/hooks/useImportItems";
 import { useTraderaUsage } from "@/hooks/useTraderaUsage";
 import { toast } from "sonner";
-import { Loader2, Search, Package, AlertCircle, AlertTriangle, Clock, Zap } from "lucide-react";
+import { Loader2, Search, Package, AlertCircle, AlertTriangle, Clock, Zap, ImageIcon } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 
-interface TraderaItem {
+interface TraderaSearchItem {
   id: number;
   shortDescription: string;
   longDescription?: string;
@@ -34,6 +34,24 @@ interface TraderaItem {
   bids?: number;
   condition?: string;
   brandName?: string;
+}
+
+interface TraderaItemDetail {
+  id: number;
+  shortDescription: string;
+  longDescription?: string;
+  price: number;
+  buyItNowPrice?: number;
+  imageLinks: string[];
+  itemLink: string;
+  sellerId: number;
+  sellerAlias?: string;
+  endDate?: string;
+  condition?: string;
+  brand?: string;
+  size?: string;
+  material?: string;
+  attributes: Record<string, string>;
 }
 
 interface TraderaSearchDrawerProps {
@@ -77,7 +95,7 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
   
   // Search results state
   const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState<TraderaItem[]>([]);
+  const [searchResults, setSearchResults] = useState<TraderaSearchItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [hasSearched, setHasSearched] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -86,6 +104,7 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
   
   // Import state
   const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
   const [existingRefs, setExistingRefs] = useState<Set<string>>(new Set());
 
   // Refetch usage when drawer opens
@@ -184,22 +203,67 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
     setSelectedItems(newSelected);
   };
 
+  /**
+   * Fetch full item details with all high-resolution images
+   */
+  const fetchItemDetails = async (itemId: number): Promise<TraderaItemDetail | null> => {
+    try {
+      const { data, error } = await supabase.functions.invoke("tradera-item", {
+        body: { itemId },
+      });
+
+      if (error) {
+        console.error("Failed to fetch item details:", error);
+        return null;
+      }
+
+      if (data.rateLimited) {
+        throw new Error("rate_limit_exceeded");
+      }
+
+      if (data.error) {
+        console.error("Item fetch error:", data.error);
+        return null;
+      }
+
+      return data.item as TraderaItemDetail;
+    } catch (err) {
+      console.error("Error fetching item details:", err);
+      throw err;
+    }
+  };
+
   const handleImport = async () => {
     if (selectedItems.size === 0) {
       toast.error("Välj objekt att importera");
       return;
     }
 
+    // Check API quota - each import costs 1 API call for GetItem
+    const itemsToImport = Array.from(selectedItems).filter(
+      id => !existingRefs.has(String(id))
+    );
+
+    if (usage && itemsToImport.length > usage.remaining) {
+      toast.error(`Inte tillräckligt med API-kvot. Du har ${usage.remaining} anrop kvar men försöker importera ${itemsToImport.length} objekt.`);
+      return;
+    }
+
     setIsImporting(true);
+    setImportProgress({ current: 0, total: itemsToImport.length });
     let imported = 0;
     let skipped = 0;
+    let failed = 0;
 
     try {
-      for (const itemId of selectedItems) {
-        const item = searchResults.find(r => r.id === itemId);
-        if (!item) continue;
+      for (let i = 0; i < itemsToImport.length; i++) {
+        const itemId = itemsToImport[i];
+        setImportProgress({ current: i + 1, total: itemsToImport.length });
 
-        const sourceRef = String(item.id);
+        const searchItem = searchResults.find(r => r.id === itemId);
+        if (!searchItem) continue;
+
+        const sourceRef = String(itemId);
 
         // Check if already exists (dedupe)
         if (existingRefs.has(sourceRef)) {
@@ -207,46 +271,94 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
           continue;
         }
 
-        // Use deduplicated high-res images from imageLinks, fall back to thumbnail
-        const images = item.imageLinks && item.imageLinks.length > 0
-          ? item.imageLinks
-          : item.thumbnailLink
-          ? [item.thumbnailLink]
-          : [];
+        try {
+          // Fetch full item details with all high-res images
+          const itemDetails = await fetchItemDetails(itemId);
 
-        // Create AIS record
-        const signals: AisSignals = {
-          keywords: extractKeywords(item.shortDescription),
-          colors: [],
-          era: null,
-          material: null,
-          vibe: null,
-        };
+          if (!itemDetails) {
+            console.warn(`Could not fetch details for item ${itemId}, using search data`);
+            // Fall back to search data if GetItem fails
+            const images = searchItem.imageLinks && searchItem.imageLinks.length > 0
+              ? searchItem.imageLinks
+              : searchItem.thumbnailLink
+              ? [searchItem.thumbnailLink]
+              : [];
 
-        await createMutation.mutateAsync({
-          source_type: "tradera",
-          source_ref: sourceRef,
-          source_url: item.itemLink,
-          affiliate_url: item.itemLink,
-          title: item.shortDescription,
-          description: item.longDescription || null,
-          images,
-          price: item.buyItNowPrice || item.price || null,
-          currency: "SEK",
-          condition: mapCondition(item.condition),
-          provenance: item.sellerAlias || "Tradera",
-          signals,
-          status: "draft",
-        });
+            const signals: AisSignals = {
+              keywords: extractKeywords(searchItem.shortDescription),
+              colors: [],
+              era: null,
+              material: null,
+              vibe: null,
+            };
 
-        imported++;
+            await createMutation.mutateAsync({
+              source_type: "tradera",
+              source_ref: sourceRef,
+              source_url: searchItem.itemLink,
+              affiliate_url: searchItem.itemLink,
+              title: searchItem.shortDescription,
+              description: searchItem.longDescription || null,
+              images,
+              price: searchItem.buyItNowPrice || searchItem.price || null,
+              currency: "SEK",
+              condition: mapCondition(searchItem.condition),
+              provenance: searchItem.sellerAlias || "Tradera",
+              signals,
+              status: "draft",
+            });
+          } else {
+            // Use full item details with ALL high-res images
+            console.log(`Item ${itemId} has ${itemDetails.imageLinks.length} high-res images`);
+
+            const signals: AisSignals = {
+              keywords: extractKeywords(itemDetails.shortDescription),
+              colors: [],
+              era: null,
+              material: itemDetails.material ? [itemDetails.material] : null,
+              vibe: null,
+            };
+
+            await createMutation.mutateAsync({
+              source_type: "tradera",
+              source_ref: sourceRef,
+              source_url: itemDetails.itemLink,
+              affiliate_url: itemDetails.itemLink,
+              title: itemDetails.shortDescription,
+              description: itemDetails.longDescription || null,
+              images: itemDetails.imageLinks, // ALL high-res images
+              price: itemDetails.buyItNowPrice || itemDetails.price || null,
+              currency: "SEK",
+              condition: mapCondition(itemDetails.condition),
+              provenance: itemDetails.sellerAlias || "Tradera",
+              signals,
+              status: "draft",
+            });
+          }
+
+          imported++;
+        } catch (itemError: any) {
+          if (itemError.message === "rate_limit_exceeded") {
+            setIsRateLimited(true);
+            toast.error("API-kvoten nåddes. Stoppar import.");
+            break;
+          }
+          console.error(`Failed to import item ${itemId}:`, itemError);
+          failed++;
+        }
+
+        // Refresh usage after each import
+        refetchUsage();
       }
 
       if (imported > 0) {
-        toast.success(`Importerade ${imported} objekt som utkast`);
+        toast.success(`Importerade ${imported} objekt med högupplösta bilder`);
       }
       if (skipped > 0) {
         toast.info(`Hoppade över ${skipped} redan importerade objekt`);
+      }
+      if (failed > 0) {
+        toast.warning(`${failed} objekt kunde inte importeras`);
       }
 
       // Reset and close
@@ -261,6 +373,7 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
       toast.error("Import misslyckades: " + error.message);
     } finally {
       setIsImporting(false);
+      setImportProgress(null);
     }
   };
 
@@ -275,7 +388,7 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
         <SheetHeader>
           <SheetTitle className="font-display">Sök på Tradera</SheetTitle>
           <SheetDescription>
-            Hitta objekt på Tradera och importera dem som AIS-utkast för granskning.
+            Hitta objekt på Tradera och importera dem som AIS-utkast med alla högupplösta bilder.
           </SheetDescription>
         </SheetHeader>
 
@@ -424,6 +537,7 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
                       const isExisting = existingRefs.has(String(item.id));
                       const isSelected = selectedItems.has(item.id);
                       const thumbnail = item.imageLinks?.[0] || item.thumbnailLink;
+                      const imageCount = item.imageLinks?.length || (item.thumbnailLink ? 1 : 0);
 
                       return (
                         <div
@@ -447,6 +561,7 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
                               src={thumbnail}
                               alt={item.shortDescription}
                               className="w-16 h-16 object-cover rounded"
+                              referrerPolicy="no-referrer"
                             />
                           ) : (
                             <div className="w-16 h-16 bg-muted rounded flex items-center justify-center">
@@ -466,6 +581,15 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
                                 <>
                                   <span>•</span>
                                   <span className="capitalize">{item.condition}</span>
+                                </>
+                              )}
+                              {imageCount > 0 && (
+                                <>
+                                  <span>•</span>
+                                  <span className="flex items-center gap-0.5">
+                                    <ImageIcon className="w-3 h-3" />
+                                    {imageCount}
+                                  </span>
                                 </>
                               )}
                               {item.bids !== undefined && item.bids > 0 && (
@@ -493,16 +617,32 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
 
           {/* Import Action */}
           {selectedItems.size > 0 && (
-            <div className="border-t pt-4 flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                {selectedItems.size} objekt valda
-              </span>
-              <Button onClick={handleImport} disabled={isImporting}>
-                {isImporting ? (
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                ) : null}
-                Importera valda
-              </Button>
+            <div className="border-t pt-4 space-y-3">
+              {importProgress && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Hämtar högupplösta bilder...</span>
+                    <span>{importProgress.current} / {importProgress.total}</span>
+                  </div>
+                  <Progress value={(importProgress.current / importProgress.total) * 100} className="h-1.5" />
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  <span>{selectedItems.size} objekt valda</span>
+                  {usage && selectedItems.size > 0 && (
+                    <span className="ml-2 text-xs">
+                      (kostar {selectedItems.size} API-anrop)
+                    </span>
+                  )}
+                </div>
+                <Button onClick={handleImport} disabled={isImporting}>
+                  {isImporting ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : null}
+                  Importera med HD-bilder
+                </Button>
+              </div>
             </div>
           )}
         </div>
