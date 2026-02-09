@@ -34,7 +34,7 @@ const Index = () => {
               <p className="text-base md:text-lg lg:text-xl mb-8 md:mb-10 leading-relaxed text-white/90">A new way to shop second hand.</p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button className="font-medium text-sm tracking-wide px-8 py-4 h-auto" onClick={() => navigate('/shop')}>
-                  Explore the edit
+                  Shop the collection   
                 </Button>
                 <Button className="font-medium text-sm tracking-wide px-8 py-4 h-auto" onClick={() => navigate('/stories')}>
                   Read the stories
@@ -84,20 +84,7 @@ const Index = () => {
             <h2 className="text-2xl md:text-3xl lg:text-4xl text-primary-foreground font-normal">Stories</h2>
           </Link>
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-5 md:gap-7 lg:gap-8 max-w-7xl mx-auto">
-            {guidesLoading ? (
-              <p className="col-span-full text-center text-primary-foreground/70">Loading guides...</p>
-            ) : styleGuides && styleGuides.length > 0 ? (
-              styleGuides.slice(0, 6).map(guide => (
-                <GuideCard 
-                  key={guide.id} 
-                  image={guide.image} 
-                  title={guide.title} 
-                  href={`/style-guides/${guide.slug}`} 
-                />
-              ))
-            ) : (
-              <p className="col-span-full text-center text-primary-foreground/70">No style guides available</p>
-            )}
+            {guidesLoading ? <p className="col-span-full text-center text-primary-foreground/70">Loading guides...</p> : styleGuides && styleGuides.length > 0 ? styleGuides.slice(0, 6).map(guide => <GuideCard key={guide.id} image={guide.image} title={guide.title} href={`/style-guides/${guide.slug}`} />) : <p className="col-span-full text-center text-primary-foreground/70">No style guides available</p>}
           </div>
         </section>
       </main>
