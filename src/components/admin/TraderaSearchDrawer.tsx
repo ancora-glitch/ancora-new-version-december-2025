@@ -280,11 +280,36 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
           const { item: itemDetails, rateLimited } = await fetchItemDetails(itemId);
 
           // INVARIANT: A rate-limited Tradera response must never reduce image count.
-          // If rate limited, abort this item entirely — do NOT fall back to low-res search thumbnails.
+          // If rate limited, queue a background retry job instead of failing silently.
           if (rateLimited) {
-            console.warn(`[AIS Import] Tradera rate limited — skipping import for item ${itemId}`);
+            console.warn(`[AIS Import] Tradera rate limited — queuing retry for item ${itemId}`);
+            
+            // Persist retry job so background cron can re-attempt later
+            try {
+              await supabase.from("tradera_retry_jobs").upsert({
+                source_ref: sourceRef,
+                source_type: "tradera",
+                status: "pending",
+                retry_after: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // +1 hour
+                item_payload: {
+                  shortDescription: searchItem.shortDescription,
+                  longDescription: searchItem.longDescription,
+                  price: searchItem.price,
+                  buyItNowPrice: searchItem.buyItNowPrice,
+                  itemLink: searchItem.itemLink,
+                  sellerAlias: searchItem.sellerAlias,
+                  condition: searchItem.condition,
+                  brandName: searchItem.brandName,
+                  thumbnailLink: searchItem.thumbnailLink,
+                },
+              }, { onConflict: "source_ref,source_type" });
+              console.warn(`[AIS Import] Retry job queued for item ${sourceRef}`);
+            } catch (retryErr) {
+              console.error(`[AIS Import] Failed to queue retry job:`, retryErr);
+            }
+
             setIsRateLimited(true);
-            toast.error("API-kvoten nåddes. Stoppar import.");
+            toast.error("API-kvoten nåddes. Objekt köade för automatisk retry.");
             break;
           }
 
