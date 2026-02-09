@@ -4,9 +4,12 @@ import { ImportItemDetail } from "./ImportItemDetail";
 import { NewImportDialog } from "./NewImportDialog";
 import { EbaySearchDrawer } from "./EbaySearchDrawer";
 import { TraderaSearchDrawer } from "./TraderaSearchDrawer";
+import { RetryJobsPanel } from "./RetryJobsPanel";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, AlertTriangle, Zap } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Search, AlertTriangle, Zap, RotateCcw } from "lucide-react";
 import { useTraderaUsage } from "@/hooks/useTraderaUsage";
+import { usePendingRetryCount } from "@/hooks/useRetryJobs";
 import { Progress } from "@/components/ui/progress";
 
 export function ImportsTab() {
@@ -16,6 +19,7 @@ export function ImportsTab() {
   const [showTraderaDrawer, setShowTraderaDrawer] = useState(false);
   
   const { data: usage, isLoading: usageLoading } = useTraderaUsage();
+  const { data: pendingCount } = usePendingRetryCount();
 
   const handleCreated = (id: string) => {
     setSelectedItemId(id);
@@ -33,6 +37,14 @@ export function ImportsTab() {
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
             <h2 className="font-display text-lg text-primary mb-1">Ancora Import Spec</h2>
+            {!!pendingCount && pendingCount > 0 && (
+              <div className="flex items-center gap-1.5">
+                <RotateCcw className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">
+                  Tradera retries: {pendingCount} pending
+                </span>
+              </div>
+            )}
             <p className="text-sm text-muted-foreground">
               Review and curate import candidates before promoting them to products. 
               This is an internal, editorial layer — nothing is auto-published.
@@ -152,6 +164,8 @@ export function ImportsTab() {
         onOpenChange={setShowTraderaDrawer}
         onImported={() => setSelectedItemId(null)}
       />
+      {/* Tradera Retry Queue (read-only) */}
+      <RetryJobsPanel />
     </div>
   );
 }
