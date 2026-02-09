@@ -399,6 +399,51 @@ export type Database = {
         }
         Relationships: []
       }
+      tradera_retry_jobs: {
+        Row: {
+          attempt_count: number
+          completed_at: string | null
+          created_at: string
+          id: string
+          item_payload: Json
+          last_error: string | null
+          max_attempts: number
+          retry_after: string
+          source_ref: string
+          source_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          item_payload?: Json
+          last_error?: string | null
+          max_attempts?: number
+          retry_after?: string
+          source_ref: string
+          source_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          item_payload?: Json
+          last_error?: string | null
+          max_attempts?: number
+          retry_after?: string
+          source_ref?: string
+          source_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

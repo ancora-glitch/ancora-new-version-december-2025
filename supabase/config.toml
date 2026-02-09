@@ -20,3 +20,9 @@ verify_jwt = false
 
 [functions.ebay-availability]
 verify_jwt = false
+
+[functions.tradera-retry-import]
+verify_jwt = false
+
+[functions.tradera-upload-images]
+verify_jwt = false
