@@ -205,9 +205,11 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
   };
 
   /**
-   * Fetch full item details with all high-resolution images
+   * Fetch full item details with all high-resolution images.
+   * Returns { item, rateLimited } so callers can distinguish rate-limit from real errors.
+   * INVARIANT: A rate-limited response must never reduce image count on an existing product.
    */
-  const fetchItemDetails = async (itemId: number): Promise<TraderaItemDetail | null> => {
+  const fetchItemDetails = async (itemId: number): Promise<{ item: TraderaItemDetail | null; rateLimited: boolean }> => {
     try {
       const { data, error } = await supabase.functions.invoke("tradera-item", {
         body: { itemId },
@@ -215,22 +217,23 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
 
       if (error) {
         console.error("Failed to fetch item details:", error);
-        return null;
+        return { item: null, rateLimited: false };
       }
 
       if (data.rateLimited) {
-        throw new Error("rate_limit_exceeded");
+        console.warn(`[AIS Import] Tradera rate limited for item ${itemId} — skipping image update`);
+        return { item: null, rateLimited: true };
       }
 
       if (data.error) {
         console.error("Item fetch error:", data.error);
-        return null;
+        return { item: null, rateLimited: false };
       }
 
-      return data.item as TraderaItemDetail;
+      return { item: data.item as TraderaItemDetail, rateLimited: false };
     } catch (err) {
       console.error("Error fetching item details:", err);
-      throw err;
+      return { item: null, rateLimited: false };
     }
   };
 
@@ -274,40 +277,21 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
 
         try {
           // Fetch full item details with all high-res images
-          const itemDetails = await fetchItemDetails(itemId);
+          const { item: itemDetails, rateLimited } = await fetchItemDetails(itemId);
+
+          // INVARIANT: A rate-limited Tradera response must never reduce image count.
+          // If rate limited, abort this item entirely — do NOT fall back to low-res search thumbnails.
+          if (rateLimited) {
+            console.warn(`[AIS Import] Tradera rate limited — skipping import for item ${itemId}`);
+            setIsRateLimited(true);
+            toast.error("API-kvoten nåddes. Stoppar import.");
+            break;
+          }
 
           if (!itemDetails) {
-            console.warn(`Could not fetch details for item ${itemId}, using search data`);
-            // Fall back to search data if GetItem fails
-            const images = searchItem.imageLinks && searchItem.imageLinks.length > 0
-              ? searchItem.imageLinks
-              : searchItem.thumbnailLink
-              ? [searchItem.thumbnailLink]
-              : [];
-
-            const signals: AisSignals = {
-              keywords: extractKeywords(searchItem.shortDescription),
-              colors: [],
-              era: null,
-              material: null,
-              vibe: null,
-            };
-
-            await createMutation.mutateAsync({
-              source_type: "tradera",
-              source_ref: sourceRef,
-              source_url: searchItem.itemLink,
-              affiliate_url: searchItem.itemLink,
-              title: searchItem.shortDescription,
-              description: searchItem.longDescription || null,
-              images,
-              price: searchItem.buyItNowPrice || searchItem.price || null,
-              currency: "SEK",
-              condition: mapCondition(searchItem.condition),
-              provenance: searchItem.sellerAlias || "Tradera",
-              signals,
-              status: "draft",
-            });
+            console.warn(`[AIS Import] Could not fetch details for item ${itemId}, skipping (not falling back to thumbnails)`);
+            failed++;
+            continue;
           } else {
             // INVARIANT:
             // Tradera imports must always use GetItem images (/images/) and render multi-image carousel.
@@ -386,11 +370,6 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
 
           imported++;
         } catch (itemError: any) {
-          if (itemError.message === "rate_limit_exceeded") {
-            setIsRateLimited(true);
-            toast.error("API-kvoten nåddes. Stoppar import.");
-            break;
-          }
           console.error(`Failed to import item ${itemId}:`, itemError);
           failed++;
         }

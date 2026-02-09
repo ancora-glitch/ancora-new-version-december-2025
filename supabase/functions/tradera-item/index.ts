@@ -142,14 +142,16 @@ serve(async (req) => {
     const rateLimitResult = await checkRateLimit(supabase);
     
     if (!rateLimitResult.allowed) {
-      console.log('RATE LIMIT EXCEEDED:', rateLimitResult);
+      // INVARIANT: Rate limits must never crash the edge function or break the import pipeline.
+      console.warn('RATE LIMIT EXCEEDED (quota):', rateLimitResult);
       return new Response(
         JSON.stringify({ 
-          error: 'rate_limit_exceeded',
-          message: rateLimitResult.message || 'Tradera API quota reached for today. Please try again later.',
+          item: null,
           rateLimited: true,
+          retryAfter: null,
+          message: rateLimitResult.message || 'Tradera API quota reached for today. Please try again later.',
         }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -182,21 +184,24 @@ serve(async (req) => {
       body: soapEnvelope,
     });
 
-    // Immediate fail on 429 - no retries
+    // INVARIANT: Rate limits must never crash the edge function or break the import pipeline.
+    // Return structured response on 429 — never throw, never return HTTP error status.
     if (response.status === 429) {
       const errorBody = await response.text();
-      const retryAfter = response.headers.get('retry-after');
+      const retryAfterHeader = response.headers.get('retry-after');
+      const retryAfterSeconds = retryAfterHeader ? parseInt(retryAfterHeader, 10) : null;
       console.warn(
-        `Tradera GetItem returned 429. retry-after=${retryAfter ?? 'n/a'}. bodySnippet=${truncateForLog(errorBody)}`,
+        `Tradera GetItem returned 429. retry-after=${retryAfterHeader ?? 'n/a'}. bodySnippet=${truncateForLog(errorBody)}`,
       );
       
       return new Response(
         JSON.stringify({ 
           item: null, 
           rateLimited: true,
+          retryAfter: Number.isFinite(retryAfterSeconds) ? retryAfterSeconds : null,
           message: 'Tradera API rate limited. Please try again later.',
         }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
