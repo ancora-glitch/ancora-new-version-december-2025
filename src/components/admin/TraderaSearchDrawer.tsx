@@ -296,7 +296,7 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
             
             // Persist retry job so background cron can re-attempt later
             try {
-              await supabase.from("tradera_retry_jobs").upsert({
+              const { data: retryData, error: retryError } = await supabase.from("tradera_retry_jobs").upsert({
                 source_ref: sourceRef,
                 source_type: "tradera",
                 status: "pending",
@@ -312,10 +312,15 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
                   brandName: searchItem.brandName,
                   thumbnailLink: searchItem.thumbnailLink,
                 },
-              }, { onConflict: "source_ref,source_type" });
-              console.warn(`[AIS Import] Retry job queued for item ${sourceRef}`);
+              }, { onConflict: "source_ref,source_type" }).select();
+              
+              if (retryError) {
+                console.error(`[AIS Import] Retry job insert FAILED for ${sourceRef}:`, retryError.message, retryError.details);
+              } else {
+                console.info(`[AIS Import] Retry job created: source_ref=${sourceRef}, id=${retryData?.[0]?.id}`);
+              }
             } catch (retryErr) {
-              console.error(`[AIS Import] Failed to queue retry job:`, retryErr);
+              console.error(`[AIS Import] Failed to queue retry job (exception):`, retryErr);
             }
 
             setIsRateLimited(true);
