@@ -108,12 +108,22 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
   const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
   const [existingRefs, setExistingRefs] = useState<Set<string>>(new Set());
 
-  // Refetch usage when drawer opens
+  // Reset stale rate-limit state and refetch usage when drawer opens
   useEffect(() => {
     if (open) {
+      setIsRateLimited(false);
+      setSearchError(null);
       refetchUsage();
     }
   }, [open, refetchUsage]);
+
+  // Sync local rate-limit flag with server state: if server says quota is available, clear local flag
+  useEffect(() => {
+    if (usage && !usage.limit_reached && isRateLimited) {
+      setIsRateLimited(false);
+      setSearchError(null);
+    }
+  }, [usage, isRateLimited]);
 
   const handleSearch = async () => {
     if (!keywords.trim()) {
