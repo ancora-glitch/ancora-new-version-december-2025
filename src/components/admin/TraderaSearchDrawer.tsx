@@ -314,17 +314,19 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
                 },
               }, { onConflict: "source_ref,source_type" }).select();
               
-              if (retryError) {
-                console.error(`[AIS Import] Retry job insert FAILED for ${sourceRef}:`, retryError.message, retryError.details);
+              if (retryError || !retryData?.[0]?.id) {
+                console.error(`[AIS Import] Retry job insert FAILED for ${sourceRef}:`, retryError?.message, retryError?.details, retryError?.code);
+                toast.error("Misslyckades att köa objekt för retry. Försök igen.");
               } else {
-                console.info(`[AIS Import] Retry job created: source_ref=${sourceRef}, id=${retryData?.[0]?.id}`);
+                console.info(`[AIS Import] Retry job created: source_ref=${sourceRef}, id=${retryData[0].id}`);
+                toast.error("API-kvoten nåddes. Objekt köade för automatisk retry.");
               }
             } catch (retryErr) {
               console.error(`[AIS Import] Failed to queue retry job (exception):`, retryErr);
+              toast.error("Misslyckades att köa objekt för retry. Försök igen.");
             }
 
             setIsRateLimited(true);
-            toast.error("API-kvoten nåddes. Objekt köade för automatisk retry.");
             break;
           }
 
