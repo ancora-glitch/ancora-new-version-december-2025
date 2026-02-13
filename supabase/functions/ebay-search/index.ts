@@ -192,7 +192,7 @@ serve(async (req) => {
     // Restrict to European item locations
     const euroCountries = 'DE,GB,FR,IT,ES,SE,NL,AT,BE,DK,FI,IE,PL,PT,CZ,GR,HU,RO,NO,CH';
     const locationFilter = `itemLocationCountry:{${euroCountries}}`;
-    const deliveryFilter = `deliverTo:{SE}`;
+    const deliveryFilter = `deliveryCountry:SE`;
     const existingFilter = searchParams.get('filter') || '';
     const combinedFilter = [existingFilter, locationFilter, deliveryFilter].filter(Boolean).join(',');
     searchParams.set('filter', combinedFilter);
