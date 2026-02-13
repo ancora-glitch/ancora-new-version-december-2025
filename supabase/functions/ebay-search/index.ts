@@ -184,10 +184,16 @@ serve(async (req) => {
 
     // Add condition filter if provided
     if (condition) {
-      const currentFilter = searchParams.get('filter') || '';
       const conditionFilter = `conditionIds:{${condition}}`;
+      const currentFilter = searchParams.get('filter') || '';
       searchParams.set('filter', currentFilter ? `${currentFilter},${conditionFilter}` : conditionFilter);
     }
+
+    // Restrict to European item locations
+    const euroCountries = 'DE,GB,FR,IT,ES,SE,NL,AT,BE,DK,FI,IE,PL,PT,CZ,GR,HU,RO,NO,CH';
+    const locationFilter = `itemLocationCountry:{${euroCountries}}`;
+    const existingFilter = searchParams.get('filter') || '';
+    searchParams.set('filter', existingFilter ? `${existingFilter},${locationFilter}` : locationFilter);
 
     const baseUrl = getEbayBaseUrl();
     const searchUrl = `${baseUrl}/buy/browse/v1/item_summary/search?${searchParams.toString()}`;
@@ -196,7 +202,7 @@ serve(async (req) => {
     const searchResponse = await fetch(searchUrl, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
-        'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
+        'X-EBAY-C-MARKETPLACE-ID': 'EBAY_DE',
         'Content-Type': 'application/json',
       },
     });
