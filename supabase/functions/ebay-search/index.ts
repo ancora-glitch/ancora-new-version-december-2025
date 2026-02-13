@@ -202,7 +202,7 @@ serve(async (req) => {
     const searchResponse = await fetch(searchUrl, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
-        'X-EBAY-C-MARKETPLACE-ID': 'EBAY_DE',
+        'X-EBAY-C-MARKETPLACE-ID': 'EBAY_GB',
         'Content-Type': 'application/json',
       },
     });
