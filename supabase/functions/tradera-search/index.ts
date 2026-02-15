@@ -3,10 +3,101 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 const DAILY_LIMIT = 75;
+
+// ========================================
+// INPUT VALIDATION
+// ========================================
+function validateSearchInput(body: any): { valid: true; keywords?: string; categoryId?: number; checkUsageOnly?: boolean } | { valid: false; error: string } {
+  const { keywords, categoryId, checkUsageOnly } = body;
+
+  if (checkUsageOnly === true) {
+    return { valid: true, checkUsageOnly: true };
+  }
+
+  if (keywords !== undefined && keywords !== null) {
+    if (typeof keywords !== 'string') {
+      return { valid: false, error: 'Keywords must be a string' };
+    }
+    // Max 200 chars, strip control characters
+    const sanitized = keywords.trim().slice(0, 200).replace(/[\x00-\x1f\x7f]/g, '');
+    if (sanitized.length === 0 && !categoryId) {
+      return { valid: false, error: 'Keywords or categoryId is required' };
+    }
+  }
+
+  if (categoryId !== undefined && categoryId !== null) {
+    const catNum = Number(categoryId);
+    if (!Number.isFinite(catNum) || catNum < 0 || catNum > 999999 || !Number.isInteger(catNum)) {
+      return { valid: false, error: 'categoryId must be a positive integer' };
+    }
+  }
+
+  return {
+    valid: true,
+    keywords: keywords ? String(keywords).trim().slice(0, 200).replace(/[\x00-\x1f\x7f]/g, '') : undefined,
+    categoryId: categoryId !== undefined && categoryId !== null ? Math.floor(Number(categoryId)) : undefined,
+  };
+}
+
+// ========================================
+// AUTH: Verify JWT via getClaims
+// ========================================
+async function verifyAdmin(req: Request): Promise<{ authorized: true; userId: string } | { authorized: false; response: Response }> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return {
+      authorized: false,
+      response: new Response(JSON.stringify({ error: 'Unauthorized: missing token' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }),
+    };
+  }
+
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_ANON_KEY')!,
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const token = authHeader.replace('Bearer ', '');
+  const { data, error } = await supabase.auth.getClaims(token);
+  if (error || !data?.claims) {
+    return {
+      authorized: false,
+      response: new Response(JSON.stringify({ error: 'Unauthorized: invalid token' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }),
+    };
+  }
+
+  const userId = data.claims.sub as string;
+
+  const serviceClient = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  );
+  const { data: roleData } = await serviceClient
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId)
+    .eq('role', 'admin')
+    .maybeSingle();
+
+  if (!roleData) {
+    return {
+      authorized: false,
+      response: new Response(JSON.stringify({ error: 'Forbidden: admin role required' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }),
+    };
+  }
+
+  return { authorized: true, userId };
+}
 
 interface TraderaSearchParams {
   keywords?: string;
@@ -70,7 +161,7 @@ async function checkCache(supabase: ReturnType<typeof createClient>, cacheKey: s
   }
 
   if (data) {
-    console.log(`Cache HIT for ${cacheKey}, fetched at ${data.fetched_at}`);
+    console.log(`Cache HIT for ${cacheKey}`);
     return data.raw_payload;
   }
 
@@ -95,8 +186,6 @@ async function storeCache(supabase: ReturnType<typeof createClient>, cacheKey: s
 
   if (error) {
     console.error('Cache store error:', error);
-  } else {
-    console.log(`Cached result for ${cacheKey}`);
   }
 }
 
@@ -106,7 +195,6 @@ async function checkRateLimit(supabase: ReturnType<typeof createClient>): Promis
 
   if (error) {
     console.error('Rate limit check error:', error);
-    // Fail-safe: deny if we can't check
     return {
       allowed: false,
       current_count: 0,
@@ -136,13 +224,32 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // ========================================
+  // AUTH CHECK: Require authenticated admin
+  // ========================================
+  const authResult = await verifyAdmin(req);
+  if (!authResult.authorized) {
+    return authResult.response;
+  }
+
   const supabase = getSupabaseClient();
 
   try {
-    const { keywords, categoryId, checkUsageOnly } = await req.json();
+    const body = await req.json();
+
+    // ========================================
+    // INPUT VALIDATION
+    // ========================================
+    const validation = validateSearchInput(body);
+    if (!validation.valid) {
+      return new Response(
+        JSON.stringify({ error: validation.error }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // If just checking usage, return without incrementing
-    if (checkUsageOnly) {
+    if (validation.checkUsageOnly) {
       const usage = await getCurrentUsage(supabase);
       return new Response(
         JSON.stringify({ usage }),
@@ -150,11 +257,12 @@ serve(async (req) => {
       );
     }
 
+    const { keywords, categoryId } = validation;
+
     const appId = Deno.env.get('TRADERA_APP_ID');
     const appKey = Deno.env.get('TRADERA_APP_KEY');
 
     if (!appId || !appKey) {
-      console.error('Missing Tradera credentials');
       return new Response(
         JSON.stringify({ error: 'Tradera API credentials not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -162,7 +270,6 @@ serve(async (req) => {
     }
 
     console.log('=== TRADERA SEARCH (RATE LIMITED) ===');
-    console.log('Params:', { keywords, categoryId });
 
     // Generate cache key
     const cacheKey = `search:${keywords || ''}:${categoryId || 0}`;
@@ -185,11 +292,11 @@ serve(async (req) => {
     const rateLimitResult = await checkRateLimit(supabase);
     
     if (!rateLimitResult.allowed) {
-      console.log('RATE LIMIT EXCEEDED:', rateLimitResult);
+      console.log('RATE LIMIT EXCEEDED:', rateLimitResult.current_count);
       return new Response(
         JSON.stringify({ 
           error: 'rate_limit_exceeded',
-          message: rateLimitResult.message || 'Tradera API quota reached for today. Please try again later.',
+          message: rateLimitResult.message || 'Tradera API quota reached for today.',
           usage: {
             current_count: rateLimitResult.current_count,
             daily_limit: rateLimitResult.daily_limit,
@@ -201,7 +308,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Rate limit OK: ${rateLimitResult.current_count}/${rateLimitResult.daily_limit} calls used`);
+    console.log(`Rate limit OK: ${rateLimitResult.current_count}/${rateLimitResult.daily_limit}`);
 
     // Make the actual API call
     const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
@@ -224,8 +331,6 @@ serve(async (req) => {
   </soap:Body>
 </soap:Envelope>`;
 
-    console.log('Making SOAP request to Search...');
-
     const response = await fetch('https://api.tradera.com/v3/SearchService.asmx', {
       method: 'POST',
       headers: {
@@ -236,17 +341,12 @@ serve(async (req) => {
     });
 
     const xmlText = await response.text();
-    
-    console.log('Response status:', response.status);
-    console.log('Response length:', xmlText.length);
 
-    // NO RETRIES - fail fast on any error
     if (!response.ok) {
-      console.error('Tradera API error - NO RETRY');
+      console.error('Tradera API error:', response.status);
       return new Response(
         JSON.stringify({ 
-          error: 'Tradera API error', 
-          details: xmlText.substring(0, 500),
+          error: 'Tradera API error',
           usage: {
             current_count: rateLimitResult.current_count,
             daily_limit: rateLimitResult.daily_limit,
@@ -262,7 +362,7 @@ serve(async (req) => {
     if (xmlText.includes('<Errors>')) {
       const errorCode = extractText(xmlText, 'Code');
       const errorMessage = extractText(xmlText, 'Message');
-      console.error('SOAP error - NO RETRY:', errorCode, errorMessage);
+      console.error('SOAP error:', errorCode);
       return new Response(
         JSON.stringify({ 
           error: errorMessage || 'Tradera API error', 
@@ -307,9 +407,9 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error:', error instanceof Error ? error.message : 'Unknown');
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
@@ -383,11 +483,7 @@ function deduplicateAndSelectBest(urls: string[]): string[] {
 function parseTraderaResponse(xml: string): TraderaItem[] {
   const items: TraderaItem[] = [];
   
-  const totalItems = extractText(xml, 'TotalNumberOfItems');
-  console.log('TotalNumberOfItems:', totalItems);
-  
   const parts = xml.split('<Items>').slice(1);
-  console.log(`Found ${parts.length} items via split`);
   
   for (const part of parts) {
     const endIdx = part.indexOf('</Items>');
@@ -449,7 +545,7 @@ function parseTraderaResponse(xml: string): TraderaItem[] {
 
       items.push(item);
     } catch (e) {
-      console.error('Error parsing item:', e);
+      console.error('Error parsing item:', e instanceof Error ? e.message : 'Unknown');
     }
   }
 
