@@ -279,9 +279,12 @@ serve(async (req) => {
     }
 
     // Parse the XML response
-    const items = parseTraderaResponse(xmlText);
+    const allItems = parseTraderaResponse(xmlText);
     
-    console.log(`Parsed ${items.length} items`);
+    // Filter: only keep listings with a Buy It Now price (includes auction+BIN combos)
+    const items = allItems.filter(item => item.buyItNowPrice && item.buyItNowPrice > 0);
+    
+    console.log(`Parsed ${allItems.length} items, ${items.length} with Buy It Now`);
 
     const result = { 
       items, 
