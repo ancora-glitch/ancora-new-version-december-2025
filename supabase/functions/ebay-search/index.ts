@@ -193,8 +193,9 @@ serve(async (req) => {
     const euroCountries = 'DE|GB|FR|IT|ES|SE|NL|AT|BE|DK|FI|IE|PL|PT|CZ|GR|HU|RO|NO|CH';
     const locationFilter = `itemLocationCountry:{${euroCountries}}`;
     const deliveryFilter = `deliveryCountry:SE`;
+    const buyingOptionsFilter = `buyingOptions:{FIXED_PRICE}`;
     const existingFilter = searchParams.get('filter') || '';
-    const combinedFilter = [existingFilter, locationFilter, deliveryFilter].filter(Boolean).join(',');
+    const combinedFilter = [existingFilter, locationFilter, deliveryFilter, buyingOptionsFilter].filter(Boolean).join(',');
     searchParams.set('filter', combinedFilter);
 
     const baseUrl = getEbayBaseUrl();
