@@ -1,12 +1,170 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 // Token cache for OAuth access token
 let cachedToken: { token: string; expiresAt: number } | null = null;
+
+// ========================================
+// RATE LIMITING: In-memory sliding window
+// ========================================
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+const GLOBAL_MAX_PER_MINUTE = 30;
+const IP_MAX_PER_MINUTE = 10;
+const SESSION_MAX_PER_MINUTE = 5;
+
+interface RateBucket {
+  timestamps: number[];
+}
+
+const globalBucket: RateBucket = { timestamps: [] };
+const ipBuckets = new Map<string, RateBucket>();
+const sessionBuckets = new Map<string, RateBucket>();
+
+function pruneAndCount(bucket: RateBucket, now: number): number {
+  bucket.timestamps = bucket.timestamps.filter(t => now - t < RATE_LIMIT_WINDOW_MS);
+  return bucket.timestamps.length;
+}
+
+function checkAndIncrement(bucket: RateBucket, limit: number, now: number): boolean {
+  const count = pruneAndCount(bucket, now);
+  if (count >= limit) return false;
+  bucket.timestamps.push(now);
+  return true;
+}
+
+function getOrCreateBucket(map: Map<string, RateBucket>, key: string): RateBucket {
+  let bucket = map.get(key);
+  if (!bucket) {
+    bucket = { timestamps: [] };
+    map.set(key, bucket);
+  }
+  return bucket;
+}
+
+// Clean up stale buckets every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, bucket] of ipBuckets) {
+    if (pruneAndCount(bucket, now) === 0) ipBuckets.delete(key);
+  }
+  for (const [key, bucket] of sessionBuckets) {
+    if (pruneAndCount(bucket, now) === 0) sessionBuckets.delete(key);
+  }
+}, 300_000);
+
+// ========================================
+// INPUT VALIDATION
+// ========================================
+const ALLOWED_CONDITION_IDS = new Set([
+  '1000', '1500', '1750', '2000', '2500', '2750', '3000', '4000', '5000', '6000',
+]);
+
+function validateSearchInput(body: any): { valid: true; keywords: string; minPrice?: number; maxPrice?: number; condition?: string } | { valid: false; error: string } {
+  const { keywords, minPrice, maxPrice, condition } = body;
+
+  if (!keywords || typeof keywords !== 'string' || !keywords.trim()) {
+    return { valid: false, error: 'Keywords are required and must be a non-empty string' };
+  }
+
+  // Sanitize keywords: max 200 chars, strip control characters
+  const sanitizedKeywords = keywords.trim().slice(0, 200).replace(/[\x00-\x1f\x7f]/g, '');
+  if (!sanitizedKeywords) {
+    return { valid: false, error: 'Keywords contain only invalid characters' };
+  }
+
+  let validatedMinPrice: number | undefined;
+  if (minPrice !== undefined && minPrice !== null) {
+    validatedMinPrice = Number(minPrice);
+    if (!Number.isFinite(validatedMinPrice) || validatedMinPrice < 0 || validatedMinPrice > 1_000_000) {
+      return { valid: false, error: 'minPrice must be a number between 0 and 1,000,000' };
+    }
+  }
+
+  let validatedMaxPrice: number | undefined;
+  if (maxPrice !== undefined && maxPrice !== null) {
+    validatedMaxPrice = Number(maxPrice);
+    if (!Number.isFinite(validatedMaxPrice) || validatedMaxPrice < 0 || validatedMaxPrice > 1_000_000) {
+      return { valid: false, error: 'maxPrice must be a number between 0 and 1,000,000' };
+    }
+  }
+
+  if (validatedMinPrice !== undefined && validatedMaxPrice !== undefined && validatedMinPrice > validatedMaxPrice) {
+    return { valid: false, error: 'minPrice cannot be greater than maxPrice' };
+  }
+
+  let validatedCondition: string | undefined;
+  if (condition !== undefined && condition !== null) {
+    const condStr = String(condition);
+    if (!ALLOWED_CONDITION_IDS.has(condStr)) {
+      return { valid: false, error: `Invalid condition ID. Allowed: ${[...ALLOWED_CONDITION_IDS].join(', ')}` };
+    }
+    validatedCondition = condStr;
+  }
+
+  return { valid: true, keywords: sanitizedKeywords, minPrice: validatedMinPrice, maxPrice: validatedMaxPrice, condition: validatedCondition };
+}
+
+// ========================================
+// AUTH: Verify JWT via getClaims
+// ========================================
+async function verifyAdmin(req: Request): Promise<{ authorized: true; userId: string } | { authorized: false; response: Response }> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return {
+      authorized: false,
+      response: new Response(JSON.stringify({ error: 'Unauthorized: missing token' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }),
+    };
+  }
+
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_ANON_KEY')!,
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const token = authHeader.replace('Bearer ', '');
+  const { data, error } = await supabase.auth.getClaims(token);
+  if (error || !data?.claims) {
+    return {
+      authorized: false,
+      response: new Response(JSON.stringify({ error: 'Unauthorized: invalid token' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }),
+    };
+  }
+
+  const userId = data.claims.sub as string;
+
+  // Check admin role
+  const serviceClient = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  );
+  const { data: roleData } = await serviceClient
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId)
+    .eq('role', 'admin')
+    .maybeSingle();
+
+  if (!roleData) {
+    return {
+      authorized: false,
+      response: new Response(JSON.stringify({ error: 'Forbidden: admin role required' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }),
+    };
+  }
+
+  return { authorized: true, userId };
+}
 
 // Get eBay API base URL based on environment
 function getEbayBaseUrl(): string {
@@ -20,15 +178,15 @@ function getEbayBaseUrl(): string {
 function mapCondition(conditionId: string | undefined): string {
   const map: Record<string, string> = {
     '1000': 'new',
-    '1500': 'new', // New other
-    '1750': 'new', // New with defects
-    '2000': 'excellent', // Certified refurbished
-    '2500': 'excellent', // Seller refurbished
-    '2750': 'excellent', // Like new
-    '3000': 'good', // Used
-    '4000': 'good', // Very good
-    '5000': 'fair', // Good
-    '6000': 'fair', // Acceptable
+    '1500': 'new',
+    '1750': 'new',
+    '2000': 'excellent',
+    '2500': 'excellent',
+    '2750': 'excellent',
+    '3000': 'good',
+    '4000': 'good',
+    '5000': 'fair',
+    '6000': 'fair',
   };
   return map[conditionId || ''] || 'unknown';
 }
@@ -70,8 +228,7 @@ async function getAccessToken(clientId: string, clientSecret: string): Promise<{
   const tokenUrl = `${baseUrl}/identity/v1/oauth2/token`;
   const credentials = btoa(`${clientId}:${clientSecret}`);
   
-  console.log(`Requesting eBay OAuth token from ${tokenUrl}`);
-  console.log('Scope: https://api.ebay.com/oauth/api_scope');
+  console.log('Requesting new eBay OAuth token');
   
   try {
     const response = await fetch(tokenUrl, {
@@ -87,13 +244,11 @@ async function getAccessToken(clientId: string, clientSecret: string): Promise<{
     
     if (!response.ok) {
       console.error('eBay OAuth token generation failed:', response.status);
-      console.error('Response:', responseText);
       
       try {
         const errorJson = JSON.parse(responseText);
         if (errorJson.error === 'invalid_client') {
-          console.error('CRITICAL: Invalid eBay credentials. Verify EBAY_CLIENT_ID and EBAY_CLIENT_SECRET are from Production keyset.');
-          return { error: 'Invalid eBay credentials. Please verify your Client ID and Client Secret from the eBay Developer Portal (Production keyset).' };
+          return { error: 'Invalid eBay credentials. Please verify your Client ID and Client Secret.' };
         }
         return { error: errorJson.error_description || errorJson.error || 'OAuth token generation failed' };
       } catch (_) {
@@ -102,7 +257,7 @@ async function getAccessToken(clientId: string, clientSecret: string): Promise<{
     }
 
     const tokenData = JSON.parse(responseText);
-    const expiresIn = tokenData.expires_in || 7200; // Default 2 hours
+    const expiresIn = tokenData.expires_in || 7200;
     
     // Cache the token
     cachedToken = {
@@ -110,10 +265,10 @@ async function getAccessToken(clientId: string, clientSecret: string): Promise<{
       expiresAt: now + (expiresIn * 1000),
     };
     
-    console.log(`Successfully obtained eBay OAuth token (expires in ${expiresIn}s)`);
+    console.log(`eBay OAuth token obtained (expires in ${expiresIn}s)`);
     return { token: tokenData.access_token };
   } catch (error: any) {
-    console.error('eBay OAuth token request error:', error.message);
+    console.error('eBay OAuth request error:', error.message);
     return { error: `OAuth request failed: ${error.message}` };
   }
 }
@@ -124,36 +279,75 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  // Check credentials on every request (fail fast)
+  // ========================================
+  // AUTH CHECK: Require authenticated admin
+  // ========================================
+  const authResult = await verifyAdmin(req);
+  if (!authResult.authorized) {
+    return authResult.response;
+  }
+
+  // ========================================
+  // RATE LIMITING
+  // ========================================
+  const now = Date.now();
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const sessionId = authResult.userId;
+
+  if (!checkAndIncrement(globalBucket, GLOBAL_MAX_PER_MINUTE, now)) {
+    return new Response(
+      JSON.stringify({ error: 'Global rate limit exceeded. Try again in a minute.' }),
+      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const ipBucket = getOrCreateBucket(ipBuckets, clientIp);
+  if (!checkAndIncrement(ipBucket, IP_MAX_PER_MINUTE, now)) {
+    return new Response(
+      JSON.stringify({ error: 'Too many requests from this IP. Try again in a minute.' }),
+      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const sessionBucket = getOrCreateBucket(sessionBuckets, sessionId);
+  if (!checkAndIncrement(sessionBucket, SESSION_MAX_PER_MINUTE, now)) {
+    return new Response(
+      JSON.stringify({ error: 'Too many requests from this session. Try again in a minute.' }),
+      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Check credentials
   const EBAY_CLIENT_ID = Deno.env.get('EBAY_CLIENT_ID') || Deno.env.get('EBAY_APP_ID');
   const EBAY_CLIENT_SECRET = Deno.env.get('EBAY_CLIENT_SECRET') || Deno.env.get('EBAY_CERT_ID');
-  const EBAY_ENV = Deno.env.get('EBAY_ENV') || 'production';
-
-  console.log(`eBay environment: ${EBAY_ENV}`);
 
   if (!EBAY_CLIENT_ID || !EBAY_CLIENT_SECRET) {
-    console.error('eBay credentials missing – search disabled');
     return new Response(
-      JSON.stringify({ error: 'eBay API credentials not configured. Please add EBAY_CLIENT_ID and EBAY_CLIENT_SECRET.' }),
+      JSON.stringify({ error: 'eBay API credentials not configured' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
   try {
-    const { keywords, minPrice, maxPrice, condition } = await req.json();
+    const body = await req.json();
 
-    if (!keywords || typeof keywords !== 'string' || !keywords.trim()) {
+    // ========================================
+    // INPUT VALIDATION
+    // ========================================
+    const validation = validateSearchInput(body);
+    if (!validation.valid) {
       return new Response(
-        JSON.stringify({ error: 'Keywords are required' }),
+        JSON.stringify({ error: validation.error }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const { keywords, minPrice, maxPrice, condition } = validation;
 
     // Get OAuth access token (with caching)
     const tokenResult = await getAccessToken(EBAY_CLIENT_ID, EBAY_CLIENT_SECRET);
     
     if ('error' in tokenResult) {
-      console.error('eBay OAuth token generation failed – aborting search');
       return new Response(
         JSON.stringify({ error: tokenResult.error }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -164,32 +358,29 @@ serve(async (req) => {
 
     // Build search URL
     const searchParams = new URLSearchParams({
-      q: keywords.trim(),
+      q: keywords,
       limit: '20',
     });
 
     // Add price filter if provided
-    if (minPrice || maxPrice) {
-      const priceFilter = [];
-      if (minPrice) priceFilter.push(`price:[${minPrice}]`);
-      if (maxPrice) priceFilter.push(`price:[..${maxPrice}]`);
-      if (minPrice && maxPrice) {
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      if (minPrice !== undefined && maxPrice !== undefined) {
         searchParams.set('filter', `price:[${minPrice}..${maxPrice}],priceCurrency:USD`);
-      } else if (minPrice) {
+      } else if (minPrice !== undefined) {
         searchParams.set('filter', `price:[${minPrice}..],priceCurrency:USD`);
-      } else if (maxPrice) {
+      } else if (maxPrice !== undefined) {
         searchParams.set('filter', `price:[..${maxPrice}],priceCurrency:USD`);
       }
     }
 
-    // Add condition filter if provided
+    // Add condition filter if provided (already validated)
     if (condition) {
       const conditionFilter = `conditionIds:{${condition}}`;
       const currentFilter = searchParams.get('filter') || '';
       searchParams.set('filter', currentFilter ? `${currentFilter},${conditionFilter}` : conditionFilter);
     }
 
-    // Restrict to European item locations
+    // Restrict to European item locations + delivery to SE + Fixed Price only
     const euroCountries = 'DE|GB|FR|IT|ES|SE|NL|AT|BE|DK|FI|IE|PL|PT|CZ|GR|HU|RO|NO|CH';
     const locationFilter = `itemLocationCountry:{${euroCountries}}`;
     const deliveryFilter = `deliveryCountry:SE`;
@@ -200,7 +391,7 @@ serve(async (req) => {
 
     const baseUrl = getEbayBaseUrl();
     const searchUrl = `${baseUrl}/buy/browse/v1/item_summary/search?${searchParams.toString()}`;
-    console.log('Searching eBay:', searchUrl);
+    console.log('eBay search URL constructed (params count:', searchParams.toString().split('&').length, ')');
 
     const searchResponse = await fetch(searchUrl, {
       headers: {
@@ -212,9 +403,9 @@ serve(async (req) => {
 
     if (!searchResponse.ok) {
       const errorText = await searchResponse.text();
-      console.error('eBay search error:', searchResponse.status, errorText);
+      console.error('eBay search error:', searchResponse.status);
       return new Response(
-        JSON.stringify({ error: 'eBay search failed', details: errorText }),
+        JSON.stringify({ error: 'eBay search failed', status: searchResponse.status }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -223,22 +414,16 @@ serve(async (req) => {
     console.log(`Found ${searchData.total || 0} items`);
 
     // Normalize eBay image URLs to high-resolution versions
-    // eBay uses size params like s-l64, s-l140, s-l225 for thumbnails
-    // Replace with s-l1600 for high-res images
     function normalizeImageUrl(url: string): string {
       if (!url) return url;
-      // Only normalize eBay image URLs (i.ebayimg.com domain)
       if (!url.includes('i.ebayimg.com')) return url;
-      // Replace common eBay thumbnail size patterns with high-res version
       return url.replace(/s-l(64|140|225|300|400|500)\b/gi, 's-l1600');
     }
 
     // Map eBay items to AIS format
     const items = (searchData.itemSummaries || []).map((item: any) => {
-      // Collect all images - prefer additionalImages (usually higher quality)
       const images: string[] = [];
       
-      // First add additionalImages if available (often better quality)
       if (item.additionalImages && item.additionalImages.length > 0) {
         for (const img of item.additionalImages) {
           if (img.imageUrl) {
@@ -247,12 +432,10 @@ serve(async (req) => {
         }
       }
       
-      // Then add main image (may be the same or a thumbnail)
       if (item.image?.imageUrl) {
         const mainImageUrl = normalizeImageUrl(item.image.imageUrl);
-        // Only add if not already in the list
         if (!images.includes(mainImageUrl)) {
-          images.unshift(mainImageUrl); // Put main image first
+          images.unshift(mainImageUrl);
         }
       }
 
@@ -266,7 +449,7 @@ serve(async (req) => {
         conditionText: item.condition || null,
         seller: item.seller?.username || null,
         itemUrl: item.itemWebUrl || null,
-        affiliateUrl: item.itemWebUrl || null, // For purchase link
+        affiliateUrl: item.itemWebUrl || null,
         keywords: extractKeywords(item.title),
       };
     });
@@ -277,9 +460,9 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
-    console.error('eBay search error:', error);
+    console.error('eBay search error:', error.message);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
