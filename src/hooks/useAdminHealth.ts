@@ -12,11 +12,20 @@ export interface CronStatus {
   lastSuccess?: string | null;
 }
 
+export interface TranslationBudget {
+  items_used: number;
+  items_max: number;
+  chars_used: number;
+  chars_max: number;
+  limit_reached: boolean;
+}
+
 export interface TranslationStatus {
   enabled: boolean;
   last_error: string | null;
   untranslated_count: number;
   failure_count_24h: number;
+  budget: TranslationBudget;
 }
 
 export interface HealthResult {

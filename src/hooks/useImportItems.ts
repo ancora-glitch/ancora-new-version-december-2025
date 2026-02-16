@@ -355,6 +355,26 @@ export function usePromoteToProduct() {
   });
 }
 
+// ── Language heuristic (mirrors edge function logic) ──
+const SWEDISH_STOPWORDS = ['och', 'det', 'som', 'är', 'en', 'ett', 'att', 'för', 'med', 'har', 'den', 'av', 'inte', 'var', 'kan', 'till', 'på', 'om'];
+
+function isLikelyEnglish(title: string, description: string): boolean {
+  const combined = `${title} ${description}`.toLowerCase();
+  if (/[åäöÅÄÖ]/.test(combined)) return false;
+  const letters = combined.replace(/[^a-zà-ÿ]/gi, '');
+  if (letters.length === 0) return false;
+  const azLetters = combined.replace(/[^a-z]/gi, '');
+  const ratio = azLetters.length / letters.length;
+  if (ratio <= 0.8) return false;
+  const words = combined.split(/\s+/);
+  let swCount = 0;
+  for (const w of words) {
+    if (SWEDISH_STOPWORDS.includes(w)) swCount++;
+  }
+  if (swCount >= 2) return false;
+  return true;
+}
+
 // Create new import item (manual) — triggers translation for Tradera items
 export function useCreateImportItem() {
   const queryClient = useQueryClient();
@@ -372,8 +392,15 @@ export function useCreateImportItem() {
       insertPayload.description_original = data.description || null;
       insertPayload.language = 'sv';
 
-      // Attempt translation (non-blocking for insert)
-      if (data.source_type === 'tradera') {
+      // Skip translation if text is already English
+      if (data.source_type === 'tradera' && isLikelyEnglish(data.title, data.description || '')) {
+        console.log('[Translation] Skipped (already EN): manual import');
+        insertPayload.title_en = data.title;
+        insertPayload.description_en = data.description || null;
+        insertPayload.translated_at = new Date().toISOString();
+        insertPayload.language = 'en';
+      } else if (data.source_type === 'tradera') {
+        // Attempt translation (non-blocking for insert)
         try {
           const { data: translated, error: translateError } = await supabase.functions.invoke('translate-swedish', {
             body: {

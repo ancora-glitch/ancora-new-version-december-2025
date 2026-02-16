@@ -50,7 +50,11 @@ export function ImportsTab() {
       if (error) {
         toast.error('Backfill failed: ' + error.message);
       } else {
-        toast.success(`Translated ${data.translated} products (${data.failed} failed)`);
+        const parts = [`Translated ${data.translated}`];
+        if (data.skipped_already_english > 0) parts.push(`${data.skipped_already_english} already EN`);
+        if (data.skipped_budget > 0) parts.push(`${data.skipped_budget} budget-skipped`);
+        if (data.failed > 0) parts.push(`${data.failed} failed`);
+        toast.success(parts.join(', '));
         runHealthCheck(); // Refresh counts
       }
     } catch (e: any) {
@@ -232,7 +236,7 @@ export function ImportsTab() {
         {/* Translation Status */}
         {health?.translation && (
           <TooltipProvider>
-            <div className="flex items-center gap-3 p-2.5 rounded-sm border border-border bg-muted/20 text-xs mt-2">
+            <div className="flex items-center gap-3 p-2.5 rounded-sm border border-border bg-muted/20 text-xs mt-2 flex-wrap">
               <span className="text-muted-foreground font-medium">Translation:</span>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -260,6 +264,32 @@ export function ImportsTab() {
                 <span className="text-amber-600 font-medium">
                   {health.translation.untranslated_count} untranslated
                 </span>
+              )}
+              {/* Budget display */}
+              {health.translation.budget && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className={`inline-flex items-center gap-1 cursor-default font-medium ${
+                      health.translation.budget.limit_reached
+                        ? 'text-destructive'
+                        : health.translation.budget.items_used / health.translation.budget.items_max > 0.8
+                          ? 'text-amber-600'
+                          : 'text-muted-foreground'
+                    }`}>
+                      Budget: {health.translation.budget.items_used}/{health.translation.budget.items_max}
+                      {health.translation.budget.limit_reached && (
+                        <AlertTriangle className="w-3 h-3" />
+                      )}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <div className="space-y-0.5 text-xs">
+                      <p>Items today: {health.translation.budget.items_used} / {health.translation.budget.items_max}</p>
+                      <p>Chars today: {Math.round(health.translation.budget.chars_used / 1000)}k / {Math.round(health.translation.budget.chars_max / 1000)}k</p>
+                      {health.translation.budget.limit_reached && <p className="text-destructive font-medium">Daily limit reached — translations use fallback</p>}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
               )}
               <Button
                 variant="outline"
