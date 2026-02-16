@@ -4,6 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 export interface CronStatus {
   lastRun: string | null;
   status: string;
+  duration_ms?: number;
+  items_processed?: number;
+  checked_count?: number;
+  sold_marked?: number;
 }
 
 export interface HealthResult {

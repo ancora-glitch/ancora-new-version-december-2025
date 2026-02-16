@@ -126,27 +126,39 @@ export type Database = {
       }
       cron_runs: {
         Row: {
+          checked_count: number | null
           created_at: string
+          duration_ms: number | null
           error_message: string | null
           id: string
+          items_processed: number | null
           job_name: string
           ran_at: string
+          sold_marked: number | null
           status: string
         }
         Insert: {
+          checked_count?: number | null
           created_at?: string
+          duration_ms?: number | null
           error_message?: string | null
           id?: string
+          items_processed?: number | null
           job_name: string
           ran_at?: string
+          sold_marked?: number | null
           status?: string
         }
         Update: {
+          checked_count?: number | null
           created_at?: string
+          duration_ms?: number | null
           error_message?: string | null
           id?: string
+          items_processed?: number | null
           job_name?: string
           ran_at?: string
+          sold_marked?: number | null
           status?: string
         }
         Relationships: []
