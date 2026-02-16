@@ -7,7 +7,7 @@ import { TraderaSearchDrawer } from "./TraderaSearchDrawer";
 import { RetryJobsPanel } from "./RetryJobsPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, AlertTriangle, Zap, RotateCcw, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, Search, AlertTriangle, Zap, RotateCcw, RefreshCw, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { useTraderaUsage } from "@/hooks/useTraderaUsage";
 import { usePendingRetryCount } from "@/hooks/useRetryJobs";
 import { Progress } from "@/components/ui/progress";
@@ -124,6 +124,59 @@ export function ImportsTab() {
             </Button>
           </div>
         </TooltipProvider>
+
+        {/* Cron Status */}
+        {health?.cron && (
+          <TooltipProvider>
+            <div className="flex items-center gap-3 p-2.5 rounded-sm border border-border bg-muted/20 text-xs mt-2">
+              <span className="text-muted-foreground font-medium">Cron status:</span>
+              {([
+                { key: "tradera_sync", label: "Tradera sync" },
+                { key: "tradera_retry_import", label: "Retry import" },
+                { key: "ebay_availability", label: "eBay availability" },
+              ] as const).map(({ key, label }) => {
+                const run = health.cron![key];
+                if (!run) return null;
+                const lastRun = run.lastRun ? new Date(run.lastRun) : null;
+                const minutesAgo = lastRun ? (Date.now() - lastRun.getTime()) / 60000 : Infinity;
+                const isStale = minutesAgo > 45;
+                const isError = run.status === "error";
+                const isNever = !lastRun;
+                const timeStr = lastRun
+                  ? lastRun.toLocaleString("sv-SE", { hour: "2-digit", minute: "2-digit" })
+                  : "never";
+
+                return (
+                  <Tooltip key={key}>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex items-center gap-1 cursor-default">
+                        {label}: <span className="tabular-nums">{timeStr}</span>
+                        {isError ? (
+                          <XCircle className="w-3.5 h-3.5 text-destructive" />
+                        ) : isNever || isStale ? (
+                          <Clock className="w-3.5 h-3.5 text-amber-500" />
+                        ) : (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+                        )}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>
+                        {isError
+                          ? "Last run failed"
+                          : isNever
+                            ? "No runs recorded yet"
+                            : isStale
+                              ? `Last run ${Math.round(minutesAgo)}min ago (>45min)`
+                              : `Last run ${Math.round(minutesAgo)}min ago`}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
+            </div>
+          </TooltipProvider>
+        )}
 
 
         {!usageLoading && usage && (

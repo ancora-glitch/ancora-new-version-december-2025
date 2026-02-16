@@ -296,6 +296,11 @@ serve(async (req) => {
       }
     }
 
+    // Log cron run
+    try {
+      await supabase.from('cron_runs').insert({ job_name: 'tradera_retry_import', status: 'success' });
+    } catch (_) { /* non-blocking */ }
+
     return new Response(
       JSON.stringify({
         message: 'Retry processing complete',
@@ -307,6 +312,11 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in tradera-retry-import:', error);
+    // Log cron failure
+    try {
+      const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+      await supabase.from('cron_runs').insert({ job_name: 'tradera_retry_import', status: 'error', error_message: error instanceof Error ? error.message : 'Unknown error' });
+    } catch (_) { /* non-blocking */ }
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

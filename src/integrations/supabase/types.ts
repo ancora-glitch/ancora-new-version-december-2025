@@ -124,6 +124,33 @@ export type Database = {
         }
         Relationships: []
       }
+      cron_runs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          job_name: string
+          ran_at: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          job_name: string
+          ran_at?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          job_name?: string
+          ran_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           additional_images: Json | null
