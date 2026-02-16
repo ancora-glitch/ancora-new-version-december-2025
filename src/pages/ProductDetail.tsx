@@ -351,7 +351,7 @@ const ProductDetail = () => {
 
                 {/* Product Name */}
                 <h1 className="text-2xl md:text-3xl lg:text-4xl font-serif text-primary leading-tight">
-                  {product.name}
+                  {(product as any).name_en || product.name}
                 </h1>
 
                 {/* Price */}
@@ -395,9 +395,9 @@ const ProductDetail = () => {
                 </div>
 
                 {/* Description */}
-                {product.description && (
+                {((product as any).description_en || product.description) && (
                   <p className="text-muted-foreground leading-relaxed">
-                    {product.description}
+                    {(product as any).description_en || product.description}
                   </p>
                 )}
 

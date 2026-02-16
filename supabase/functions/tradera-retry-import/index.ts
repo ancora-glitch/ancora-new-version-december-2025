@@ -235,6 +235,41 @@ serve(async (req) => {
           .filter((w: string) => w.length > 2)
           .slice(0, 10);
 
+        const originalTitle = item.shortDescription || payload.shortDescription || 'Untitled';
+        const originalDescription = item.longDescription || payload.longDescription || null;
+
+        // Translate Swedish text to English (non-blocking)
+        let titleEn: string | null = null;
+        let descriptionEn: string | null = null;
+        let translatedAt: string | null = null;
+
+        try {
+          const translateResponse = await fetch(`${supabaseUrl}/functions/v1/translate-swedish`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({
+              name: originalTitle,
+              description: originalDescription || '',
+              condition: item.condition || '',
+            }),
+          });
+
+          if (translateResponse.ok) {
+            const translated = await translateResponse.json();
+            titleEn = translated.name || null;
+            descriptionEn = translated.description || null;
+            translatedAt = new Date().toISOString();
+            console.log(`[Tradera Import] Translated item ${job.source_ref}`);
+          } else {
+            console.error(`[Tradera Import] Translation failed for ${job.source_ref}: HTTP ${translateResponse.status}`);
+          }
+        } catch (translationErr) {
+          console.error(`[Tradera Import] Translation failed for ${job.source_ref}: ${translationErr instanceof Error ? translationErr.message : 'Unknown'}`);
+        }
+
         const { error: insertError } = await supabase
           .from('ancora_import_items')
           .insert({
@@ -242,8 +277,14 @@ serve(async (req) => {
             source_ref: job.source_ref,
             source_url: item.itemLink || payload.itemLink,
             affiliate_url: item.itemLink || payload.itemLink,
-            title: item.shortDescription || payload.shortDescription || 'Untitled',
-            description: item.longDescription || payload.longDescription || null,
+            title: titleEn || originalTitle,
+            description: descriptionEn || originalDescription,
+            title_original: originalTitle,
+            description_original: originalDescription,
+            title_en: titleEn,
+            description_en: descriptionEn,
+            language: 'sv',
+            translated_at: translatedAt,
             images,
             price: item.buyItNowPrice || item.price || payload.price || null,
             currency: 'SEK',
