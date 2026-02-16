@@ -42,7 +42,7 @@ const sourceBadge = (source: AisSourceType) => {
 };
 
 export function ImportItemsList({ onSelectItem, selectedItemId }: ImportItemsListProps) {
-  const [statusFilter, setStatusFilter] = useState<AisStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<AisStatus | "all">("draft");
   const [sourceFilter, setSourceFilter] = useState<AisSourceType | "all">("all");
 
   const { data: items, isLoading } = useImportItems({
