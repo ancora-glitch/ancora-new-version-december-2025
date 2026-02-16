@@ -9,6 +9,7 @@ import {
   type AisCondition,
   type AisSignals,
 } from "@/hooks/useImportItems";
+import { useAllCategories } from "@/hooks/useCategories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -90,6 +91,7 @@ function TagInput({
 
 export function ImportItemDetail({ itemId, onClose }: ImportItemDetailProps) {
   const { data: item, isLoading } = useImportItem(itemId);
+  const { data: categories } = useAllCategories();
   const updateMutation = useUpdateImportItem();
   const markReviewedMutation = useMarkReviewed();
   const discardMutation = useDiscardItem();
@@ -113,6 +115,16 @@ export function ImportItemDetail({ itemId, onClose }: ImportItemDetailProps) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [hasChanges, setHasChanges] = useState(false);
 
+  // New structured fields
+  const [brandText, setBrandText] = useState("");
+  const [sizeText, setSizeText] = useState("");
+  const [colorText, setColorText] = useState("");
+  const [materialText, setMaterialText] = useState("");
+  const [conditionText, setConditionText] = useState("");
+  const [marketplace, setMarketplace] = useState("");
+  const [categoryId, setCategoryId] = useState<string>("");
+  const [affiliateUrl, setAffiliateUrl] = useState("");
+
   // Load item data into form
   useEffect(() => {
     if (item) {
@@ -125,6 +137,15 @@ export function ImportItemDetail({ itemId, onClose }: ImportItemDetailProps) {
       setSignals(item.signals);
       setSelectedImage(0);
       setHasChanges(false);
+      // New fields
+      setBrandText(item.brand_text || "");
+      setSizeText(item.size_text || "");
+      setColorText(item.color_text || "");
+      setMaterialText(item.material_text || "");
+      setConditionText(item.condition_text || "");
+      setMarketplace(item.marketplace || item.source_type || "");
+      setCategoryId(item.category_id || "");
+      setAffiliateUrl(item.affiliate_url || "");
     }
   }, [item]);
 
@@ -154,6 +175,14 @@ export function ImportItemDetail({ itemId, onClose }: ImportItemDetailProps) {
 
   const handleSave = async () => {
     try {
+      // Validate primary_image invariant
+      if (item.primary_image && !item.images.includes(item.primary_image)) {
+        console.warn("[AIS] primary_image not in images array", {
+          primary_image: item.primary_image,
+          images_count: item.images.length,
+        });
+      }
+
       await updateMutation.mutateAsync({
         id: item.id,
         data: {
@@ -164,6 +193,13 @@ export function ImportItemDetail({ itemId, onClose }: ImportItemDetailProps) {
           condition: condition || null,
           provenance: provenance || null,
           signals,
+          brand_text: brandText || null,
+          size_text: sizeText || null,
+          color_text: colorText || null,
+          material_text: materialText || null,
+          condition_text: conditionText || null,
+          marketplace: marketplace || null,
+          category_id: categoryId || null,
         },
       });
       toast.success("Changes saved");
@@ -354,12 +390,32 @@ export function ImportItemDetail({ itemId, onClose }: ImportItemDetailProps) {
               ))}
             </div>
           )}
+
+          <p className="text-xs text-muted-foreground">
+            {item.images.length} image{item.images.length !== 1 ? "s" : ""}
+            {item.primary_image && " • Hero selected"}
+          </p>
         </div>
 
-        {/* Right: Editable fields */}
-        <div className="space-y-5">
+        {/* Right: Editable fields — mirrors Product form */}
+        <div className="space-y-5 overflow-y-auto max-h-[80vh]">
+          {/* Brand */}
           <div className="space-y-2">
-            <Label>Title</Label>
+            <Label>Brand</Label>
+            <Input
+              value={brandText}
+              onChange={(e) => {
+                setBrandText(e.target.value);
+                setHasChanges(true);
+              }}
+              placeholder="e.g. Filippa K"
+              className="bg-background"
+            />
+          </div>
+
+          {/* Title / Name */}
+          <div className="space-y-2">
+            <Label>Name</Label>
             <Input
               value={title}
               onChange={(e) => {
@@ -370,18 +426,7 @@ export function ImportItemDetail({ itemId, onClose }: ImportItemDetailProps) {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Description</Label>
-            <Textarea
-              value={description}
-              onChange={(e) => {
-                setDescription(e.target.value);
-                setHasChanges(true);
-              }}
-              className="bg-background min-h-[100px]"
-            />
-          </div>
-
+          {/* Price + Currency */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Price</Label>
@@ -409,28 +454,159 @@ export function ImportItemDetail({ itemId, onClose }: ImportItemDetailProps) {
             </div>
           </div>
 
+          {/* Size */}
           <div className="space-y-2">
-            <Label>Condition</Label>
+            <Label>Size</Label>
+            <Input
+              value={sizeText}
+              onChange={(e) => {
+                setSizeText(e.target.value);
+                setHasChanges(true);
+              }}
+              placeholder="e.g. M, 38, EU 40"
+              className="bg-background"
+            />
+          </div>
+
+          {/* Color */}
+          <div className="space-y-2">
+            <Label>Color</Label>
+            <Input
+              value={colorText}
+              onChange={(e) => {
+                setColorText(e.target.value);
+                setHasChanges(true);
+              }}
+              placeholder="e.g. Black, Navy"
+              className="bg-background"
+            />
+          </div>
+
+          {/* Condition (enum) + Condition text */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Condition (enum)</Label>
+              <Select
+                value={condition}
+                onValueChange={(v) => {
+                  setCondition(v as AisCondition);
+                  setHasChanges(true);
+                }}
+              >
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new">New</SelectItem>
+                  <SelectItem value="excellent">Excellent</SelectItem>
+                  <SelectItem value="good">Good</SelectItem>
+                  <SelectItem value="fair">Fair</SelectItem>
+                  <SelectItem value="unknown">Unknown</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Condition (text)</Label>
+              <Input
+                value={conditionText}
+                onChange={(e) => {
+                  setConditionText(e.target.value);
+                  setHasChanges(true);
+                }}
+                placeholder="e.g. New with tags"
+                className="bg-background"
+              />
+            </div>
+          </div>
+
+          {/* Material */}
+          <div className="space-y-2">
+            <Label>Material</Label>
+            <Input
+              value={materialText}
+              onChange={(e) => {
+                setMaterialText(e.target.value);
+                setHasChanges(true);
+              }}
+              placeholder="e.g. Wool, Cashmere"
+              className="bg-background"
+            />
+          </div>
+
+          {/* Description */}
+          <div className="space-y-2">
+            <Label>Description</Label>
+            <Textarea
+              value={description}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                setHasChanges(true);
+              }}
+              className="bg-background min-h-[100px]"
+            />
+          </div>
+
+          {/* Affiliate URL */}
+          <div className="space-y-2">
+            <Label>Affiliate URL</Label>
+            <Input
+              value={affiliateUrl}
+              onChange={(e) => {
+                setAffiliateUrl(e.target.value);
+                setHasChanges(true);
+              }}
+              placeholder="https://..."
+              className="bg-background"
+            />
+          </div>
+
+          {/* Marketplace */}
+          <div className="space-y-2">
+            <Label>Marketplace</Label>
             <Select
-              value={condition}
+              value={marketplace}
               onValueChange={(v) => {
-                setCondition(v as AisCondition);
+                setMarketplace(v);
                 setHasChanges(true);
               }}
             >
               <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Select condition" />
+                <SelectValue placeholder="Select" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="new">New</SelectItem>
-                <SelectItem value="excellent">Excellent</SelectItem>
-                <SelectItem value="good">Good</SelectItem>
-                <SelectItem value="fair">Fair</SelectItem>
-                <SelectItem value="unknown">Unknown</SelectItem>
+                <SelectItem value="tradera">Tradera</SelectItem>
+                <SelectItem value="ebay">eBay</SelectItem>
+                <SelectItem value="manual">Manual</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
+          {/* Category */}
+          <div className="space-y-2">
+            <Label>Category</Label>
+            <Select
+              value={categoryId || "__none__"}
+              onValueChange={(v) => {
+                setCategoryId(v === "__none__" ? "" : v);
+                setHasChanges(true);
+              }}
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="None" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">None</SelectItem>
+                {categories?.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Provenance */}
           <div className="space-y-2">
             <Label>Provenance</Label>
             <Input
@@ -488,7 +664,7 @@ export function ImportItemDetail({ itemId, onClose }: ImportItemDetailProps) {
             </div>
 
             <div className="space-y-2">
-              <Label>Material</Label>
+              <Label>Material (tags)</Label>
               <TagInput
                 value={signals.material || []}
                 onChange={(material) => {

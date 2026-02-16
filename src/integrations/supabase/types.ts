@@ -17,7 +17,11 @@ export type Database = {
       ancora_import_items: {
         Row: {
           affiliate_url: string | null
+          brand_text: string | null
+          category_id: string | null
+          color_text: string | null
           condition: Database["public"]["Enums"]["ais_condition"] | null
+          condition_text: string | null
           created_at: string
           currency: string | null
           description: string | null
@@ -26,13 +30,17 @@ export type Database = {
           id: string
           images: string[]
           language: string | null
+          marketplace: string | null
+          material_text: string | null
           price: number | null
+          primary_image: string | null
           product_id: string | null
           promoted_at: string | null
           provenance: string | null
           raw_payload: Json | null
           reviewed_at: string | null
           signals: Json | null
+          size_text: string | null
           source_ref: string
           source_type: Database["public"]["Enums"]["ais_source_type"]
           source_url: string | null
@@ -44,7 +52,11 @@ export type Database = {
         }
         Insert: {
           affiliate_url?: string | null
+          brand_text?: string | null
+          category_id?: string | null
+          color_text?: string | null
           condition?: Database["public"]["Enums"]["ais_condition"] | null
+          condition_text?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
@@ -53,13 +65,17 @@ export type Database = {
           id?: string
           images?: string[]
           language?: string | null
+          marketplace?: string | null
+          material_text?: string | null
           price?: number | null
+          primary_image?: string | null
           product_id?: string | null
           promoted_at?: string | null
           provenance?: string | null
           raw_payload?: Json | null
           reviewed_at?: string | null
           signals?: Json | null
+          size_text?: string | null
           source_ref: string
           source_type: Database["public"]["Enums"]["ais_source_type"]
           source_url?: string | null
@@ -71,7 +87,11 @@ export type Database = {
         }
         Update: {
           affiliate_url?: string | null
+          brand_text?: string | null
+          category_id?: string | null
+          color_text?: string | null
           condition?: Database["public"]["Enums"]["ais_condition"] | null
+          condition_text?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
@@ -80,13 +100,17 @@ export type Database = {
           id?: string
           images?: string[]
           language?: string | null
+          marketplace?: string | null
+          material_text?: string | null
           price?: number | null
+          primary_image?: string | null
           product_id?: string | null
           promoted_at?: string | null
           provenance?: string | null
           raw_payload?: Json | null
           reviewed_at?: string | null
           signals?: Json | null
+          size_text?: string | null
           source_ref?: string
           source_type?: Database["public"]["Enums"]["ais_source_type"]
           source_url?: string | null
@@ -97,6 +121,13 @@ export type Database = {
           translated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ancora_import_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ancora_import_items_product_id_fkey"
             columns: ["product_id"]
