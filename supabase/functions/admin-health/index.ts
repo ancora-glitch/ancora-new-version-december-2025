@@ -148,12 +148,31 @@ serve(async (req) => {
   }
 
   // 5. Translation status
-  const translation = { enabled: true, last_error: null as string | null };
+  const translation = { enabled: true, last_error: null as string | null, untranslated_count: 0, failure_count_24h: 0 };
   try {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       translation.enabled = false;
       translation.last_error = 'LOVABLE_API_KEY not configured';
+    }
+
+    // Count untranslated Tradera products
+    const { count: untranslatedCount } = await serviceClient
+      .from('products')
+      .select('id', { count: 'exact', head: true })
+      .eq('marketplace', 'tradera')
+      .is('name_en', null);
+    translation.untranslated_count = untranslatedCount ?? 0;
+
+    // Count products where language=sv but missing translations (guardrail)
+    const { count: missingCount } = await serviceClient
+      .from('products')
+      .select('id', { count: 'exact', head: true })
+      .eq('language', 'sv')
+      .is('name_en', null)
+      .not('marketplace', 'is', null);
+    if (missingCount && missingCount > 0) {
+      translation.failure_count_24h = missingCount;
     }
   } catch (_) { /* non-blocking */ }
 
