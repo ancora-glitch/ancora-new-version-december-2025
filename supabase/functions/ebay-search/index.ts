@@ -124,12 +124,13 @@ function validateSearchInput(body: any): { valid: true; keywords: string; minPri
 }
 
 // ========================================
-// AUTH: Verify JWT via getClaims
+// AUTH: Verify JWT via getUser + user_roles
 // ========================================
 async function verifyAdmin(req: Request): Promise<{ authorized: true; userId: string } | { authorized: false; response: Response }> {
   const corsHeaders = getCorsHeaders(req);
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
+    console.log('ebay-search: auth failed — missing token');
     return {
       authorized: false,
       response: new Response(JSON.stringify({ error: 'Unauthorized: missing token' }), {
@@ -138,15 +139,23 @@ async function verifyAdmin(req: Request): Promise<{ authorized: true; userId: st
     };
   }
 
+  const token = authHeader.replace('Bearer ', '');
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+  if (token === serviceRoleKey) {
+    console.log('ebay-search: auth via service-role key');
+    return { authorized: true, userId: 'service-role' };
+  }
+
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_ANON_KEY')!,
     { global: { headers: { Authorization: authHeader } } }
   );
 
-  const token = authHeader.replace('Bearer ', '');
-  const { data, error } = await supabase.auth.getClaims(token);
-  if (error || !data?.claims) {
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  if (error || !user) {
+    console.log('ebay-search: auth failed — invalid token');
     return {
       authorized: false,
       response: new Response(JSON.stringify({ error: 'Unauthorized: invalid token' }), {
@@ -155,12 +164,11 @@ async function verifyAdmin(req: Request): Promise<{ authorized: true; userId: st
     };
   }
 
-  const userId = data.claims.sub as string;
+  const userId = user.id;
 
-  // Check admin role
   const serviceClient = createClient(
     Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    serviceRoleKey
   );
   const { data: roleData } = await serviceClient
     .from('user_roles')
@@ -170,6 +178,7 @@ async function verifyAdmin(req: Request): Promise<{ authorized: true; userId: st
     .maybeSingle();
 
   if (!roleData) {
+    console.log('ebay-search: auth failed — not admin');
     return {
       authorized: false,
       response: new Response(JSON.stringify({ error: 'Forbidden: admin role required' }), {
@@ -178,6 +187,7 @@ async function verifyAdmin(req: Request): Promise<{ authorized: true; userId: st
     };
   }
 
+  console.log('ebay-search: auth via jwt (admin)');
   return { authorized: true, userId };
 }
 

@@ -24,20 +24,31 @@ async function verifyAdmin(req: Request): Promise<{ authorized: true; userId: st
   const corsHeaders = getCorsHeaders(req);
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
+    console.log('tradera-upload-images: auth failed — missing token');
     return { authorized: false, response: new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }) };
   }
-  const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: authHeader } } });
   const token = authHeader.replace('Bearer ', '');
-  const { data, error } = await supabase.auth.getClaims(token);
-  if (error || !data?.claims) {
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+  if (token === serviceRoleKey) {
+    console.log('tradera-upload-images: auth via service-role key');
+    return { authorized: true, userId: 'service-role' };
+  }
+
+  const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: authHeader } } });
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  if (error || !user) {
+    console.log('tradera-upload-images: auth failed — invalid token');
     return { authorized: false, response: new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }) };
   }
-  const userId = data.claims.sub as string;
-  const serviceClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+  const userId = user.id;
+  const serviceClient = createClient(Deno.env.get('SUPABASE_URL')!, serviceRoleKey);
   const { data: roleData } = await serviceClient.from('user_roles').select('role').eq('user_id', userId).eq('role', 'admin').maybeSingle();
   if (!roleData) {
+    console.log('tradera-upload-images: auth failed — not admin');
     return { authorized: false, response: new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }) };
   }
+  console.log('tradera-upload-images: auth via jwt (admin)');
   return { authorized: true, userId };
 }
 

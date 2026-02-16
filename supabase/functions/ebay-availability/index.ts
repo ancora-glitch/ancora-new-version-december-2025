@@ -25,6 +25,7 @@ async function verifyAdminOrServiceRole(req: Request): Promise<{ authorized: tru
   const corsHeaders = getCorsHeaders(req);
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
+    console.log('ebay-availability: auth failed — missing token');
     return { authorized: false, response: new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }) };
   }
 
@@ -33,22 +34,25 @@ async function verifyAdminOrServiceRole(req: Request): Promise<{ authorized: tru
 
   // Allow service-role key directly (used by pg_cron)
   if (token === serviceRoleKey) {
-    console.log('Auth: service-role key accepted (cron job)');
+    console.log('ebay-availability: auth via service-role key');
     return { authorized: true, userId: 'service-role' };
   }
 
-  // Otherwise, verify as admin user JWT
+  // Otherwise, verify as admin user JWT via getUser
   const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: authHeader } } });
-  const { data, error } = await supabase.auth.getClaims(token);
-  if (error || !data?.claims) {
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  if (error || !user) {
+    console.log('ebay-availability: auth failed — invalid token');
     return { authorized: false, response: new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }) };
   }
-  const userId = data.claims.sub as string;
+  const userId = user.id;
   const serviceClient = createClient(Deno.env.get('SUPABASE_URL')!, serviceRoleKey);
   const { data: roleData } = await serviceClient.from('user_roles').select('role').eq('user_id', userId).eq('role', 'admin').maybeSingle();
   if (!roleData) {
+    console.log('ebay-availability: auth failed — not admin');
     return { authorized: false, response: new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }) };
   }
+  console.log('ebay-availability: auth via jwt (admin)');
   return { authorized: true, userId };
 }
 
