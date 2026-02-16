@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.tradera-upload-images]
 verify_jwt = false
+
+[functions.admin-health]
+verify_jwt = false

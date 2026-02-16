@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ImportItemsList } from "./ImportItemsList";
 import { ImportItemDetail } from "./ImportItemDetail";
 import { NewImportDialog } from "./NewImportDialog";
@@ -7,10 +7,12 @@ import { TraderaSearchDrawer } from "./TraderaSearchDrawer";
 import { RetryJobsPanel } from "./RetryJobsPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, AlertTriangle, Zap, RotateCcw } from "lucide-react";
+import { Plus, Search, AlertTriangle, Zap, RotateCcw, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
 import { useTraderaUsage } from "@/hooks/useTraderaUsage";
 import { usePendingRetryCount } from "@/hooks/useRetryJobs";
 import { Progress } from "@/components/ui/progress";
+import { useAdminHealth } from "@/hooks/useAdminHealth";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function ImportsTab() {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -20,6 +22,9 @@ export function ImportsTab() {
   
   const { data: usage, isLoading: usageLoading } = useTraderaUsage();
   const { data: pendingCount } = usePendingRetryCount();
+  const { data: health, isLoading: healthLoading, error: healthError, check: runHealthCheck } = useAdminHealth();
+
+  useEffect(() => { runHealthCheck(); }, [runHealthCheck]);
 
   const handleCreated = (id: string) => {
     setSelectedItemId(id);
@@ -66,7 +71,56 @@ export function ImportsTab() {
           </div>
         </div>
 
-        {/* Tradera API Quota Indicator */}
+        {/* Edge Health Status */}
+        <TooltipProvider>
+          <div className="flex items-center gap-3 p-2.5 rounded-sm border border-border bg-muted/20 text-xs">
+            <span className="text-muted-foreground font-medium">Edge status:</span>
+            {healthLoading ? (
+              <span className="text-muted-foreground">Checking…</span>
+            ) : healthError ? (
+              <span className="text-destructive">Check failed</span>
+            ) : health ? (
+              <>
+                {(["db", "secrets", "retryQueue"] as const).map((key) => {
+                  const label = key === "db" ? "DB" : key === "secrets" ? "Secrets" : "Retry Queue";
+                  const ok = health.checks[key];
+                  const errMsg = health.errors?.[key];
+                  return (
+                    <Tooltip key={key}>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex items-center gap-1 cursor-default">
+                          {label}
+                          {ok ? (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+                          ) : (
+                            <XCircle className="w-3.5 h-3.5 text-destructive" />
+                          )}
+                        </span>
+                      </TooltipTrigger>
+                      {errMsg && (
+                        <TooltipContent side="bottom">
+                          <p>{errMsg}</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  );
+                })}
+              </>
+            ) : null}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 ml-auto text-xs"
+              onClick={runHealthCheck}
+              disabled={healthLoading}
+            >
+              <RefreshCw className={`w-3 h-3 mr-1 ${healthLoading ? "animate-spin" : ""}`} />
+              Re-check
+            </Button>
+          </div>
+        </TooltipProvider>
+
+
         {!usageLoading && usage && (
           <div className={`flex items-center gap-4 p-3 rounded-sm border ${
             isCriticalQuota 
