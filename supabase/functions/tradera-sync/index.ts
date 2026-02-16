@@ -25,35 +25,72 @@ async function verifyAdminOrServiceRole(req: Request): Promise<{ authorized: tru
   const corsHeaders = getCorsHeaders(req);
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
-    console.log('tradera-sync: auth failed — missing token');
     return { authorized: false, response: new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }) };
   }
 
   const token = authHeader.replace('Bearer ', '');
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-  // Allow service-role key directly (used by pg_cron)
   if (token === serviceRoleKey) {
-    console.log('tradera-sync: auth via service-role key');
     return { authorized: true, userId: 'service-role' };
   }
 
-  // Otherwise, verify as admin user JWT via getUser
   const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: authHeader } } });
   const { data: { user }, error } = await supabase.auth.getUser(token);
   if (error || !user) {
-    console.log('tradera-sync: auth failed — invalid token');
     return { authorized: false, response: new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }) };
   }
   const userId = user.id;
   const serviceClient = createClient(Deno.env.get('SUPABASE_URL')!, serviceRoleKey);
   const { data: roleData } = await serviceClient.from('user_roles').select('role').eq('user_id', userId).eq('role', 'admin').maybeSingle();
   if (!roleData) {
-    console.log('tradera-sync: auth failed — not admin');
     return { authorized: false, response: new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }) };
   }
-  console.log('tradera-sync: auth via jwt (admin)');
   return { authorized: true, userId };
+}
+
+// ── Shared helpers ──
+
+async function runRetention(supabase: any) {
+  try {
+    const cutoff = new Date(Date.now() - 14 * 86_400_000).toISOString();
+    const { count } = await supabase
+      .from('cron_runs')
+      .delete()
+      .lt('ran_at', cutoff)
+      .select('id', { count: 'exact', head: true });
+    if (count && count > 0) {
+      console.log(`[retention] Deleted ${count} cron_runs older than 14 days`);
+    }
+  } catch (_) {
+    // Never block cron execution
+  }
+}
+
+async function logCronRun(supabase: any, payload: {
+  job_name: string;
+  status: string;
+  started_at: string;
+  finished_at: string;
+  duration_ms: number;
+  items_processed: number;
+  checked_count: number;
+  sold_marked: number;
+  error_message?: string | null;
+}) {
+  try {
+    await supabase.from('cron_runs').insert({
+      job_name: payload.job_name,
+      status: payload.status,
+      started_at: payload.started_at,
+      finished_at: payload.finished_at,
+      duration_ms: payload.duration_ms,
+      items_processed: payload.items_processed ?? 0,
+      checked_count: payload.checked_count ?? 0,
+      sold_marked: payload.sold_marked ?? 0,
+      error_message: payload.error_message ?? null,
+    });
+  } catch (_) { /* non-blocking */ }
 }
 
 type AffiliateStatus = 'active' | 'sold' | 'unavailable' | 'unknown';
@@ -78,15 +115,16 @@ serve(async (req) => {
   const authResult = await verifyAdminOrServiceRole(req);
   if (!authResult.authorized) return authResult.response;
 
+  const startedAt = new Date();
+  const _startTime = startedAt.getTime();
+
   try {
-    const _startTime = Date.now();
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const appId = Deno.env.get('TRADERA_APP_ID');
     const appKey = Deno.env.get('TRADERA_APP_KEY');
 
     if (!appId || !appKey) {
-      console.error('Missing Tradera credentials');
       return new Response(
         JSON.stringify({ error: 'Tradera API credentials not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -95,7 +133,10 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch all active Tradera products (include new affiliate fields)
+    // Retention cleanup
+    await runRetention(supabase);
+
+    // Fetch all active Tradera products
     const { data: products, error: fetchError } = await supabase
       .from('products')
       .select('id, name, brand, price, affiliate_url, tradera_item_id, affiliate_auto_handling, affiliate_status')
@@ -103,7 +144,14 @@ serve(async (req) => {
       .in('status', ['active', 'published']);
 
     if (fetchError) {
-      console.error('Error fetching products:', fetchError);
+      const finishedAt = new Date();
+      await logCronRun(supabase, {
+        job_name: 'tradera_sync', status: 'error',
+        started_at: startedAt.toISOString(), finished_at: finishedAt.toISOString(),
+        duration_ms: finishedAt.getTime() - _startTime,
+        items_processed: 0, checked_count: 0, sold_marked: 0,
+        error_message: fetchError.message,
+      });
       return new Response(
         JSON.stringify({ error: 'Failed to fetch products', details: fetchError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -111,83 +159,62 @@ serve(async (req) => {
     }
 
     if (!products || products.length === 0) {
-      console.log('No active Tradera products found');
+      const finishedAt = new Date();
+      await logCronRun(supabase, {
+        job_name: 'tradera_sync', status: 'success',
+        started_at: startedAt.toISOString(), finished_at: finishedAt.toISOString(),
+        duration_ms: finishedAt.getTime() - _startTime,
+        items_processed: 0, checked_count: 0, sold_marked: 0,
+      });
       return new Response(
         JSON.stringify({ message: 'No active Tradera products to sync', results: [] }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Found ${products.length} active Tradera products to sync`);
-    
-    // ========================================
-    // THROTTLING: Max 1 request at a time, 2.5s delay between calls
-    // Fail-fast on 429 (no retries)
-    // ========================================
     const THROTTLE_DELAY_MS = 2500;
-
     const results: TraderaSyncResult[] = [];
 
     for (const product of products) {
-      // Prefer explicit tradera_item_id when present; fall back to parsing affiliate_url.
       const itemId = product.tradera_item_id || extractItemId(product.affiliate_url);
       
       if (!itemId) {
-        console.log(`Could not extract item ID for product ${product.id}`);
         results.push({
           productId: product.id,
           productName: `${product.brand} - ${product.name}`,
-          oldPrice: product.price,
-          newPrice: product.price,
-          status: 'error',
-          error: 'Could not extract Tradera item ID from URL',
+          oldPrice: product.price, newPrice: product.price,
+          status: 'error', error: 'Could not extract Tradera item ID from URL',
         });
         continue;
       }
 
-      // Throttle: wait before each API call (except first)
       if (results.length > 0) {
-        console.log(`Throttling: waiting ${THROTTLE_DELAY_MS}ms before next call...`);
         await new Promise(resolve => setTimeout(resolve, THROTTLE_DELAY_MS));
       }
 
       try {
-        // Fetch item details from Tradera API (fail-fast on 429)
         const itemDetails = await fetchTraderaItem(itemId, appId, appKey);
         
         if (itemDetails === null) {
-          console.log(`Item ${itemId} not found or error`);
           results.push({
-            productId: product.id,
-            productName: `${product.brand} - ${product.name}`,
-            oldPrice: product.price,
-            newPrice: product.price,
-            status: 'error',
-            error: 'Could not fetch item from Tradera',
+            productId: product.id, productName: `${product.brand} - ${product.name}`,
+            oldPrice: product.price, newPrice: product.price,
+            status: 'error', error: 'Could not fetch item from Tradera',
           });
           continue;
         }
         
-        // Check if rate limited - stop processing entirely
         if (itemDetails.rateLimited) {
-          console.warn(`Rate limited on item ${itemId} - stopping sync to avoid further 429s`);
           results.push({
-            productId: product.id,
-            productName: `${product.brand} - ${product.name}`,
-            oldPrice: product.price,
-            newPrice: product.price,
-            status: 'error',
-            error: 'Tradera rate limited (429) - sync stopped',
+            productId: product.id, productName: `${product.brand} - ${product.name}`,
+            oldPrice: product.price, newPrice: product.price,
+            status: 'error', error: 'Tradera rate limited (429) - sync stopped',
           });
-          // Stop processing more items when rate limited
           break;
         }
 
-        // Check if auction has ended
         if (itemDetails.hasEnded) {
-          console.log(`Auction ended for item ${itemId}, updating affiliate status to 'sold'`);
-          
-          const affiliateAutoHandling = product.affiliate_auto_handling !== false; // default true
+          const affiliateAutoHandling = product.affiliate_auto_handling !== false;
           const updateData: Record<string, any> = {
             affiliate_status: 'sold',
             affiliate_last_checked_at: new Date().toISOString(),
@@ -195,7 +222,6 @@ serve(async (req) => {
             updated_at: new Date().toISOString(),
           };
           
-          // Auto-unpublish if enabled
           let autoUnpublished = false;
           if (affiliateAutoHandling) {
             updateData.status = 'sold';
@@ -203,45 +229,28 @@ serve(async (req) => {
             autoUnpublished = true;
           }
           
-          await supabase
-            .from('products')
-            .update(updateData)
-            .eq('id', product.id);
+          await supabase.from('products').update(updateData).eq('id', product.id);
           
           results.push({
-            productId: product.id,
-            productName: `${product.brand} - ${product.name}`,
-            oldPrice: product.price,
-            newPrice: product.price,
-            status: 'ended',
-            affiliateStatus: 'sold',
-            autoUnpublished,
+            productId: product.id, productName: `${product.brand} - ${product.name}`,
+            oldPrice: product.price, newPrice: product.price,
+            status: 'ended', affiliateStatus: 'sold', autoUnpublished,
           });
           continue;
         }
 
-        // If we couldn't parse a valid price, do NOT overwrite the existing price.
-        // This prevents accidentally resetting manually set prices to "0 SEK".
         if (!itemDetails.price || itemDetails.price <= 0) {
-          console.warn(
-            `Invalid price from Tradera for item ${itemId} (product ${product.id}) - skipping price update`,
-          );
           results.push({
-            productId: product.id,
-            productName: `${product.brand} - ${product.name}`,
-            oldPrice: product.price,
-            newPrice: product.price,
-            status: 'error',
-            error: 'Invalid/missing price from Tradera response (skipped to avoid overwriting with 0 SEK)',
+            productId: product.id, productName: `${product.brand} - ${product.name}`,
+            oldPrice: product.price, newPrice: product.price,
+            status: 'error', error: 'Invalid/missing price from Tradera response',
           });
           continue;
         }
 
-        // Format new price
         const newPrice = `${Math.round(itemDetails.price)} SEK`;
         const priceChanged = newPrice !== product.price;
         
-        // Update product with affiliate status and optionally price
         const updateData: Record<string, any> = {
           affiliate_status: 'active',
           affiliate_last_checked_at: new Date().toISOString(),
@@ -250,32 +259,21 @@ serve(async (req) => {
         };
         
         if (priceChanged) {
-          console.log(`Price changed for ${product.id}: ${product.price} -> ${newPrice}`);
           updateData.price = newPrice;
         }
         
-        await supabase
-          .from('products')
-          .update(updateData)
-          .eq('id', product.id);
+        await supabase.from('products').update(updateData).eq('id', product.id);
         
         results.push({
-          productId: product.id,
-          productName: `${product.brand} - ${product.name}`,
-          oldPrice: product.price,
-          newPrice: priceChanged ? newPrice : product.price,
-          status: priceChanged ? 'updated' : 'unchanged',
-          affiliateStatus: 'active',
+          productId: product.id, productName: `${product.brand} - ${product.name}`,
+          oldPrice: product.price, newPrice: priceChanged ? newPrice : product.price,
+          status: priceChanged ? 'updated' : 'unchanged', affiliateStatus: 'active',
         });
       } catch (e) {
-        console.error(`Error processing item ${itemId}:`, e);
         results.push({
-          productId: product.id,
-          productName: `${product.brand} - ${product.name}`,
-          oldPrice: product.price,
-          newPrice: product.price,
-          status: 'error',
-          error: e instanceof Error ? e.message : 'Unknown error',
+          productId: product.id, productName: `${product.brand} - ${product.name}`,
+          oldPrice: product.price, newPrice: product.price,
+          status: 'error', error: e instanceof Error ? e.message : 'Unknown error',
         });
       }
     }
@@ -285,21 +283,13 @@ serve(async (req) => {
     const unchanged = results.filter(r => r.status === 'unchanged').length;
     const errors = results.filter(r => r.status === 'error').length;
 
-    console.log(`Sync complete: ${updated} updated, ${ended} ended, ${unchanged} unchanged, ${errors} errors`);
-
-    // Log cron run with telemetry
-    try {
-      await supabase.from('cron_runs').insert({
-        job_name: 'tradera_sync',
-        status: 'success',
-        duration_ms: Date.now() - _startTime,
-        items_processed: products.length,
-        checked_count: results.length,
-        sold_marked: ended,
-      });
-      // Retention: delete rows older than 14 days
-      await supabase.from('cron_runs').delete().lt('ran_at', new Date(Date.now() - 14 * 86400000).toISOString());
-    } catch (_) { /* non-blocking */ }
+    const finishedAt = new Date();
+    await logCronRun(supabase, {
+      job_name: 'tradera_sync', status: 'success',
+      started_at: startedAt.toISOString(), finished_at: finishedAt.toISOString(),
+      duration_ms: finishedAt.getTime() - _startTime,
+      items_processed: products.length, checked_count: results.length, sold_marked: ended,
+    });
 
     return new Response(
       JSON.stringify({
@@ -311,15 +301,15 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in tradera-sync:', error);
-    // Log cron failure
+    const finishedAt = new Date();
     try {
       const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-      await supabase.from('cron_runs').insert({
-        job_name: 'tradera_sync',
-        status: 'error',
+      await logCronRun(supabase, {
+        job_name: 'tradera_sync', status: 'error',
+        started_at: startedAt.toISOString(), finished_at: finishedAt.toISOString(),
+        duration_ms: finishedAt.getTime() - _startTime,
+        items_processed: 0, checked_count: 0, sold_marked: 0,
         error_message: error instanceof Error ? error.message : 'Unknown error',
-        duration_ms: Date.now() - _startTime,
       });
     } catch (_) { /* non-blocking */ }
     return new Response(
@@ -331,20 +321,12 @@ serve(async (req) => {
 
 function extractItemId(url: string | null): string | null {
   if (!url) return null;
-
-  // Tradera commonly uses URLs like:
-  // - https://www.tradera.com/item/<categoryId>/<itemId>/<slug>
-  // - https://www.tradera.com/item/<itemId>
-  // Our old regex accidentally captured <categoryId>, leading to bad lookups and "0 SEK" overwrites.
   const twoSegment = url.match(/\/item\/\d+\/(\d+)/i);
   if (twoSegment?.[1]) return twoSegment[1];
-
   const oneSegment = url.match(/\/item\/(\d+)/i);
   if (oneSegment?.[1]) return oneSegment[1];
-
   const queryParam = url.match(/[?&]itemId=(\d+)/i);
   if (queryParam?.[1]) return queryParam[1];
-
   return null;
 }
 
@@ -373,8 +355,6 @@ async function fetchTraderaItem(itemId: string, appId: string, appKey: string): 
 </soap:Envelope>`;
 
   try {
-    console.log(`Fetching item ${itemId} (single request, no retries)`);
-    
     const response = await fetch('https://api.tradera.com/v3/PublicService.asmx', {
       method: 'POST',
       headers: {
@@ -384,58 +364,39 @@ async function fetchTraderaItem(itemId: string, appId: string, appKey: string): 
       body: soapEnvelope,
     });
 
-    // Fail-fast on 429 - no retries
     if (response.status === 429) {
-      console.warn(`Tradera GetItem returned 429 for item ${itemId} - fail fast, no retry`);
       return { price: 0, hasEnded: false, rateLimited: true };
     }
 
     if (!response.ok) {
-      console.error(`Tradera API error for item ${itemId}:`, response.status);
       return null;
     }
 
     const xml = await response.text();
-    
-    // Check if item has ended
     const hasEnded = checkIfEnded(xml);
-    
-    // Extract current price (MaxBid for auctions, BuyItNowPrice for fixed price)
     const price = extractNumber(xml, 'MaxBid') || 
                   extractNumber(xml, 'NextBid') ||
                   extractNumber(xml, 'BuyItNowPrice') || 
                   extractNumber(xml, 'Price') || 0;
 
     return { price, hasEnded };
-  } catch (e) {
-    console.error(`Error fetching Tradera item ${itemId}:`, e);
+  } catch (_) {
     return null;
   }
 }
 
 function checkIfEnded(xml: string): boolean {
-  // Check for ItemStatus or EndDate
   const statusMatch = xml.match(/<ItemStatus>(.*?)<\/ItemStatus>/i);
   if (statusMatch) {
     const status = statusMatch[1].toLowerCase();
-    if (status === 'ended' || status === 'sold' || status === 'closed') {
-      return true;
-    }
+    if (status === 'ended' || status === 'sold' || status === 'closed') return true;
   }
-  
-  // Check EndDate against current time
   const endDateMatch = xml.match(/<EndDate>(.*?)<\/EndDate>/i);
   if (endDateMatch) {
     try {
-      const endDate = new Date(endDateMatch[1]);
-      if (endDate < new Date()) {
-        return true;
-      }
-    } catch {
-      // Ignore parse errors
-    }
+      if (new Date(endDateMatch[1]) < new Date()) return true;
+    } catch { /* ignore */ }
   }
-  
   return false;
 }
 
