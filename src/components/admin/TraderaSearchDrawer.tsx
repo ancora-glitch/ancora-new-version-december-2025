@@ -394,7 +394,11 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
               vibe: null,
             };
 
-            // Parse structured fields from listing data
+            // ── PRIORITY INVARIANT ──
+            // Partner/API-provided values ALWAYS win over parser output.
+            // Parser is only used as fallback when partner field is missing/empty.
+            // Do NOT change this priority order without updating the eBay adapter too.
+            // ── END PRIORITY INVARIANT ──
             const parsed = parseListingFields({
               title: itemDetails.shortDescription,
               description: itemDetails.longDescription || "",
