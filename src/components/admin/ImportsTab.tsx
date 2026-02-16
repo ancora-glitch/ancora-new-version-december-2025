@@ -7,7 +7,7 @@ import { TraderaSearchDrawer } from "./TraderaSearchDrawer";
 import { RetryJobsPanel } from "./RetryJobsPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, AlertTriangle, Zap, RotateCcw, RefreshCw, CheckCircle2, XCircle, Clock, Languages, Loader2 } from "lucide-react";
+import { Plus, Search, AlertTriangle, Zap, RotateCcw, RefreshCw, CheckCircle2, XCircle, Clock, Languages, Loader2, Wand2 } from "lucide-react";
 import { useTraderaUsage } from "@/hooks/useTraderaUsage";
 import { usePendingRetryCount } from "@/hooks/useRetryJobs";
 import { Progress } from "@/components/ui/progress";
@@ -40,6 +40,7 @@ export function ImportsTab() {
   const { data: pendingCount } = usePendingRetryCount();
   const { data: health, isLoading: healthLoading, error: healthError, check: runHealthCheck } = useAdminHealth();
   const [isBackfilling, setIsBackfilling] = useState(false);
+  const [isBackfillingFields, setIsBackfillingFields] = useState(false);
 
   useEffect(() => { runHealthCheck(); }, [runHealthCheck]);
 
@@ -61,6 +62,25 @@ export function ImportsTab() {
       toast.error('Backfill error: ' + e.message);
     } finally {
       setIsBackfilling(false);
+    }
+  };
+
+  const handleBackfillFields = async () => {
+    setIsBackfillingFields(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ais-backfill-parsed-fields');
+      if (error) {
+        toast.error('Field backfill failed: ' + error.message);
+      } else {
+        const parts = [`Updated ${data.updated}/${data.processed}`];
+        if (data.skipped_no_text > 0) parts.push(`${data.skipped_no_text} no text`);
+        if (data.errors > 0) parts.push(`${data.errors} errors`);
+        toast.success('Field backfill: ' + parts.join(', '));
+      }
+    } catch (e: any) {
+      toast.error('Backfill error: ' + e.message);
+    } finally {
+      setIsBackfillingFields(false);
     }
   };
 
@@ -102,6 +122,18 @@ export function ImportsTab() {
             <Button variant="outline" onClick={() => setShowEbayDrawer(true)}>
               <Search className="w-4 h-4 mr-2" />
               Search eBay
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleBackfillFields}
+              disabled={isBackfillingFields}
+            >
+              {isBackfillingFields ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Wand2 className="w-4 h-4 mr-2" />
+              )}
+              Backfill fields (200)
             </Button>
             <Button onClick={() => setShowNewDialog(true)}>
               <Plus className="w-4 h-4 mr-2" />

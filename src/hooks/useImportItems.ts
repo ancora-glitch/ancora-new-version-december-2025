@@ -268,16 +268,26 @@ export function usePromoteToProduct() {
       // These assertions ensure import quality. Do NOT remove or weaken them.
       const isTradera = item.source_type === "tradera";
       
-      // Assertion 1: No images = broken import
+      // Assertion 1: No images = broken import → abort with user-facing error
       if (item.images.length === 0) {
         console.error("[AIS Promote] ASSERTION FAILED: No images on item", {
           source_ref: item.source_ref,
           source_type: item.source_type,
         });
-        throw new Error("Cannot promote item with no images");
+        throw new Error("Cannot promote: item has no images. Add images before promoting.");
+      }
+
+      // Assertion 2: primary_image must be in images[] (or null)
+      if (item.primary_image && !item.images.includes(item.primary_image)) {
+        console.error("[AIS Promote] ASSERTION FAILED: primary_image not in images[]", {
+          source_ref: item.source_ref,
+          primary_image: item.primary_image,
+          images: item.images,
+        });
+        throw new Error("Cannot promote: primary image is not in the images list. Fix the hero image before promoting.");
       }
       
-      // Assertion 2: Tradera should always have 3+ images (they typically have 4-10)
+      // Assertion 3: Tradera should always have 3+ images (they typically have 4-10)
       if (isTradera && item.images.length < 3) {
         console.error("[AIS Promote] INVARIANT VIOLATION: Tradera item has < 3 images", {
           source_ref: item.source_ref,
@@ -287,7 +297,7 @@ export function usePromoteToProduct() {
         });
       }
       
-      // Assertion 3: All Tradera images must be HD (/images/ path)
+      // Assertion 4: All Tradera images must be HD (/images/ path)
       if (isTradera) {
         const nonHdImages = item.images.filter(url => 
           url.includes("tradera.net") && !url.includes("/images/")

@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.translate-backfill]
 verify_jwt = false
+
+[functions.ais-backfill-parsed-fields]
+verify_jwt = false

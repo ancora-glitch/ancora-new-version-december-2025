@@ -152,7 +152,11 @@ export function EbaySearchDrawer({ open, onOpenChange, onImported }: EbaySearchD
           vibe: null,
         };
 
-        // Parse structured fields
+        // ── PRIORITY INVARIANT ──
+        // Partner/API-provided values ALWAYS win over parser output.
+        // Parser is only used as fallback when partner field is missing/empty.
+        // Do NOT change this priority order without updating the Tradera adapter too.
+        // ── END PRIORITY INVARIANT ──
         const parsed = parseListingFields({
           title: item.title,
           description: "", // eBay search doesn't return description
