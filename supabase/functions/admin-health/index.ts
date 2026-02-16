@@ -34,10 +34,9 @@ serve(async (req) => {
   // --- Auth: admin or service role ---
   const authHeader = req.headers.get('Authorization') || '';
   const token = authHeader.replace('Bearer ', '');
-  let authMethod = 'none';
 
   if (token === serviceRoleKey) {
-    authMethod = 'service_role';
+    // ok
   } else if (token) {
     try {
       const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -45,7 +44,6 @@ serve(async (req) => {
       });
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) {
-        console.log('[admin-health] auth failed: no user');
         return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
       }
       const serviceClient = createClient(supabaseUrl, serviceRoleKey);
@@ -56,27 +54,18 @@ serve(async (req) => {
         .eq('role', 'admin')
         .maybeSingle();
       if (!roleData) {
-        console.log('[admin-health] auth failed: not admin');
         return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: corsHeaders });
       }
-      authMethod = 'jwt';
-    } catch (e) {
-      console.log('[admin-health] auth error:', e.message);
+    } catch (_) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
     }
   } else {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
   }
 
-  console.log(`[admin-health] authorized via ${authMethod}`);
-
   // --- Health checks ---
   const serviceClient = createClient(supabaseUrl, serviceRoleKey);
-  const checks: Record<string, boolean> = {
-    db: false,
-    secrets: false,
-    retryQueue: false,
-  };
+  const checks: Record<string, boolean> = { db: false, secrets: false, retryQueue: false };
   const errors: Record<string, string> = {};
 
   // 1. DB ping
@@ -84,17 +73,17 @@ serve(async (req) => {
     const { error } = await serviceClient.from('tradera_api_usage').select('id').limit(1);
     checks.db = !error;
     if (error) errors.db = error.message;
-  } catch (e) {
+  } catch (e: any) {
     errors.db = e.message;
   }
 
-  // 2. Required secrets exist (boolean only)
+  // 2. Required secrets
   try {
     const required = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'TRADERA_APP_ID', 'TRADERA_APP_KEY', 'EBAY_APP_ID'];
     const missing = required.filter(k => !Deno.env.get(k));
     checks.secrets = missing.length === 0;
     if (missing.length > 0) errors.secrets = `Missing: ${missing.join(', ')}`;
-  } catch (e) {
+  } catch (e: any) {
     errors.secrets = e.message;
   }
 
@@ -106,30 +95,55 @@ serve(async (req) => {
       .in('status', ['pending', 'retrying']);
     checks.retryQueue = !error;
     if (error) errors.retryQueue = error.message;
-  } catch (e) {
+  } catch (e: any) {
     errors.retryQueue = e.message;
   }
 
   const ok = Object.values(checks).every(Boolean);
   const version = new Date().toISOString();
 
-  // 4. Cron run visibility — latest run per job
+  // 4. Cron run visibility — latest run + last success per job
   const cronJobs = ['tradera_sync', 'tradera_retry_import', 'ebay_availability'];
-  const cron: Record<string, { lastRun: string | null; status: string; duration_ms?: number; items_processed?: number; checked_count?: number; sold_marked?: number }> = {};
+  const cron: Record<string, any> = {};
   for (const jobName of cronJobs) {
     try {
-      const { data } = await serviceClient
+      // Latest run (any status)
+      const { data: latest } = await serviceClient
         .from('cron_runs')
-        .select('ran_at, status, duration_ms, items_processed, checked_count, sold_marked')
+        .select('ran_at, started_at, finished_at, status, duration_ms, items_processed, checked_count, sold_marked, error_message')
         .eq('job_name', jobName)
         .order('ran_at', { ascending: false })
         .limit(1)
         .maybeSingle();
-      cron[jobName] = data
-        ? { lastRun: data.ran_at, status: data.status, duration_ms: data.duration_ms, items_processed: data.items_processed, checked_count: data.checked_count, sold_marked: data.sold_marked }
-        : { lastRun: null, status: 'never' };
+
+      // Last successful run (for fallback display when latest is error)
+      let lastSuccess: string | null = null;
+      if (latest && latest.status === 'error') {
+        const { data: successRow } = await serviceClient
+          .from('cron_runs')
+          .select('ran_at')
+          .eq('job_name', jobName)
+          .eq('status', 'success')
+          .order('ran_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        lastSuccess = successRow?.ran_at ?? null;
+      }
+
+      cron[jobName] = latest
+        ? {
+            lastRun: latest.ran_at,
+            status: latest.status,
+            duration_ms: latest.duration_ms ?? 0,
+            items_processed: latest.items_processed ?? 0,
+            checked_count: latest.checked_count ?? 0,
+            sold_marked: latest.sold_marked ?? 0,
+            error_message: latest.error_message ?? null,
+            lastSuccess,
+          }
+        : { lastRun: null, status: 'never', lastSuccess: null };
     } catch (_) {
-      cron[jobName] = { lastRun: null, status: 'unknown' };
+      cron[jobName] = { lastRun: null, status: 'unknown', lastSuccess: null };
     }
   }
 

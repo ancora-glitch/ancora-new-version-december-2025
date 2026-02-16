@@ -130,11 +130,13 @@ export type Database = {
           created_at: string
           duration_ms: number | null
           error_message: string | null
+          finished_at: string | null
           id: string
           items_processed: number | null
           job_name: string
           ran_at: string
           sold_marked: number | null
+          started_at: string | null
           status: string
         }
         Insert: {
@@ -142,11 +144,13 @@ export type Database = {
           created_at?: string
           duration_ms?: number | null
           error_message?: string | null
+          finished_at?: string | null
           id?: string
           items_processed?: number | null
           job_name: string
           ran_at?: string
           sold_marked?: number | null
+          started_at?: string | null
           status?: string
         }
         Update: {
@@ -154,11 +158,13 @@ export type Database = {
           created_at?: string
           duration_ms?: number | null
           error_message?: string | null
+          finished_at?: string | null
           id?: string
           items_processed?: number | null
           job_name?: string
           ran_at?: string
           sold_marked?: number | null
+          started_at?: string | null
           status?: string
         }
         Relationships: []

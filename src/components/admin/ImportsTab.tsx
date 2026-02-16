@@ -11,8 +11,22 @@ import { Plus, Search, AlertTriangle, Zap, RotateCcw, RefreshCw, CheckCircle2, X
 import { useTraderaUsage } from "@/hooks/useTraderaUsage";
 import { usePendingRetryCount } from "@/hooks/useRetryJobs";
 import { Progress } from "@/components/ui/progress";
-import { useAdminHealth } from "@/hooks/useAdminHealth";
+import { useAdminHealth, CronStatus } from "@/hooks/useAdminHealth";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+function cronStatusLabel(run: CronStatus): { label: string; color: string; icon: 'ok' | 'warn' | 'error' } {
+  if (!run.lastRun) return { label: 'Never', color: 'text-amber-500', icon: 'warn' };
+  if (run.status === 'error') return { label: 'Action needed', color: 'text-destructive', icon: 'error' };
+  const minutesAgo = (Date.now() - new Date(run.lastRun).getTime()) / 60000;
+  if (minutesAgo > 45) return { label: 'Stale', color: 'text-amber-500', icon: 'warn' };
+  return { label: 'Healthy', color: 'text-green-600', icon: 'ok' };
+}
+
+function retryCountColor(count: number): string {
+  if (count > 25) return 'text-destructive';
+  if (count > 10) return 'text-amber-600';
+  return 'text-muted-foreground';
+}
 
 export function ImportsTab() {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -30,10 +44,11 @@ export function ImportsTab() {
     setSelectedItemId(id);
   };
 
-  // Quota thresholds
   const isLowQuota = usage && usage.remaining <= 15;
   const isCriticalQuota = usage && usage.remaining <= 5;
   const usagePercent = usage ? (usage.current_count / usage.daily_limit) * 100 : 0;
+
+  const hasAnyError = health?.cron && Object.values(health.cron).some(r => r.status === 'error');
 
   return (
     <div className="space-y-6">
@@ -126,69 +141,76 @@ export function ImportsTab() {
         </TooltipProvider>
 
         {/* Cron Status */}
-        {health?.cron && (() => {
-          const hasError = Object.values(health.cron!).some(r => r.status === "error");
-          return (
-            <TooltipProvider>
-              <div className="flex items-center gap-3 p-2.5 rounded-sm border border-border bg-muted/20 text-xs mt-2 flex-wrap">
-                <span className="text-muted-foreground font-medium">Cron status:</span>
-                {hasError && (
-                  <span className="text-destructive font-medium">Action needed</span>
-                )}
-                {!!pendingCount && pendingCount > 0 && (
-                  <span className="text-amber-600 font-medium">Retry pending: {pendingCount}</span>
-                )}
-                {([
-                  { key: "tradera_sync", label: "Tradera sync" },
-                  { key: "tradera_retry_import", label: "Retry import" },
-                  { key: "ebay_availability", label: "eBay availability" },
-                ] as const).map(({ key, label }) => {
-                  const run = health.cron![key];
-                  if (!run) return null;
-                  const lastRun = run.lastRun ? new Date(run.lastRun) : null;
-                  const minutesAgo = lastRun ? (Date.now() - lastRun.getTime()) / 60000 : Infinity;
-                  const isStale = minutesAgo > 45;
-                  const isError = run.status === "error";
-                  const isNever = !lastRun;
-                  const timeStr = lastRun
-                    ? lastRun.toLocaleString("sv-SE", { hour: "2-digit", minute: "2-digit" })
-                    : "never";
+        {health?.cron && (
+          <TooltipProvider>
+            <div className="flex items-center gap-3 p-2.5 rounded-sm border border-border bg-muted/20 text-xs mt-2 flex-wrap">
+              <span className="text-muted-foreground font-medium">Cron status:</span>
+              {hasAnyError && (
+                <Badge variant="destructive" className="text-[10px] h-5 px-1.5">Action needed</Badge>
+              )}
+              {!!pendingCount && pendingCount > 0 && (
+                <span className={`font-medium ${retryCountColor(pendingCount)}`}>
+                  Retry pending: {pendingCount}
+                </span>
+              )}
+              {([
+                { key: "tradera_sync", label: "Tradera sync" },
+                { key: "tradera_retry_import", label: "Retry import" },
+                { key: "ebay_availability", label: "eBay availability" },
+              ] as const).map(({ key, label }) => {
+                const run = health.cron![key];
+                if (!run) return null;
+                const st = cronStatusLabel(run);
+                const lastRun = run.lastRun ? new Date(run.lastRun) : null;
+                const timeStr = lastRun
+                  ? lastRun.toLocaleString("sv-SE", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+                  : "never";
 
-                  const tooltipLines = [
-                    isError ? "Last run failed" : isNever ? "No runs recorded yet" : isStale ? `Last run ${Math.round(minutesAgo)}min ago (>45min)` : `Last run ${Math.round(minutesAgo)}min ago`,
-                    run.duration_ms != null ? `Duration: ${run.duration_ms}ms` : null,
-                    run.items_processed != null ? `Items: ${run.items_processed}` : null,
-                    run.sold_marked != null && run.sold_marked > 0 ? `Sold/completed: ${run.sold_marked}` : null,
-                  ].filter(Boolean).join(" · ");
+                const tooltipLines: string[] = [];
+                tooltipLines.push(`Status: ${st.label}`);
+                if (lastRun) {
+                  const minutesAgo = Math.round((Date.now() - lastRun.getTime()) / 60000);
+                  tooltipLines.push(`Last run: ${lastRun.toLocaleString("sv-SE")} (${minutesAgo}min ago)`);
+                }
+                tooltipLines.push(`Duration: ${run.duration_ms ?? 0}ms`);
+                tooltipLines.push(`Items: ${run.items_processed ?? 0}`);
+                if ((run.sold_marked ?? 0) > 0) tooltipLines.push(`Sold/completed: ${run.sold_marked}`);
+                if (run.error_message) tooltipLines.push(`Error: ${run.error_message}`);
+                if (run.lastSuccess) {
+                  tooltipLines.push(`Last success: ${new Date(run.lastSuccess).toLocaleString("sv-SE")}`);
+                }
 
-                  return (
-                    <Tooltip key={key}>
-                      <TooltipTrigger asChild>
-                        <span className="inline-flex items-center gap-1 cursor-default">
-                          {label}: <span className="tabular-nums">{timeStr}</span>
-                          {isError ? (
-                            <XCircle className="w-3.5 h-3.5 text-destructive" />
-                          ) : isNever || isStale ? (
-                            <Clock className="w-3.5 h-3.5 text-amber-500" />
-                          ) : (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-                          )}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom">
-                        <p>{tooltipLines}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  );
-                })}
-              </div>
-            </TooltipProvider>
-          );
-        })()}
-
+                return (
+                  <Tooltip key={key}>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex items-center gap-1 cursor-default">
+                        {label}: <span className="tabular-nums">{timeStr}</span>
+                        {st.icon === 'error' ? (
+                          <XCircle className="w-3.5 h-3.5 text-destructive" />
+                        ) : st.icon === 'warn' ? (
+                          <Clock className="w-3.5 h-3.5 text-amber-500" />
+                        ) : (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+                        )}
+                        <span className={`text-[10px] ${st.color}`}>{st.label}</span>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs">
+                      <div className="space-y-0.5 text-xs">
+                        {tooltipLines.map((line, i) => (
+                          <p key={i}>{line}</p>
+                        ))}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
+            </div>
+          </TooltipProvider>
+        )}
 
         {!usageLoading && usage && (
-          <div className={`flex items-center gap-4 p-3 rounded-sm border ${
+          <div className={`flex items-center gap-4 p-3 rounded-sm border mt-2 ${
             isCriticalQuota 
               ? "bg-destructive/10 border-destructive/30" 
               : isLowQuota 
@@ -243,7 +265,6 @@ export function ImportsTab() {
 
       {/* Two-column layout on larger screens */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* List */}
         <div>
           <h3 className="font-medium text-primary mb-4">Candidates</h3>
           <ImportItemsList
@@ -251,8 +272,6 @@ export function ImportsTab() {
             selectedItemId={selectedItemId}
           />
         </div>
-
-        {/* Detail */}
         <div>
           <h3 className="font-medium text-primary mb-4">
             {selectedItemId ? "Detail View" : "Select an Item"}
@@ -264,27 +283,21 @@ export function ImportsTab() {
         </div>
       </div>
 
-      {/* New Import Dialog */}
       <NewImportDialog
         open={showNewDialog}
         onOpenChange={setShowNewDialog}
         onCreated={handleCreated}
       />
-
-      {/* eBay Search Drawer */}
       <EbaySearchDrawer
         open={showEbayDrawer}
         onOpenChange={setShowEbayDrawer}
         onImported={() => setSelectedItemId(null)}
       />
-
-      {/* Tradera Search Drawer */}
       <TraderaSearchDrawer
         open={showTraderaDrawer}
         onOpenChange={setShowTraderaDrawer}
         onImported={() => setSelectedItemId(null)}
       />
-      {/* Tradera Retry Queue (read-only) */}
       <RetryJobsPanel />
     </div>
   );
