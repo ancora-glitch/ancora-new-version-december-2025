@@ -10,11 +10,19 @@ const ALLOWED_HEADERS = 'authorization, x-client-info, apikey, content-type, x-s
 
 function getCorsHeaders(req: Request) {
   const origin = req.headers.get('Origin') || '';
-  const allowed = origin.endsWith('.lovable.app') ? origin : 'https://ancoraedit.lovable.app';
-  return {
-    'Access-Control-Allow-Origin': allowed,
+  const isAllowed =
+    origin === 'https://ancoraedit.lovable.app' ||
+    origin.endsWith('.lovable.app') ||
+    origin.endsWith('.lovableproject.com');
+  const headers: Record<string, string> = {
     'Access-Control-Allow-Headers': ALLOWED_HEADERS,
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Vary': 'Origin',
   };
+  if (isAllowed) {
+    headers['Access-Control-Allow-Origin'] = origin;
+  }
+  return headers;
 }
 
 type AnalyticsBeaconPayload = {
