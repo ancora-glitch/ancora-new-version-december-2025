@@ -113,7 +113,27 @@ serve(async (req) => {
   const ok = Object.values(checks).every(Boolean);
   const version = new Date().toISOString();
 
-  return new Response(JSON.stringify({ ok, checks, version, errors: Object.keys(errors).length > 0 ? errors : undefined }), {
+  // 4. Cron run visibility — latest run per job
+  const cronJobs = ['tradera_sync', 'tradera_retry_import', 'ebay_availability'];
+  const cron: Record<string, { lastRun: string | null; status: string }> = {};
+  for (const jobName of cronJobs) {
+    try {
+      const { data } = await serviceClient
+        .from('cron_runs')
+        .select('ran_at, status')
+        .eq('job_name', jobName)
+        .order('ran_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      cron[jobName] = data
+        ? { lastRun: data.ran_at, status: data.status }
+        : { lastRun: null, status: 'never' };
+    } catch (_) {
+      cron[jobName] = { lastRun: null, status: 'unknown' };
+    }
+  }
+
+  return new Response(JSON.stringify({ ok, checks, version, cron, errors: Object.keys(errors).length > 0 ? errors : undefined }), {
     status: 200,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });

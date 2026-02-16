@@ -1,6 +1,11 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+export interface CronStatus {
+  lastRun: string | null;
+  status: string;
+}
+
 export interface HealthResult {
   ok: boolean;
   checks: {
@@ -9,6 +14,7 @@ export interface HealthResult {
     retryQueue: boolean;
   };
   version?: string;
+  cron?: Record<string, CronStatus>;
   errors?: Record<string, string>;
 }
 

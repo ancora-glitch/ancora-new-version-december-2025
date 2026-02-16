@@ -286,6 +286,11 @@ serve(async (req) => {
 
     console.log(`Sync complete: ${updated} updated, ${ended} ended, ${unchanged} unchanged, ${errors} errors`);
 
+    // Log cron run
+    try {
+      await supabase.from('cron_runs').insert({ job_name: 'tradera_sync', status: 'success' });
+    } catch (_) { /* non-blocking */ }
+
     return new Response(
       JSON.stringify({
         message: `Synced ${products.length} products`,
@@ -297,6 +302,11 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in tradera-sync:', error);
+    // Log cron failure
+    try {
+      const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+      await supabase.from('cron_runs').insert({ job_name: 'tradera_sync', status: 'error', error_message: error instanceof Error ? error.message : 'Unknown error' });
+    } catch (_) { /* non-blocking */ }
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

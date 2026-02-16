@@ -332,6 +332,11 @@ serve(async (req) => {
 
     console.log(`eBay check complete: ${active} active, ${sold} sold, ${unavailable} unavailable, ${unknown} unknown, ${unpublished} auto-unpublished`);
 
+    // Log cron run
+    try {
+      await supabase.from('cron_runs').insert({ job_name: 'ebay_availability', status: 'success' });
+    } catch (_) { /* non-blocking */ }
+
     return new Response(
       JSON.stringify({
         message: `Checked ${products.length} eBay products`,
@@ -343,6 +348,11 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in ebay-availability:', error);
+    // Log cron failure
+    try {
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      await supabase.from('cron_runs').insert({ job_name: 'ebay_availability', status: 'error', error_message: error instanceof Error ? error.message : 'Unknown error' });
+    } catch (_) { /* non-blocking */ }
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
