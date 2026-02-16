@@ -105,6 +105,11 @@ export function ImportsTab() {
                     </Tooltip>
                   );
                 })}
+                {health.version && (
+                  <span className="text-muted-foreground/60 ml-1 tabular-nums">
+                    v {new Date(health.version).toLocaleString("sv-SE", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                )}
               </>
             ) : null}
             <Button

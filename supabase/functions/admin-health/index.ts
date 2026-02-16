@@ -111,8 +111,9 @@ serve(async (req) => {
   }
 
   const ok = Object.values(checks).every(Boolean);
+  const version = new Date().toISOString();
 
-  return new Response(JSON.stringify({ ok, checks, errors: Object.keys(errors).length > 0 ? errors : undefined }), {
+  return new Response(JSON.stringify({ ok, checks, version, errors: Object.keys(errors).length > 0 ? errors : undefined }), {
     status: 200,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });

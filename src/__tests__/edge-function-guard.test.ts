@@ -5,7 +5,9 @@ import * as path from "path";
 const FORBIDDEN_PATTERNS = [
   { pattern: /getClaims\s*\(/, label: "getClaims(" },
   { pattern: /supabase\.auth\.getClaims/, label: "supabase.auth.getClaims" },
-  { pattern: /\.auth\.getSession\s*\(/, label: ".auth.getSession() — use getUser() instead" },
+  { pattern: /\bwindow\./, label: "window.* (not available in edge runtime)" },
+  { pattern: /\bdocument\./, label: "document.* (not available in edge runtime)" },
+  { pattern: /\blocalStorage[\.\[]/, label: "localStorage (not available in edge runtime)" },
 ];
 
 function collectEdgeFunctionFiles(dir: string): string[] {
