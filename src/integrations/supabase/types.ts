@@ -525,6 +525,27 @@ export type Database = {
         }
         Relationships: []
       }
+      translation_usage: {
+        Row: {
+          chars_used: number
+          day_utc: string
+          items_used: number
+          updated_at: string
+        }
+        Insert: {
+          chars_used?: number
+          day_utc?: string
+          items_used?: number
+          updated_at?: string
+        }
+        Update: {
+          chars_used?: number
+          day_utc?: string
+          items_used?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

@@ -147,8 +147,14 @@ serve(async (req) => {
     }
   }
 
-  // 5. Translation status
-  const translation = { enabled: true, last_error: null as string | null, untranslated_count: 0, failure_count_24h: 0 };
+  // 5. Translation status + budget
+  const translation = {
+    enabled: true,
+    last_error: null as string | null,
+    untranslated_count: 0,
+    failure_count_24h: 0,
+    budget: { items_used: 0, items_max: 200, chars_used: 0, chars_max: 200000, limit_reached: false },
+  };
   try {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -174,6 +180,19 @@ serve(async (req) => {
     if (missingCount && missingCount > 0) {
       translation.failure_count_24h = missingCount;
     }
+
+    // Daily budget
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: budgetRow } = await serviceClient
+      .from('translation_usage')
+      .select('items_used, chars_used')
+      .eq('day_utc', today)
+      .maybeSingle();
+    if (budgetRow) {
+      translation.budget.items_used = budgetRow.items_used;
+      translation.budget.chars_used = budgetRow.chars_used;
+    }
+    translation.budget.limit_reached = translation.budget.items_used >= translation.budget.items_max;
   } catch (_) { /* non-blocking */ }
 
   return new Response(JSON.stringify({ ok, checks, version, cron, translation, errors: Object.keys(errors).length > 0 ? errors : undefined }), {

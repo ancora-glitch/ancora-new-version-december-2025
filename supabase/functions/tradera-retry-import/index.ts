@@ -48,6 +48,59 @@ async function verifyAdminOrServiceRole(req: Request): Promise<{ authorized: tru
   return { authorized: true, userId };
 }
 
+// ── Language heuristic ──
+
+const SWEDISH_STOPWORDS = ['och', 'det', 'som', 'är', 'en', 'ett', 'att', 'för', 'med', 'har', 'den', 'av', 'inte', 'var', 'kan', 'till', 'på', 'om'];
+
+function isLikelyEnglish(title: string, description: string): boolean {
+  const combined = `${title} ${description}`.toLowerCase();
+  if (/[åäöÅÄÖ]/.test(combined)) return false;
+  const letters = combined.replace(/[^a-zà-ÿ]/gi, '');
+  if (letters.length === 0) return false;
+  const azLetters = combined.replace(/[^a-z]/gi, '');
+  const ratio = azLetters.length / letters.length;
+  if (ratio <= 0.8) return false;
+  const words = combined.split(/\s+/);
+  let swCount = 0;
+  for (const w of words) {
+    if (SWEDISH_STOPWORDS.includes(w)) swCount++;
+  }
+  if (swCount >= 2) return false;
+  return true;
+}
+
+// ── Budget helpers ──
+
+const MAX_ITEMS_PER_DAY = 200;
+const MAX_CHARS_PER_DAY = 200000;
+
+async function checkAndIncrementBudget(supabase: any, charEstimate: number): Promise<boolean> {
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: row } = await supabase
+    .from('translation_usage')
+    .select('items_used, chars_used')
+    .eq('day_utc', today)
+    .maybeSingle();
+
+  const currentItems = row?.items_used ?? 0;
+  const currentChars = row?.chars_used ?? 0;
+
+  if (currentItems >= MAX_ITEMS_PER_DAY || currentChars + charEstimate > MAX_CHARS_PER_DAY) {
+    return false;
+  }
+
+  await supabase
+    .from('translation_usage')
+    .upsert({
+      day_utc: today,
+      items_used: currentItems + 1,
+      chars_used: currentChars + charEstimate,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'day_utc' });
+
+  return true;
+}
+
 // ── Shared helpers ──
 
 async function runRetention(supabase: any) {
@@ -238,36 +291,58 @@ serve(async (req) => {
         const originalTitle = item.shortDescription || payload.shortDescription || 'Untitled';
         const originalDescription = item.longDescription || payload.longDescription || null;
 
-        // Translate Swedish text to English (non-blocking)
+        // ── Translation with skip-if-English + budget ──
         let titleEn: string | null = null;
         let descriptionEn: string | null = null;
         let translatedAt: string | null = null;
+        let detectedLanguage = 'sv';
 
-        try {
-          const translateResponse = await fetch(`${supabaseUrl}/functions/v1/translate-swedish`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${supabaseServiceKey}`,
-            },
-            body: JSON.stringify({
-              name: originalTitle,
-              description: originalDescription || '',
-              condition: item.condition || '',
-            }),
-          });
+        if (isLikelyEnglish(originalTitle, originalDescription || '')) {
+          // Already English — skip API call
+          console.log(`[Translation] Skipped (already EN): ${job.source_ref}`);
+          titleEn = originalTitle;
+          descriptionEn = originalDescription;
+          translatedAt = new Date().toISOString();
+          detectedLanguage = 'en';
+        } else {
+          // Check budget before calling translate API
+          const charEstimate = (originalTitle + (originalDescription || '')).length;
+          const budgetOk = await checkAndIncrementBudget(supabase, charEstimate);
 
-          if (translateResponse.ok) {
-            const translated = await translateResponse.json();
-            titleEn = translated.name || null;
-            descriptionEn = translated.description || null;
+          if (!budgetOk) {
+            console.warn(`[Translation] Budget exceeded, skipping translation for ${job.source_ref}`);
+            // Use originals as fallback
+            titleEn = originalTitle;
+            descriptionEn = originalDescription;
             translatedAt = new Date().toISOString();
-            console.log(`[Tradera Import] Translated item ${job.source_ref}`);
           } else {
-            console.error(`[Tradera Import] Translation failed for ${job.source_ref}: HTTP ${translateResponse.status}`);
+            try {
+              const translateResponse = await fetch(`${supabaseUrl}/functions/v1/translate-swedish`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${supabaseServiceKey}`,
+                },
+                body: JSON.stringify({
+                  name: originalTitle,
+                  description: originalDescription || '',
+                  condition: item.condition || '',
+                }),
+              });
+
+              if (translateResponse.ok) {
+                const translated = await translateResponse.json();
+                titleEn = translated.name || null;
+                descriptionEn = translated.description || null;
+                translatedAt = new Date().toISOString();
+                console.log(`[Tradera Import] Translated item ${job.source_ref}`);
+              } else {
+                console.error(`[Tradera Import] Translation failed for ${job.source_ref}: HTTP ${translateResponse.status}`);
+              }
+            } catch (translationErr) {
+              console.error(`[Tradera Import] Translation failed for ${job.source_ref}: ${translationErr instanceof Error ? translationErr.message : 'Unknown'}`);
+            }
           }
-        } catch (translationErr) {
-          console.error(`[Tradera Import] Translation failed for ${job.source_ref}: ${translationErr instanceof Error ? translationErr.message : 'Unknown'}`);
         }
 
         const { error: insertError } = await supabase
@@ -283,7 +358,7 @@ serve(async (req) => {
             description_original: originalDescription,
             title_en: titleEn,
             description_en: descriptionEn,
-            language: 'sv',
+            language: detectedLanguage,
             translated_at: translatedAt,
             images,
             price: item.buyItNowPrice || item.price || payload.price || null,
