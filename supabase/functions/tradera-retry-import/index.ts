@@ -73,6 +73,7 @@ serve(async (req) => {
   if (!authResult.authorized) return authResult.response;
 
   try {
+    const _startTime = Date.now();
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -296,9 +297,17 @@ serve(async (req) => {
       }
     }
 
-    // Log cron run
+    // Log cron run with telemetry
+    const successCount = results.filter(r => r.result === 'success').length;
     try {
-      await supabase.from('cron_runs').insert({ job_name: 'tradera_retry_import', status: 'success' });
+      await supabase.from('cron_runs').insert({
+        job_name: 'tradera_retry_import',
+        status: 'success',
+        duration_ms: Date.now() - _startTime,
+        items_processed: results.length,
+        checked_count: results.length,
+        sold_marked: successCount,
+      });
     } catch (_) { /* non-blocking */ }
 
     return new Response(
@@ -315,7 +324,12 @@ serve(async (req) => {
     // Log cron failure
     try {
       const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-      await supabase.from('cron_runs').insert({ job_name: 'tradera_retry_import', status: 'error', error_message: error instanceof Error ? error.message : 'Unknown error' });
+      await supabase.from('cron_runs').insert({
+        job_name: 'tradera_retry_import',
+        status: 'error',
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        duration_ms: Date.now() - _startTime,
+      });
     } catch (_) { /* non-blocking */ }
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),

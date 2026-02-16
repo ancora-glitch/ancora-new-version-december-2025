@@ -126,57 +126,65 @@ export function ImportsTab() {
         </TooltipProvider>
 
         {/* Cron Status */}
-        {health?.cron && (
-          <TooltipProvider>
-            <div className="flex items-center gap-3 p-2.5 rounded-sm border border-border bg-muted/20 text-xs mt-2">
-              <span className="text-muted-foreground font-medium">Cron status:</span>
-              {([
-                { key: "tradera_sync", label: "Tradera sync" },
-                { key: "tradera_retry_import", label: "Retry import" },
-                { key: "ebay_availability", label: "eBay availability" },
-              ] as const).map(({ key, label }) => {
-                const run = health.cron![key];
-                if (!run) return null;
-                const lastRun = run.lastRun ? new Date(run.lastRun) : null;
-                const minutesAgo = lastRun ? (Date.now() - lastRun.getTime()) / 60000 : Infinity;
-                const isStale = minutesAgo > 45;
-                const isError = run.status === "error";
-                const isNever = !lastRun;
-                const timeStr = lastRun
-                  ? lastRun.toLocaleString("sv-SE", { hour: "2-digit", minute: "2-digit" })
-                  : "never";
+        {health?.cron && (() => {
+          const hasError = Object.values(health.cron!).some(r => r.status === "error");
+          return (
+            <TooltipProvider>
+              <div className="flex items-center gap-3 p-2.5 rounded-sm border border-border bg-muted/20 text-xs mt-2 flex-wrap">
+                <span className="text-muted-foreground font-medium">Cron status:</span>
+                {hasError && (
+                  <span className="text-destructive font-medium">Action needed</span>
+                )}
+                {!!pendingCount && pendingCount > 0 && (
+                  <span className="text-amber-600 font-medium">Retry pending: {pendingCount}</span>
+                )}
+                {([
+                  { key: "tradera_sync", label: "Tradera sync" },
+                  { key: "tradera_retry_import", label: "Retry import" },
+                  { key: "ebay_availability", label: "eBay availability" },
+                ] as const).map(({ key, label }) => {
+                  const run = health.cron![key];
+                  if (!run) return null;
+                  const lastRun = run.lastRun ? new Date(run.lastRun) : null;
+                  const minutesAgo = lastRun ? (Date.now() - lastRun.getTime()) / 60000 : Infinity;
+                  const isStale = minutesAgo > 45;
+                  const isError = run.status === "error";
+                  const isNever = !lastRun;
+                  const timeStr = lastRun
+                    ? lastRun.toLocaleString("sv-SE", { hour: "2-digit", minute: "2-digit" })
+                    : "never";
 
-                return (
-                  <Tooltip key={key}>
-                    <TooltipTrigger asChild>
-                      <span className="inline-flex items-center gap-1 cursor-default">
-                        {label}: <span className="tabular-nums">{timeStr}</span>
-                        {isError ? (
-                          <XCircle className="w-3.5 h-3.5 text-destructive" />
-                        ) : isNever || isStale ? (
-                          <Clock className="w-3.5 h-3.5 text-amber-500" />
-                        ) : (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-                        )}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">
-                      <p>
-                        {isError
-                          ? "Last run failed"
-                          : isNever
-                            ? "No runs recorded yet"
-                            : isStale
-                              ? `Last run ${Math.round(minutesAgo)}min ago (>45min)`
-                              : `Last run ${Math.round(minutesAgo)}min ago`}
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                );
-              })}
-            </div>
-          </TooltipProvider>
-        )}
+                  const tooltipLines = [
+                    isError ? "Last run failed" : isNever ? "No runs recorded yet" : isStale ? `Last run ${Math.round(minutesAgo)}min ago (>45min)` : `Last run ${Math.round(minutesAgo)}min ago`,
+                    run.duration_ms != null ? `Duration: ${run.duration_ms}ms` : null,
+                    run.items_processed != null ? `Items: ${run.items_processed}` : null,
+                    run.sold_marked != null && run.sold_marked > 0 ? `Sold/completed: ${run.sold_marked}` : null,
+                  ].filter(Boolean).join(" · ");
+
+                  return (
+                    <Tooltip key={key}>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex items-center gap-1 cursor-default">
+                          {label}: <span className="tabular-nums">{timeStr}</span>
+                          {isError ? (
+                            <XCircle className="w-3.5 h-3.5 text-destructive" />
+                          ) : isNever || isStale ? (
+                            <Clock className="w-3.5 h-3.5 text-amber-500" />
+                          ) : (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+                          )}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        <p>{tooltipLines}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                })}
+              </div>
+            </TooltipProvider>
+          );
+        })()}
 
 
         {!usageLoading && usage && (

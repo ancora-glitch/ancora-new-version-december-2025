@@ -115,18 +115,18 @@ serve(async (req) => {
 
   // 4. Cron run visibility — latest run per job
   const cronJobs = ['tradera_sync', 'tradera_retry_import', 'ebay_availability'];
-  const cron: Record<string, { lastRun: string | null; status: string }> = {};
+  const cron: Record<string, { lastRun: string | null; status: string; duration_ms?: number; items_processed?: number; checked_count?: number; sold_marked?: number }> = {};
   for (const jobName of cronJobs) {
     try {
       const { data } = await serviceClient
         .from('cron_runs')
-        .select('ran_at, status')
+        .select('ran_at, status, duration_ms, items_processed, checked_count, sold_marked')
         .eq('job_name', jobName)
         .order('ran_at', { ascending: false })
         .limit(1)
         .maybeSingle();
       cron[jobName] = data
-        ? { lastRun: data.ran_at, status: data.status }
+        ? { lastRun: data.ran_at, status: data.status, duration_ms: data.duration_ms, items_processed: data.items_processed, checked_count: data.checked_count, sold_marked: data.sold_marked }
         : { lastRun: null, status: 'never' };
     } catch (_) {
       cron[jobName] = { lastRun: null, status: 'unknown' };

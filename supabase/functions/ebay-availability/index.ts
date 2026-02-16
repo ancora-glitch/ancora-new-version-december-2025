@@ -216,6 +216,7 @@ serve(async (req) => {
   if (!authResult.authorized) return authResult.response;
 
   try {
+    const _startTime = Date.now();
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
@@ -332,9 +333,16 @@ serve(async (req) => {
 
     console.log(`eBay check complete: ${active} active, ${sold} sold, ${unavailable} unavailable, ${unknown} unknown, ${unpublished} auto-unpublished`);
 
-    // Log cron run
+    // Log cron run with telemetry
     try {
-      await supabase.from('cron_runs').insert({ job_name: 'ebay_availability', status: 'success' });
+      await supabase.from('cron_runs').insert({
+        job_name: 'ebay_availability',
+        status: 'success',
+        duration_ms: Date.now() - _startTime,
+        items_processed: products.length,
+        checked_count: results.length,
+        sold_marked: unpublished,
+      });
     } catch (_) { /* non-blocking */ }
 
     return new Response(
@@ -351,7 +359,12 @@ serve(async (req) => {
     // Log cron failure
     try {
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
-      await supabase.from('cron_runs').insert({ job_name: 'ebay_availability', status: 'error', error_message: error instanceof Error ? error.message : 'Unknown error' });
+      await supabase.from('cron_runs').insert({
+        job_name: 'ebay_availability',
+        status: 'error',
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        duration_ms: Date.now() - _startTime,
+      });
     } catch (_) { /* non-blocking */ }
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
