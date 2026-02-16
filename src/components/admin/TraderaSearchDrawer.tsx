@@ -18,6 +18,7 @@ import { Loader2, Search, Package, AlertCircle, AlertTriangle, Clock, Zap, Image
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { selectHeroImage } from "@/lib/heroImageSelector";
+import { parseListingFields } from "@/lib/listingParser";
 
 interface TraderaSearchItem {
   id: number;
@@ -393,6 +394,17 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
               vibe: null,
             };
 
+            // Parse structured fields from listing data
+            const parsed = parseListingFields({
+              title: itemDetails.shortDescription,
+              description: itemDetails.longDescription || "",
+              apiBrand: itemDetails.brand,
+              apiSize: itemDetails.size,
+              apiMaterial: itemDetails.material,
+              conditionEnum: mapCondition(itemDetails.condition),
+              images,
+            });
+
             await createMutation.mutateAsync({
               source_type: "tradera",
               source_ref: sourceRef,
@@ -400,13 +412,21 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
               affiliate_url: itemDetails.itemLink,
               title: itemDetails.shortDescription,
               description: itemDetails.longDescription || null,
-              images, // Reordered with best hero first
+              images,
               price: itemDetails.buyItNowPrice || itemDetails.price || null,
               currency: "SEK",
               condition: mapCondition(itemDetails.condition),
               provenance: itemDetails.sellerAlias || "Tradera",
               signals,
               status: "draft",
+              // New structured fields
+              brand_text: parsed.brand_text,
+              size_text: parsed.size_text,
+              color_text: parsed.color_text,
+              material_text: parsed.material_text,
+              condition_text: parsed.condition_text,
+              primary_image: parsed.primary_image,
+              marketplace: "tradera",
             });
           }
 

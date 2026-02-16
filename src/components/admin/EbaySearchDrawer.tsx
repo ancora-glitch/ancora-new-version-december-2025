@@ -22,6 +22,7 @@ import { useCreateImportItem, type AisCondition, type AisSignals } from "@/hooks
 import { toast } from "sonner";
 import { Loader2, Search, Package, AlertCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { parseListingFields } from "@/lib/listingParser";
 
 interface EbayItem {
   itemId: string;
@@ -151,13 +152,21 @@ export function EbaySearchDrawer({ open, onOpenChange, onImported }: EbaySearchD
           vibe: null,
         };
 
+        // Parse structured fields
+        const parsed = parseListingFields({
+          title: item.title,
+          description: "", // eBay search doesn't return description
+          conditionEnum: item.condition,
+          images: item.images,
+        });
+
         await createMutation.mutateAsync({
           source_type: "ebay",
           source_ref: item.itemId,
           source_url: item.itemUrl,
           affiliate_url: item.affiliateUrl,
           title: item.title,
-          description: null, // Empty for v1
+          description: null,
           images: item.images,
           price: item.price,
           currency: item.currency,
@@ -165,6 +174,14 @@ export function EbaySearchDrawer({ open, onOpenChange, onImported }: EbaySearchD
           provenance: item.seller,
           signals,
           status: "draft",
+          // New structured fields
+          brand_text: parsed.brand_text,
+          size_text: parsed.size_text,
+          color_text: parsed.color_text,
+          material_text: parsed.material_text,
+          condition_text: parsed.condition_text,
+          primary_image: parsed.primary_image,
+          marketplace: "ebay",
         });
 
         imported++;

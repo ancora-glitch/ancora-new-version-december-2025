@@ -33,6 +33,15 @@ export interface ImportItem {
   created_at: string;
   reviewed_at: string | null;
   promoted_at: string | null;
+  // Structured product-like fields
+  brand_text: string | null;
+  size_text: string | null;
+  color_text: string | null;
+  material_text: string | null;
+  condition_text: string | null;
+  primary_image: string | null;
+  marketplace: string | null;
+  category_id: string | null;
 }
 
 export interface ImportItemInsert {
@@ -50,6 +59,15 @@ export interface ImportItemInsert {
   signals?: AisSignals;
   status?: AisStatus;
   raw_payload?: any | null;
+  // Structured product-like fields
+  brand_text?: string | null;
+  size_text?: string | null;
+  color_text?: string | null;
+  material_text?: string | null;
+  condition_text?: string | null;
+  primary_image?: string | null;
+  marketplace?: string | null;
+  category_id?: string | null;
 }
 
 export interface ImportItemUpdate {
@@ -65,6 +83,15 @@ export interface ImportItemUpdate {
   product_id?: string | null;
   reviewed_at?: string | null;
   promoted_at?: string | null;
+  // Structured product-like fields
+  brand_text?: string | null;
+  size_text?: string | null;
+  color_text?: string | null;
+  material_text?: string | null;
+  condition_text?: string | null;
+  primary_image?: string | null;
+  marketplace?: string | null;
+  category_id?: string | null;
 }
 
 // Fetch all import items
@@ -276,42 +303,37 @@ export function usePromoteToProduct() {
       // === END ASSERTIONS ===
       
       // Create a new product from the import item
-      const mainImage = item.images[0] || "";
-      const additionalImages = item.images.slice(1);
-      const slug = item.title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-
-      console.log("[AIS Promote] Promoting item:", {
-        source_type: item.source_type,
-        source_ref: item.source_ref,
-        total_images: item.images.length,
-        main_image: mainImage.substring(0, 60) + "...",
-        additional_count: additionalImages.length,
-      });
-
-      // Use English text if available, fall back to original
+      const mainImage = item.primary_image || item.images[0] || "";
+      const additionalImages = item.images.filter(img => img !== mainImage);
+      
+      // Use cleaned name (brand removed) or English title
       const displayName = (item as any).title_en || item.title;
-      const displayDescription = (item as any).description_en || item.description;
+      const cleanedName = item.brand_text
+        ? displayName // brand is separate, name should already be clean
+        : displayName;
+      const slug = cleanedName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 
       const productData = {
-        brand: "Unknown", // Will need to be edited in product view
-        name: displayName,
+        brand: item.brand_text || "Unknown",
+        name: cleanedName,
         name_original: (item as any).title_original || item.title,
         name_en: (item as any).title_en || null,
         price: item.price ? `${item.price} ${item.currency || "SEK"}` : "0",
         image: mainImage,
-        additional_images: additionalImages, // JSONB array - all additional images
-        description: displayDescription || null,
+        additional_images: additionalImages,
+        description: (item as any).description_en || item.description || null,
         description_original: (item as any).description_original || item.description || null,
         description_en: (item as any).description_en || null,
         language: (item as any).language || 'sv',
         translated_at: (item as any).translated_at || null,
-        condition: item.condition || null,
-        material: item.signals.material?.join(", ") || null,
-        color: item.signals.colors?.join(", ") || null,
+        condition: item.condition_text || (item.condition ? item.condition : null),
+        material: item.material_text || (item.signals.material?.join(", ") || null),
+        color: item.color_text || (item.signals.colors?.join(", ") || null),
+        size: item.size_text || null,
         status: "draft" as const,
         slug,
-        marketplace: item.source_type,
-        // Leave editorial override unset by default
+        marketplace: item.marketplace || item.source_type,
+        category_id: item.category_id || null,
         ancora_select_source: null,
         affiliate_url: item.affiliate_url || item.source_url || null,
       };
