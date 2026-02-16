@@ -6,10 +6,16 @@ declare const EdgeRuntime: {
   waitUntil: (promise: PromiseLike<unknown>) => void;
 };
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const ALLOWED_HEADERS = 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version';
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get('Origin') || '';
+  const allowed = origin.endsWith('.lovable.app') ? origin : 'https://ancoraedit.lovable.app';
+  return {
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Headers': ALLOWED_HEADERS,
+  };
+}
 
 type AnalyticsBeaconPayload = {
   event_type: string;
@@ -22,6 +28,7 @@ function isNonEmptyString(v: unknown): v is string {
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
