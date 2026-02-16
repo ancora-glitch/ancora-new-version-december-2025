@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ImportItemsList } from "./ImportItemsList";
 import { ImportItemDetail } from "./ImportItemDetail";
 import { NewImportDialog } from "./NewImportDialog";
@@ -7,7 +7,7 @@ import { TraderaSearchDrawer } from "./TraderaSearchDrawer";
 import { RetryJobsPanel } from "./RetryJobsPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, AlertTriangle, Zap, RotateCcw, RefreshCw, CheckCircle2, XCircle, Clock, Languages, Loader2, Wand2 } from "lucide-react";
+import { Plus, Search, AlertTriangle, Zap, RotateCcw, RefreshCw, CheckCircle2, XCircle, Clock, Languages, Loader2, Wand2, X } from "lucide-react";
 import { useTraderaUsage } from "@/hooks/useTraderaUsage";
 import { usePendingRetryCount } from "@/hooks/useRetryJobs";
 import { Progress } from "@/components/ui/progress";
@@ -84,10 +84,31 @@ export function ImportsTab() {
     }
   };
 
-  const handleCreated = (id: string) => {
-    setSelectedItemId(id);
+  const detailRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const listScrollRef = useRef<number>(0);
+
+  const handleSelectItem = (id: string | null) => {
+    if (id) {
+      // Save list scroll position before opening detail
+      listScrollRef.current = window.scrollY;
+      setSelectedItemId(id);
+      // Auto-scroll to detail view
+      setTimeout(() => {
+        detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+    } else {
+      setSelectedItemId(null);
+      // Restore list scroll position
+      setTimeout(() => {
+        window.scrollTo({ top: listScrollRef.current, behavior: "smooth" });
+      }, 50);
+    }
   };
 
+  const handleCreated = (id: string) => {
+    handleSelectItem(id);
+  };
   const isLowQuota = usage && usage.remaining <= 15;
   const isCriticalQuota = usage && usage.remaining <= 5;
   const usagePercent = usage ? (usage.current_count / usage.daily_limit) * 100 : 0;
@@ -394,24 +415,34 @@ export function ImportsTab() {
         )}
       </div>
 
-      {/* Two-column layout on larger screens */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div>
-          <h3 className="font-medium text-primary mb-4">Candidates</h3>
-          <ImportItemsList
-            onSelectItem={setSelectedItemId}
-            selectedItemId={selectedItemId}
-          />
-        </div>
-        <div>
-          <h3 className="font-medium text-primary mb-4">
-            {selectedItemId ? "Detail View" : "Select an Item"}
-          </h3>
+      {/* Detail view above list when item selected */}
+      {selectedItemId && (
+        <div ref={detailRef}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-medium text-primary">Detail View</h3>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleSelectItem(null)}
+            >
+              <X className="w-4 h-4 mr-1" />
+              Close detail
+            </Button>
+          </div>
           <ImportItemDetail
             itemId={selectedItemId}
-            onClose={() => setSelectedItemId(null)}
+            onClose={() => handleSelectItem(null)}
           />
         </div>
+      )}
+
+      {/* Candidates list */}
+      <div ref={listRef}>
+        <h3 className="font-medium text-primary mb-4">Candidates</h3>
+        <ImportItemsList
+          onSelectItem={handleSelectItem}
+          selectedItemId={selectedItemId}
+        />
       </div>
 
       <NewImportDialog
