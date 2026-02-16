@@ -147,7 +147,17 @@ serve(async (req) => {
     }
   }
 
-  return new Response(JSON.stringify({ ok, checks, version, cron, errors: Object.keys(errors).length > 0 ? errors : undefined }), {
+  // 5. Translation status
+  const translation = { enabled: true, last_error: null as string | null };
+  try {
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      translation.enabled = false;
+      translation.last_error = 'LOVABLE_API_KEY not configured';
+    }
+  } catch (_) { /* non-blocking */ }
+
+  return new Response(JSON.stringify({ ok, checks, version, cron, translation, errors: Object.keys(errors).length > 0 ? errors : undefined }), {
     status: 200,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });

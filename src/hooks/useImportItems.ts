@@ -288,13 +288,23 @@ export function usePromoteToProduct() {
         additional_count: additionalImages.length,
       });
 
+      // Use English text if available, fall back to original
+      const displayName = (item as any).title_en || item.title;
+      const displayDescription = (item as any).description_en || item.description;
+
       const productData = {
         brand: "Unknown", // Will need to be edited in product view
-        name: item.title,
+        name: displayName,
+        name_original: (item as any).title_original || item.title,
+        name_en: (item as any).title_en || null,
         price: item.price ? `${item.price} ${item.currency || "SEK"}` : "0",
         image: mainImage,
         additional_images: additionalImages, // JSONB array - all additional images
-        description: item.description || null,
+        description: displayDescription || null,
+        description_original: (item as any).description_original || item.description || null,
+        description_en: (item as any).description_en || null,
+        language: (item as any).language || 'sv',
+        translated_at: (item as any).translated_at || null,
         condition: item.condition || null,
         material: item.signals.material?.join(", ") || null,
         color: item.signals.colors?.join(", ") || null,
@@ -345,7 +355,7 @@ export function usePromoteToProduct() {
   });
 }
 
-// Create new import item (manual)
+// Create new import item (manual) — triggers translation for Tradera items
 export function useCreateImportItem() {
   const queryClient = useQueryClient();
   
@@ -357,6 +367,35 @@ export function useCreateImportItem() {
         insertPayload.signals = signals;
       }
       
+      // Store originals
+      insertPayload.title_original = data.title;
+      insertPayload.description_original = data.description || null;
+      insertPayload.language = 'sv';
+
+      // Attempt translation (non-blocking for insert)
+      if (data.source_type === 'tradera') {
+        try {
+          const { data: translated, error: translateError } = await supabase.functions.invoke('translate-swedish', {
+            body: {
+              name: data.title,
+              description: data.description || '',
+              condition: '',
+            },
+          });
+
+          if (!translateError && translated) {
+            insertPayload.title_en = translated.name || null;
+            insertPayload.description_en = translated.description || null;
+            insertPayload.translated_at = new Date().toISOString();
+            // Use English text as the primary title/description
+            if (translated.name) insertPayload.title = translated.name;
+            if (translated.description) insertPayload.description = translated.description;
+          }
+        } catch (_) {
+          // Translation failure should not block import
+        }
+      }
+
       const { data: created, error } = await supabase
         .from("ancora_import_items")
         .insert([insertPayload as any])

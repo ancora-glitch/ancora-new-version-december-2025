@@ -21,8 +21,11 @@ export type Database = {
           created_at: string
           currency: string | null
           description: string | null
+          description_en: string | null
+          description_original: string | null
           id: string
           images: string[]
+          language: string | null
           price: number | null
           product_id: string | null
           promoted_at: string | null
@@ -35,6 +38,9 @@ export type Database = {
           source_url: string | null
           status: Database["public"]["Enums"]["ais_status"]
           title: string
+          title_en: string | null
+          title_original: string | null
+          translated_at: string | null
         }
         Insert: {
           affiliate_url?: string | null
@@ -42,8 +48,11 @@ export type Database = {
           created_at?: string
           currency?: string | null
           description?: string | null
+          description_en?: string | null
+          description_original?: string | null
           id?: string
           images?: string[]
+          language?: string | null
           price?: number | null
           product_id?: string | null
           promoted_at?: string | null
@@ -56,6 +65,9 @@ export type Database = {
           source_url?: string | null
           status?: Database["public"]["Enums"]["ais_status"]
           title: string
+          title_en?: string | null
+          title_original?: string | null
+          translated_at?: string | null
         }
         Update: {
           affiliate_url?: string | null
@@ -63,8 +75,11 @@ export type Database = {
           created_at?: string
           currency?: string | null
           description?: string | null
+          description_en?: string | null
+          description_original?: string | null
           id?: string
           images?: string[]
+          language?: string | null
           price?: number | null
           product_id?: string | null
           promoted_at?: string | null
@@ -77,6 +92,9 @@ export type Database = {
           source_url?: string | null
           status?: Database["public"]["Enums"]["ais_status"]
           title?: string
+          title_en?: string | null
+          title_original?: string | null
+          translated_at?: string | null
         }
         Relationships: [
           {
@@ -188,16 +206,21 @@ export type Database = {
           condition_sv: string | null
           created_at: string
           description: string | null
+          description_en: string | null
+          description_original: string | null
           description_sv: string | null
           id: string
           image: string
           import_queued_at: string | null
           import_retry_count: number | null
           in_weekly_edit: boolean
+          language: string | null
           marketplace: string | null
           material: string | null
           material_sv: string | null
           name: string
+          name_en: string | null
+          name_original: string | null
           name_sv: string | null
           price: string
           size: string | null
@@ -206,6 +229,7 @@ export type Database = {
           sort_order: number | null
           status: Database["public"]["Enums"]["product_status"]
           tradera_item_id: string | null
+          translated_at: string | null
           unpublished_reason: string | null
           updated_at: string
         }
@@ -227,16 +251,21 @@ export type Database = {
           condition_sv?: string | null
           created_at?: string
           description?: string | null
+          description_en?: string | null
+          description_original?: string | null
           description_sv?: string | null
           id?: string
           image: string
           import_queued_at?: string | null
           import_retry_count?: number | null
           in_weekly_edit?: boolean
+          language?: string | null
           marketplace?: string | null
           material?: string | null
           material_sv?: string | null
           name: string
+          name_en?: string | null
+          name_original?: string | null
           name_sv?: string | null
           price: string
           size?: string | null
@@ -245,6 +274,7 @@ export type Database = {
           sort_order?: number | null
           status?: Database["public"]["Enums"]["product_status"]
           tradera_item_id?: string | null
+          translated_at?: string | null
           unpublished_reason?: string | null
           updated_at?: string
         }
@@ -266,16 +296,21 @@ export type Database = {
           condition_sv?: string | null
           created_at?: string
           description?: string | null
+          description_en?: string | null
+          description_original?: string | null
           description_sv?: string | null
           id?: string
           image?: string
           import_queued_at?: string | null
           import_retry_count?: number | null
           in_weekly_edit?: boolean
+          language?: string | null
           marketplace?: string | null
           material?: string | null
           material_sv?: string | null
           name?: string
+          name_en?: string | null
+          name_original?: string | null
           name_sv?: string | null
           price?: string
           size?: string | null
@@ -284,6 +319,7 @@ export type Database = {
           sort_order?: number | null
           status?: Database["public"]["Enums"]["product_status"]
           tradera_item_id?: string | null
+          translated_at?: string | null
           unpublished_reason?: string | null
           updated_at?: string
         }

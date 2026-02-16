@@ -98,7 +98,7 @@ const Shop = () => {
                       {product.brand}
                     </span>
                     <p className="text-sm text-muted-foreground leading-relaxed line-clamp-1">
-                      {product.name}
+                      {(product as any).name_en || product.name}
                     </p>
                     <p className="text-base font-semibold text-foreground pt-1">
                       {formatPrice(product.price)}

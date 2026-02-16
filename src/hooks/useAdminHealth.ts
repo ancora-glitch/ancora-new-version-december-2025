@@ -12,6 +12,11 @@ export interface CronStatus {
   lastSuccess?: string | null;
 }
 
+export interface TranslationStatus {
+  enabled: boolean;
+  last_error: string | null;
+}
+
 export interface HealthResult {
   ok: boolean;
   checks: {
@@ -21,6 +26,7 @@ export interface HealthResult {
   };
   version?: string;
   cron?: Record<string, CronStatus>;
+  translation?: TranslationStatus;
   errors?: Record<string, string>;
 }
 
