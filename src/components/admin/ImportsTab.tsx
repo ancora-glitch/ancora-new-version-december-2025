@@ -119,47 +119,49 @@ export function ImportsTab() {
     <div className="space-y-6">
       {/* Header with action */}
       <div className="p-6 border border-border rounded-sm bg-card">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div>
-            <h2 className="font-display text-lg text-primary mb-1">Ancora Import Spec</h2>
-            {!!pendingCount && pendingCount > 0 && (
-              <div className="flex items-center gap-1.5">
-                <RotateCcw className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">
-                  Tradera retries: {pendingCount} pending
-                </span>
-              </div>
-            )}
-            <p className="text-sm text-muted-foreground">
-              Review and curate import candidates before promoting them to products. 
-              This is an internal, editorial layer — nothing is auto-published.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowTraderaDrawer(true)}>
-              <Search className="w-4 h-4 mr-2" />
-              Search Tradera
-            </Button>
-            <Button variant="outline" onClick={() => setShowEbayDrawer(true)}>
-              <Search className="w-4 h-4 mr-2" />
-              Search eBay
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleBackfillFields}
-              disabled={isBackfillingFields}
-            >
-              {isBackfillingFields ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Wand2 className="w-4 h-4 mr-2" />
+        <div className="flex flex-col gap-4 mb-4">
+          <div className="flex items-start justify-between gap-6">
+            <div className="flex-1 min-w-0">
+              <h2 className="font-display text-lg text-primary mb-1">Ancora Import Spec</h2>
+              {!!pendingCount && pendingCount > 0 && (
+                <div className="flex items-center gap-1.5 mb-1">
+                  <RotateCcw className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">
+                    Tradera retries: {pendingCount} pending
+                  </span>
+                </div>
               )}
-              Backfill fields (200)
-            </Button>
-            <Button onClick={() => setShowNewDialog(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              New Import
-            </Button>
+              <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">
+                Review and curate import candidates before promoting them to products. 
+                This is an internal, editorial layer — nothing is auto-published.
+              </p>
+            </div>
+            <div className="flex gap-2 flex-shrink-0 flex-wrap justify-end">
+              <Button variant="outline" onClick={() => setShowTraderaDrawer(true)}>
+                <Search className="w-4 h-4 mr-2" />
+                Search Tradera
+              </Button>
+              <Button variant="outline" onClick={() => setShowEbayDrawer(true)}>
+                <Search className="w-4 h-4 mr-2" />
+                Search eBay
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleBackfillFields}
+                disabled={isBackfillingFields}
+              >
+                {isBackfillingFields ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Wand2 className="w-4 h-4 mr-2" />
+                )}
+                Backfill fields (200)
+              </Button>
+              <Button onClick={() => setShowNewDialog(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                New Import
+              </Button>
+            </div>
           </div>
         </div>
 
