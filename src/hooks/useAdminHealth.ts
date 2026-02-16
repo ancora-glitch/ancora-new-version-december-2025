@@ -15,6 +15,8 @@ export interface CronStatus {
 export interface TranslationStatus {
   enabled: boolean;
   last_error: string | null;
+  untranslated_count: number;
+  failure_count_24h: number;
 }
 
 export interface HealthResult {

@@ -7,12 +7,14 @@ import { TraderaSearchDrawer } from "./TraderaSearchDrawer";
 import { RetryJobsPanel } from "./RetryJobsPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, AlertTriangle, Zap, RotateCcw, RefreshCw, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Plus, Search, AlertTriangle, Zap, RotateCcw, RefreshCw, CheckCircle2, XCircle, Clock, Languages, Loader2 } from "lucide-react";
 import { useTraderaUsage } from "@/hooks/useTraderaUsage";
 import { usePendingRetryCount } from "@/hooks/useRetryJobs";
 import { Progress } from "@/components/ui/progress";
 import { useAdminHealth, CronStatus } from "@/hooks/useAdminHealth";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 function cronStatusLabel(run: CronStatus): { label: string; color: string; icon: 'ok' | 'warn' | 'error' } {
   if (!run.lastRun) return { label: 'Never', color: 'text-amber-500', icon: 'warn' };
@@ -37,8 +39,26 @@ export function ImportsTab() {
   const { data: usage, isLoading: usageLoading } = useTraderaUsage();
   const { data: pendingCount } = usePendingRetryCount();
   const { data: health, isLoading: healthLoading, error: healthError, check: runHealthCheck } = useAdminHealth();
+  const [isBackfilling, setIsBackfilling] = useState(false);
 
   useEffect(() => { runHealthCheck(); }, [runHealthCheck]);
+
+  const handleBackfillTranslations = async () => {
+    setIsBackfilling(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('translate-backfill');
+      if (error) {
+        toast.error('Backfill failed: ' + error.message);
+      } else {
+        toast.success(`Translated ${data.translated} products (${data.failed} failed)`);
+        runHealthCheck(); // Refresh counts
+      }
+    } catch (e: any) {
+      toast.error('Backfill error: ' + e.message);
+    } finally {
+      setIsBackfilling(false);
+    }
+  };
 
   const handleCreated = (id: string) => {
     setSelectedItemId(id);
@@ -209,6 +229,55 @@ export function ImportsTab() {
           </TooltipProvider>
         )}
 
+        {/* Translation Status */}
+        {health?.translation && (
+          <TooltipProvider>
+            <div className="flex items-center gap-3 p-2.5 rounded-sm border border-border bg-muted/20 text-xs mt-2">
+              <span className="text-muted-foreground font-medium">Translation:</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex items-center gap-1 cursor-default">
+                    {health.translation.enabled ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+                    ) : (
+                      <XCircle className="w-3.5 h-3.5 text-destructive" />
+                    )}
+                    {health.translation.enabled ? 'Enabled' : 'Disabled'}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <div className="space-y-0.5 text-xs">
+                    <p>Status: {health.translation.enabled ? 'Active' : 'Disabled'}</p>
+                    {health.translation.last_error && <p>Error: {health.translation.last_error}</p>}
+                    <p>Untranslated Tradera products: {health.translation.untranslated_count}</p>
+                    {health.translation.failure_count_24h > 0 && (
+                      <p className="text-destructive">Missing translations (sv): {health.translation.failure_count_24h}</p>
+                    )}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+              {health.translation.untranslated_count > 0 && (
+                <span className="text-amber-600 font-medium">
+                  {health.translation.untranslated_count} untranslated
+                </span>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-6 px-2 ml-auto text-xs"
+                onClick={handleBackfillTranslations}
+                disabled={isBackfilling || health.translation.untranslated_count === 0}
+              >
+                {isBackfilling ? (
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                ) : (
+                  <Languages className="w-3 h-3 mr-1" />
+                )}
+                Translate batch (20)
+              </Button>
+            </div>
+          </TooltipProvider>
+        )}
         {!usageLoading && usage && (
           <div className={`flex items-center gap-4 p-3 rounded-sm border mt-2 ${
             isCriticalQuota 
