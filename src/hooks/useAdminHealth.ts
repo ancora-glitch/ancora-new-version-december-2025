@@ -8,6 +8,7 @@ export interface HealthResult {
     secrets: boolean;
     retryQueue: boolean;
   };
+  version?: string;
   errors?: Record<string, string>;
 }
 
