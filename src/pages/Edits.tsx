@@ -83,7 +83,7 @@ const Edits = () => {
                           {product.brand}
                         </span>
                         <p className="text-sm text-muted-foreground leading-relaxed line-clamp-1">
-                          {product.name_en || product.name}
+                          {product.name}
                         </p>
                         <p className="text-base font-semibold text-foreground pt-1">
                           {formatPrice(product.price)}
