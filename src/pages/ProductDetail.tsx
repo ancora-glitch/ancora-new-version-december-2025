@@ -351,7 +351,7 @@ const ProductDetail = () => {
 
                 {/* Product Name */}
                 <h1 className="text-2xl md:text-3xl lg:text-4xl font-serif text-primary leading-tight">
-                  {(product as any).name_en || product.name}
+                  {product.name}
                 </h1>
 
                 {/* Price */}
