@@ -616,6 +616,84 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_edit_products: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          sort_order: number
+          weekly_edit_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          sort_order?: number
+          weekly_edit_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          sort_order?: number
+          weekly_edit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_edit_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weekly_edit_products_weekly_edit_id_fkey"
+            columns: ["weekly_edit_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_edits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weekly_edits: {
+        Row: {
+          created_at: string
+          id: string
+          long_intro: string | null
+          short_intro: string | null
+          slug: string
+          status: Database["public"]["Enums"]["weekly_edit_status"]
+          three_ways_to_wear: Json
+          title: string
+          updated_at: string
+          week_label: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          long_intro?: string | null
+          short_intro?: string | null
+          slug: string
+          status?: Database["public"]["Enums"]["weekly_edit_status"]
+          three_ways_to_wear?: Json
+          title: string
+          updated_at?: string
+          week_label?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          long_intro?: string | null
+          short_intro?: string | null
+          slug?: string
+          status?: Database["public"]["Enums"]["weekly_edit_status"]
+          three_ways_to_wear?: Json
+          title?: string
+          updated_at?: string
+          week_label?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -644,6 +722,7 @@ export type Database = {
         | "published"
         | "draft"
         | "pending_import"
+      weekly_edit_status: "draft" | "scheduled" | "published"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -784,6 +863,7 @@ export const Constants = {
         "draft",
         "pending_import",
       ],
+      weekly_edit_status: ["draft", "scheduled", "published"],
     },
   },
 } as const
