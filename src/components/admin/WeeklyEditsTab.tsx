@@ -8,6 +8,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, Pencil, X, Plus, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   useAllWeeklyEdits,
   useWeeklyEditProductIds,
   useSaveWeeklyEdit,
@@ -18,6 +35,25 @@ import {
 } from "@/hooks/useWeeklyEdits";
 import { useAllProducts } from "@/hooks/useProducts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+const SortableProductItem = ({ product, index, onRemove }: { product: any; index: number; onRemove: (id: string) => void }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: product.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-3 p-2 border border-border rounded-sm bg-secondary/10">
+      <button type="button" {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-primary touch-none">
+        <GripVertical className="w-4 h-4" />
+      </button>
+      <span className="text-xs text-muted-foreground w-5 text-center">{index + 1}</span>
+      {product.image && <img src={product.image} alt={product.name} className="w-8 h-8 object-cover rounded-sm" />}
+      <span className="text-sm flex-1 truncate">{product.brand} – {product.name}</span>
+      <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onRemove(product.id)}>
+        <X className="w-3 h-3" />
+      </Button>
+    </div>
+  );
+};
 
 const statusBadge = (status: WeeklyEditStatus) => {
   if (status === "published") return <Badge>Published</Badge>;
@@ -42,6 +78,22 @@ export const WeeklyEditsTab = () => {
   const [threeWays, setThreeWays] = useState<ThreeWayToWear[]>([]);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [showProductPicker, setShowProductPicker] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setSelectedProductIds((ids) => {
+        const oldIndex = ids.indexOf(active.id as string);
+        const newIndex = ids.indexOf(over.id as string);
+        return arrayMove(ids, oldIndex, newIndex);
+      });
+    }
+  };
 
   // Load products for editing
   const { data: editProducts } = useWeeklyEditProductIds(editingId);
@@ -313,37 +365,15 @@ export const WeeklyEditsTab = () => {
             </Button>
           </div>
           {selectedProductObjects.length > 0 ? (
-            <div className="space-y-2">
-              {selectedProductObjects.map((product: any, i: number) => (
-                <div
-                  key={product.id}
-                  className="flex items-center gap-3 p-2 border border-border rounded-sm bg-secondary/10"
-                >
-                  <span className="text-xs text-muted-foreground w-5 text-center">
-                    {i + 1}
-                  </span>
-                  {product.image && (
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-8 h-8 object-cover rounded-sm"
-                    />
-                  )}
-                  <span className="text-sm flex-1 truncate">
-                    {product.brand} – {product.name}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-destructive"
-                    onClick={() => removeProduct(product.id)}
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={selectedProductIds} strategy={verticalListSortingStrategy}>
+                <div className="space-y-2">
+                  {selectedProductObjects.map((product: any, i: number) => (
+                    <SortableProductItem key={product.id} product={product} index={i} onRemove={removeProduct} />
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
           ) : (
             <p className="text-sm text-muted-foreground border border-dashed border-border rounded-sm p-4 text-center">
               No products selected yet.
