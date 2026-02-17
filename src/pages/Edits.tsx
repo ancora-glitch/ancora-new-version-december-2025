@@ -29,10 +29,11 @@ const Edits = () => {
           <>
             {/* Page Header */}
             <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto mb-12 md:mb-16">
-              <span className="block text-[11px] uppercase tracking-[0.16em] text-muted-foreground font-sans mb-3">
+              <span className="block text-[11px] uppercase tracking-[0.16em] text-muted-foreground font-sans mb-3 text-center">
                 This Week's Edit
               </span>
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-serif text-primary text-center mb-4">
+                {activeEdit.title}
               </h1>
               {activeEdit.week_label && (
                 <p className="text-center text-xs uppercase tracking-widest text-muted-foreground mb-3">
