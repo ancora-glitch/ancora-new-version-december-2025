@@ -249,7 +249,8 @@ serve(async (req) => {
       .from('products')
       .select('id, name, brand, affiliate_url, affiliate_auto_handling, affiliate_status')
       .ilike('marketplace', '%ebay%')
-      .in('status', ['active', 'published']);
+      .in('status', ['active', 'published'])
+      .not('affiliate_url', 'is', null);
 
     if (fetchError) {
       const finishedAt = new Date();

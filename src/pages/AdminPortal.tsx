@@ -13,7 +13,7 @@ import { useAllCategories, type Category, type CategoryStatus } from "@/hooks/us
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Trash2, Pencil, X, GripVertical, Bold, Italic, RefreshCw, Loader2, Image as ImageIcon, Eye, EyeOff, Filter, Star } from "lucide-react";
+import { Trash2, Pencil, X, GripVertical, Bold, Italic, RefreshCw, Loader2, Image as ImageIcon, Eye, EyeOff, Filter, Star, Search } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StorageImagePicker } from "@/components/StorageImagePicker";
@@ -212,6 +212,7 @@ const AdminPortal = () => {
   const { data: categories, isLoading: categoriesLoading } = useAllCategories();
   const queryClient = useQueryClient();
   const [isSyncingPrices, setIsSyncingPrices] = useState(false);
+  const [isRecheckingProduct, setIsRecheckingProduct] = useState(false);
 
   // Story form state
   const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
@@ -1086,6 +1087,57 @@ const AdminPortal = () => {
                       checked={productAffiliateAutoHandling}
                       onCheckedChange={setProductAffiliateAutoHandling}
                     />
+                </div>
+                )}
+
+                {/* Recheck Availability Button */}
+                {editingProductId && productAffiliateUrl && (
+                  <div className="flex items-center justify-between p-4 border border-border rounded-sm bg-secondary/20">
+                    <div className="space-y-0.5">
+                      <p className="text-base font-medium">Check Availability</p>
+                      <p className="text-sm text-muted-foreground">
+                        Verify if this listing is still active on the source marketplace
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={isRecheckingProduct}
+                      onClick={async () => {
+                        setIsRecheckingProduct(true);
+                        try {
+                          const { data, error } = await supabase.functions.invoke('recheck-product', {
+                            body: { product_id: editingProductId },
+                          });
+                          if (error) {
+                            toast.error('Recheck failed: ' + error.message);
+                            return;
+                          }
+                          if (data.error) {
+                            toast.error(data.error);
+                            return;
+                          }
+                          if (data.auto_unpublished) {
+                            toast.success(`Marked sold — ${data.reason}`);
+                            setProductStatus("sold");
+                          } else {
+                            toast.info(`Still ${data.affiliate_status} — ${data.reason}`);
+                          }
+                          queryClient.invalidateQueries({ queryKey: ["products"] });
+                          queryClient.invalidateQueries({ queryKey: ["products-all"] });
+                        } catch (e: any) {
+                          toast.error('Recheck failed');
+                        } finally {
+                          setIsRecheckingProduct(false);
+                        }
+                      }}
+                    >
+                      {isRecheckingProduct ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Checking…</>
+                      ) : (
+                        <><Search className="w-4 h-4 mr-2" />Recheck Now</>
+                      )}
+                    </Button>
                   </div>
                 )}
 

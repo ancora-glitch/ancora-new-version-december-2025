@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.ais-backfill-parsed-fields]
 verify_jwt = false
+
+[functions.recheck-product]
+verify_jwt = false
