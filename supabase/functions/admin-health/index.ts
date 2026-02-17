@@ -195,7 +195,19 @@ serve(async (req) => {
     translation.budget.limit_reached = translation.budget.items_used >= translation.budget.items_max;
   } catch (_) { /* non-blocking */ }
 
-  return new Response(JSON.stringify({ ok, checks, version, cron, translation, errors: Object.keys(errors).length > 0 ? errors : undefined }), {
+  // 6. Missing source_ref invariant: published affiliate products without tradera_item_id / parseable source
+  let missing_source_ref_count = 0;
+  try {
+    const { count } = await serviceClient
+      .from('products')
+      .select('id', { count: 'exact', head: true })
+      .in('status', ['active', 'published'])
+      .not('affiliate_url', 'is', null)
+      .is('tradera_item_id', null);
+    missing_source_ref_count = count ?? 0;
+  } catch (_) { /* non-blocking */ }
+
+  return new Response(JSON.stringify({ ok, checks, version, cron, translation, missing_source_ref_count, errors: Object.keys(errors).length > 0 ? errors : undefined }), {
     status: 200,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });

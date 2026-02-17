@@ -136,11 +136,11 @@ serve(async (req) => {
     // Retention cleanup
     await runRetention(supabase);
 
-    // Fetch all active Tradera products
+    // Fetch all active Tradera products (case-insensitive marketplace match)
     const { data: products, error: fetchError } = await supabase
       .from('products')
       .select('id, name, brand, price, affiliate_url, tradera_item_id, affiliate_auto_handling, affiliate_status')
-      .eq('marketplace', 'Tradera')
+      .ilike('marketplace', 'tradera')
       .in('status', ['active', 'published']);
 
     if (fetchError) {
@@ -176,8 +176,13 @@ serve(async (req) => {
     const results: TraderaSyncResult[] = [];
 
     for (const product of products) {
-      const itemId = product.tradera_item_id || extractItemId(product.affiliate_url);
+      let itemId = product.tradera_item_id || extractItemId(product.affiliate_url);
       
+      // Guardrail: backfill tradera_item_id if missing but parseable
+      if (!product.tradera_item_id && itemId) {
+        await supabase.from('products').update({ tradera_item_id: itemId }).eq('id', product.id);
+      }
+
       if (!itemId) {
         results.push({
           productId: product.id,
