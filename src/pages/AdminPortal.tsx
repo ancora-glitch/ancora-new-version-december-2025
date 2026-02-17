@@ -21,6 +21,7 @@ import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import TraderaSearch from "@/components/TraderaSearch";
 import { Badge } from "@/components/ui/badge";
 import { ImportsTab } from "@/components/admin/ImportsTab";
+import { WeeklyEditsTab } from "@/components/admin/WeeklyEditsTab";
 import {
   DndContext,
   closestCenter,
@@ -680,9 +681,10 @@ const AdminPortal = () => {
           </p>
 
           <Tabs defaultValue="statistics" className="w-full">
-            <TabsList className="grid w-full grid-cols-6 mb-8">
+            <TabsList className="grid w-full grid-cols-7 mb-8">
               <TabsTrigger value="statistics">Statistics</TabsTrigger>
               <TabsTrigger value="imports">Imports</TabsTrigger>
+              <TabsTrigger value="weekly-edits">Edits</TabsTrigger>
               <TabsTrigger value="categories">Categories</TabsTrigger>
               <TabsTrigger value="tradera">Tradera</TabsTrigger>
               <TabsTrigger value="products">Products</TabsTrigger>
@@ -697,6 +699,11 @@ const AdminPortal = () => {
             {/* IMPORTS TAB (AIS) */}
             <TabsContent value="imports">
               <ImportsTab />
+            </TabsContent>
+
+            {/* WEEKLY EDITS TAB */}
+            <TabsContent value="weekly-edits">
+              <WeeklyEditsTab />
             </TabsContent>
 
             {/* CATEGORIES TAB */}

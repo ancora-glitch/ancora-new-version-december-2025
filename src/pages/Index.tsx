@@ -2,17 +2,17 @@ import { useNavigate, Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { ProductCard } from "@/components/ProductCard";
 import { GuideCard } from "@/components/GuideCard";
-import { useWeeklyEditProducts, formatPrice } from "@/hooks/useProducts";
+import { useActiveWeeklyEdit } from "@/hooks/useWeeklyEdits";
+import { formatPrice } from "@/hooks/useProducts";
 import { useStyleGuides } from "@/hooks/useStyleGuides";
 import heroImage from "@/assets/hero-fashion.jpg";
 const Index = () => {
   const navigate = useNavigate();
   const {
-    data: products,
+    data: activeEdit,
     isLoading
-  } = useWeeklyEditProducts();
+  } = useActiveWeeklyEdit();
   const {
     data: styleGuides,
     isLoading: guidesLoading
@@ -48,12 +48,14 @@ const Index = () => {
         <section className="px-4 md:px-8 lg:px-12 py-20 md:py-28 lg:py-32 bg-secondary/40">
           <Link to="/this-weeks-edit" className="block text-center mb-4 hover:opacity-80 transition-opacity">
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-normal">
-              This week's edit
+              {activeEdit?.title || "This week's edit"}
             </h2>
           </Link>
-          <p className="text-center text-muted-foreground mb-14 md:mb-16 text-base md:text-lg">Curated second hand pieces, selected exclusively.</p>
+          <p className="text-center text-muted-foreground mb-14 md:mb-16 text-base md:text-lg">
+            {activeEdit?.short_intro || "Curated second hand pieces, selected exclusively."}
+          </p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 lg:gap-8 max-w-7xl mx-auto">
-            {isLoading ? <p className="col-span-full text-center text-muted-foreground">Loading products...</p> : products && products.length > 0 ? products.slice(0, 4).map(product => <Link key={product.id} to={`/product/${product.slug || product.id}`} className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 hover:bg-secondary/10 transition-all duration-300 min-h-[44px]" aria-label={`View ${product.brand} ${product.name}`}>
+            {isLoading ? <p className="col-span-full text-center text-muted-foreground">Loading products...</p> : activeEdit?.products && activeEdit.products.length > 0 ? activeEdit.products.slice(0, 4).map((product: any) => <Link key={product.id} to={`/product/${product.slug || product.id}`} className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 hover:bg-secondary/10 transition-all duration-300 min-h-[44px]" aria-label={`View ${product.brand} ${product.name}`}>
                   <div className="relative aspect-[4/5] overflow-hidden bg-secondary/30">
                     <img src={product.image} alt={product.name} loading="lazy" width={400} height={500} className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" />
                     <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/10 transition-colors duration-300" />
@@ -63,7 +65,7 @@ const Index = () => {
                       {product.brand}
                     </span>
                     <p className="text-sm text-muted-foreground leading-relaxed line-clamp-1">
-                      {(product as any).name_en || product.name}
+                      {product.name_en || product.name}
                     </p>
                     <p className="text-base font-semibold text-foreground pt-1">
                       {formatPrice(product.price)}
@@ -72,7 +74,7 @@ const Index = () => {
                 </Link>) : <p className="col-span-full text-center text-muted-foreground">No products available</p>}
           </div>
           <div className="text-center mt-12">
-            <Button variant="outline" className="px-10 py-4 h-auto uppercase tracking-wide" onClick={() => navigate('/shop')}>
+            <Button variant="outline" className="px-10 py-4 h-auto uppercase tracking-wide" onClick={() => navigate('/this-weeks-edit')}>
               View all
             </Button>
           </div>
