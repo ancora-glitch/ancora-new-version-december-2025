@@ -4,8 +4,15 @@ import { Menu, X, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+const clothingSubcategories = [
+  { label: "Outerwear", href: "/category/clothing?sub=outerwear" },
+  { label: "Tops", href: "/category/clothing?sub=tops" },
+  { label: "Bottoms", href: "/category/clothing?sub=bottoms" },
+  { label: "Dresses", href: "/category/clothing?sub=dresses" },
+];
+
 const shopCategories = [
-  { label: "Clothing", href: "/category/clothing" },
+  { label: "Clothing", href: "/category/clothing", subcategories: clothingSubcategories },
   { label: "Bags", href: "/category/bags" },
   { label: "Shoes", href: "/category/shoes" },
   { label: "Accessories", href: "/category/accessories" },
@@ -116,14 +123,25 @@ export function Header() {
             >
               <div className="py-5 px-1">
                 {shopCategories.map((cat) => (
-                  <Link
-                    key={cat.href}
-                    to={cat.href}
-                    onClick={() => setDesktopShopOpen(false)}
-                    className="block px-5 py-3 text-[11px] font-medium uppercase tracking-[0.14em] text-foreground/60 hover:text-primary transition-colors duration-300"
-                  >
-                    {cat.label}
-                  </Link>
+                  <div key={cat.href}>
+                    <Link
+                      to={cat.href}
+                      onClick={() => setDesktopShopOpen(false)}
+                      className="block px-5 py-3 text-[11px] font-medium uppercase tracking-[0.14em] text-foreground/60 hover:text-primary transition-colors duration-300"
+                    >
+                      {cat.label}
+                    </Link>
+                    {cat.subcategories && cat.subcategories.map((sub) => (
+                      <Link
+                        key={sub.href}
+                        to={sub.href}
+                        onClick={() => setDesktopShopOpen(false)}
+                        className="block pl-10 pr-5 py-2 text-[10px] font-medium uppercase tracking-[0.12em] text-foreground/40 hover:text-primary transition-colors duration-300"
+                      >
+                        {sub.label}
+                      </Link>
+                    ))}
+                  </div>
                 ))}
                 <div className="border-t border-border/40 mx-5 mt-3 pt-3">
                   <Link
@@ -219,19 +237,30 @@ export function Header() {
                 <div
                   className={cn(
                     "overflow-hidden transition-all duration-300",
-                    shopExpanded ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0"
+                    shopExpanded ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
                   )}
                 >
                   <div className="pl-4 pb-2 space-y-0.5">
                     {shopCategories.map((cat) => (
-                      <Link
-                        key={cat.href}
-                        to={cat.href}
-                        onClick={closeMobile}
-                        className="block py-3 text-[13px] tracking-[0.1em] text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        {cat.label}
-                      </Link>
+                      <div key={cat.href}>
+                        <Link
+                          to={cat.href}
+                          onClick={closeMobile}
+                          className="block py-3 text-[13px] tracking-[0.1em] text-muted-foreground hover:text-primary transition-colors"
+                        >
+                          {cat.label}
+                        </Link>
+                        {cat.subcategories && cat.subcategories.map((sub) => (
+                          <Link
+                            key={sub.href}
+                            to={sub.href}
+                            onClick={closeMobile}
+                            className="block pl-5 py-2 text-[12px] tracking-[0.08em] text-muted-foreground/70 hover:text-primary transition-colors"
+                          >
+                            {sub.label}
+                          </Link>
+                        ))}
+                      </div>
                     ))}
                     <div className="border-t border-border/30 mt-2 pt-2">
                       <Link
