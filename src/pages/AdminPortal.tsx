@@ -1063,49 +1063,44 @@ const AdminPortal = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  {(() => {
-                    const selectedCat = categories?.find(c => c.id === productCategoryId);
-                    if (selectedCat?.slug === "clothing") {
-                      return (
-                        <div className="space-y-2">
-                          <Label htmlFor="productSubcategory">Subcategory *</Label>
-                          <Select
-                            value={productSubcategory || "none"}
-                            onValueChange={(v) => setProductSubcategory(v === "none" ? null : v)}
-                          >
-                            <SelectTrigger className="bg-background border-border">
-                              <SelectValue placeholder="Select subcategory" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">No subcategory</SelectItem>
-                              {CLOTHING_SUBCATEGORIES.map((sub) => (
-                                <SelectItem key={sub.value} value={sub.value}>
-                                  {sub.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      );
-                    }
-                    return (
-                      <div className="space-y-2">
-                        <Label htmlFor="productAncoraSelectSource">Ancora selects from</Label>
-                        <Select 
-                          value={productAncoraSelectSource || "none"} 
-                          onValueChange={(v) => setProductAncoraSelectSource(v === "none" ? null : v as AncoraSelectSource)}
-                        >
-                          <SelectTrigger className="bg-background border-border">
-                            <SelectValue placeholder="Select source" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">—</SelectItem>
-                            <SelectItem value="tradera">Tradera</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    );
-                  })()}
+                  {categories?.find(c => c.id === productCategoryId)?.slug === "clothing" ? (
+                    <div className="space-y-2" key="subcategory-field">
+                      <Label htmlFor="productSubcategory">Subcategory *</Label>
+                      <Select
+                        key={`subcat-${productSubcategory}`}
+                        value={productSubcategory || "none"}
+                        onValueChange={(v) => setProductSubcategory(v === "none" ? null : v)}
+                      >
+                        <SelectTrigger className="bg-background border-border">
+                          <SelectValue placeholder="Select subcategory" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No subcategory</SelectItem>
+                          {CLOTHING_SUBCATEGORIES.map((sub) => (
+                            <SelectItem key={sub.value} value={sub.value}>
+                              {sub.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div className="space-y-2" key="ancora-source-field">
+                      <Label htmlFor="productAncoraSelectSource">Ancora selects from</Label>
+                      <Select 
+                        value={productAncoraSelectSource || "none"} 
+                        onValueChange={(v) => setProductAncoraSelectSource(v === "none" ? null : v as AncoraSelectSource)}
+                      >
+                        <SelectTrigger className="bg-background border-border">
+                          <SelectValue placeholder="Select source" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">—</SelectItem>
+                          <SelectItem value="tradera">Tradera</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
 
                 {/* This Week's Edit Toggle */}
