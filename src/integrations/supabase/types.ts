@@ -259,6 +259,7 @@ export type Database = {
           slug: string | null
           sort_order: number | null
           status: Database["public"]["Enums"]["product_status"]
+          subcategory: string | null
           tradera_item_id: string | null
           translated_at: string | null
           unpublished_reason: string | null
@@ -304,6 +305,7 @@ export type Database = {
           slug?: string | null
           sort_order?: number | null
           status?: Database["public"]["Enums"]["product_status"]
+          subcategory?: string | null
           tradera_item_id?: string | null
           translated_at?: string | null
           unpublished_reason?: string | null
@@ -349,6 +351,7 @@ export type Database = {
           slug?: string | null
           sort_order?: number | null
           status?: Database["public"]["Enums"]["product_status"]
+          subcategory?: string | null
           tradera_item_id?: string | null
           translated_at?: string | null
           unpublished_reason?: string | null

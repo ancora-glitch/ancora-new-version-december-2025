@@ -42,6 +42,13 @@ import { CSS } from "@dnd-kit/utilities";
 
 type AncoraSelectSource = "tradera" | null;
 
+const CLOTHING_SUBCATEGORIES = [
+  { value: "outerwear", label: "Outerwear" },
+  { value: "tops", label: "Tops" },
+  { value: "bottoms", label: "Bottoms" },
+  { value: "dresses", label: "Dresses" },
+];
+
 interface Product {
   id: string;
   brand: string;
@@ -60,6 +67,7 @@ interface Product {
   slug?: string | null;
   sort_order?: number | null;
   category_id?: string | null;
+  subcategory?: string | null;
   ancora_select_source?: AncoraSelectSource;
   in_weekly_edit?: boolean;
   affiliate_status?: string | null;
@@ -244,6 +252,7 @@ const AdminPortal = () => {
   const [productStatus, setProductStatus] = useState<ProductStatus>("draft");
   const [productCategoryId, setProductCategoryId] = useState<string | null>(null);
   const [productAncoraSelectSource, setProductAncoraSelectSource] = useState<AncoraSelectSource>(null);
+  const [productSubcategory, setProductSubcategory] = useState<string | null>(null);
   const [productInWeeklyEdit, setProductInWeeklyEdit] = useState(false);
   const [productAffiliateAutoHandling, setProductAffiliateAutoHandling] = useState(true);
   const [savingProduct, setSavingProduct] = useState(false);
@@ -306,6 +315,7 @@ const AdminPortal = () => {
     setProductMaterial("");
     setProductStatus("draft");
     setProductCategoryId(null);
+    setProductSubcategory(null);
     setProductAncoraSelectSource(null);
     setProductInWeeklyEdit(false);
     setProductAffiliateAutoHandling(true);
@@ -430,6 +440,7 @@ const AdminPortal = () => {
     // Normalize legacy 'published' to 'active' for the UI
     setProductStatus(product.status === "published" ? "active" : product.status);
     setProductCategoryId(product.category_id || null);
+    setProductSubcategory((product as any).subcategory || null);
     setProductAncoraSelectSource(product.ancora_select_source || null);
     setProductInWeeklyEdit(product.in_weekly_edit || false);
     setProductAffiliateAutoHandling(product.affiliate_auto_handling !== false);
@@ -522,6 +533,7 @@ const AdminPortal = () => {
       status: productStatus,
       slug,
       category_id: productCategoryId || null,
+      subcategory: productSubcategory || null,
       ancora_select_source: productAncoraSelectSource,
       in_weekly_edit: productInWeeklyEdit,
       affiliate_auto_handling: productAffiliateAutoHandling,
@@ -1028,7 +1040,15 @@ const AdminPortal = () => {
                     <Label htmlFor="productCategory">Category</Label>
                     <Select 
                       value={productCategoryId || "none"} 
-                      onValueChange={(v) => setProductCategoryId(v === "none" ? null : v)}
+                      onValueChange={(v) => {
+                        const newCatId = v === "none" ? null : v;
+                        setProductCategoryId(newCatId);
+                        // Reset subcategory when category changes away from Clothing
+                        const selectedCat = categories?.find(c => c.id === newCatId);
+                        if (!selectedCat || selectedCat.slug !== "clothing") {
+                          setProductSubcategory(null);
+                        }
+                      }}
                     >
                       <SelectTrigger className="bg-background border-border">
                         <SelectValue placeholder="Select category" />
@@ -1043,21 +1063,49 @@ const AdminPortal = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="productAncoraSelectSource">Ancora selects from</Label>
-                    <Select 
-                      value={productAncoraSelectSource || "none"} 
-                      onValueChange={(v) => setProductAncoraSelectSource(v === "none" ? null : v as AncoraSelectSource)}
-                    >
-                      <SelectTrigger className="bg-background border-border">
-                        <SelectValue placeholder="Select source" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">—</SelectItem>
-                        <SelectItem value="tradera">Tradera</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {(() => {
+                    const selectedCat = categories?.find(c => c.id === productCategoryId);
+                    if (selectedCat?.slug === "clothing") {
+                      return (
+                        <div className="space-y-2">
+                          <Label htmlFor="productSubcategory">Subcategory *</Label>
+                          <Select
+                            value={productSubcategory || "none"}
+                            onValueChange={(v) => setProductSubcategory(v === "none" ? null : v)}
+                          >
+                            <SelectTrigger className="bg-background border-border">
+                              <SelectValue placeholder="Select subcategory" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">No subcategory</SelectItem>
+                              {CLOTHING_SUBCATEGORIES.map((sub) => (
+                                <SelectItem key={sub.value} value={sub.value}>
+                                  {sub.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="space-y-2">
+                        <Label htmlFor="productAncoraSelectSource">Ancora selects from</Label>
+                        <Select 
+                          value={productAncoraSelectSource || "none"} 
+                          onValueChange={(v) => setProductAncoraSelectSource(v === "none" ? null : v as AncoraSelectSource)}
+                        >
+                          <SelectTrigger className="bg-background border-border">
+                            <SelectValue placeholder="Select source" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">—</SelectItem>
+                            <SelectItem value="tradera">Tradera</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* This Week's Edit Toggle */}

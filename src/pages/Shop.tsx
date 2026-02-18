@@ -6,15 +6,28 @@ import { Button } from "@/components/ui/button";
 import { useProducts, formatPrice } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
 
+const CLOTHING_SUBCATEGORIES = [
+  { value: "outerwear", label: "Outerwear" },
+  { value: "tops", label: "Tops" },
+  { value: "bottoms", label: "Bottoms" },
+  { value: "dresses", label: "Dresses" },
+];
+
 const Shop = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
   const { data: products, isLoading } = useProducts();
   const { data: categories } = useCategories();
 
-  // Filter products by selected category
-  const filteredProducts = selectedCategory
-    ? products?.filter((product) => product.category_id === selectedCategory)
-    : products;
+  const selectedCatSlug = categories?.find((c) => c.id === selectedCategory)?.slug;
+  const isClothingSelected = selectedCatSlug === "clothing";
+
+  // Filter products by selected category and subcategory
+  const filteredProducts = products?.filter((product) => {
+    if (selectedCategory && product.category_id !== selectedCategory) return false;
+    if (isClothingSelected && selectedSubcategory && (product as any).subcategory !== selectedSubcategory) return false;
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -42,11 +55,14 @@ const Shop = () => {
         </div>
 
         {/* Category Filters */}
-        <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto mb-10 md:mb-14">
+        <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto mb-4">
           <div className="flex flex-wrap justify-center gap-3">
             <Button
               variant={selectedCategory === null ? "default" : "outline"}
-              onClick={() => setSelectedCategory(null)}
+              onClick={() => {
+                setSelectedCategory(null);
+                setSelectedSubcategory(null);
+              }}
               className="px-6 py-2 h-auto text-sm tracking-wide"
             >
               All
@@ -55,7 +71,10 @@ const Shop = () => {
               <Button
                 key={category.id}
                 variant={selectedCategory === category.id ? "default" : "outline"}
-                onClick={() => setSelectedCategory(category.id)}
+                onClick={() => {
+                  setSelectedCategory(category.id);
+                  setSelectedSubcategory(null);
+                }}
                 className="px-6 py-2 h-auto text-sm tracking-wide"
               >
                 {category.name}
@@ -63,6 +82,36 @@ const Shop = () => {
             ))}
           </div>
         </div>
+
+        {/* Subcategory Filters (Clothing only) */}
+        {isClothingSelected && (
+          <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto mb-10 md:mb-14">
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button
+                variant={selectedSubcategory === null ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedSubcategory(null)}
+                className="px-5 py-1.5 h-auto text-xs tracking-wide"
+              >
+                All
+              </Button>
+              {CLOTHING_SUBCATEGORIES.map((sub) => (
+                <Button
+                  key={sub.value}
+                  variant={selectedSubcategory === sub.value ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedSubcategory(sub.value)}
+                  className="px-5 py-1.5 h-auto text-xs tracking-wide"
+                >
+                  {sub.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Spacer when no subcategory row */}
+        {!isClothingSelected && <div className="mb-6 md:mb-10" />}
 
         {/* Products Grid */}
         <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto">
@@ -117,7 +166,10 @@ const Shop = () => {
               {selectedCategory && (
                 <Button
                   variant="outline"
-                  onClick={() => setSelectedCategory(null)}
+                  onClick={() => {
+                    setSelectedCategory(null);
+                    setSelectedSubcategory(null);
+                  }}
                   className="mt-2"
                 >
                   View all products
