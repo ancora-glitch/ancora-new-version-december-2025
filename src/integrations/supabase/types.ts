@@ -725,6 +725,7 @@ export type Database = {
         | "published"
         | "draft"
         | "pending_import"
+        | "review_required"
       weekly_edit_status: "draft" | "scheduled" | "published"
     }
     CompositeTypes: {
@@ -865,6 +866,7 @@ export const Constants = {
         "published",
         "draft",
         "pending_import",
+        "review_required",
       ],
       weekly_edit_status: ["draft", "scheduled", "published"],
     },

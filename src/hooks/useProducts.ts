@@ -6,7 +6,7 @@ export type Product = Tables<"products">;
 
 // NOTE: Historically, "active" is the public/visible status in the database.
 // We also temporarily support legacy "published" values to avoid breaking older rows.
-export type ProductStatus = "draft" | "active" | "sold" | "published" | "pending_import";
+export type ProductStatus = "draft" | "active" | "sold" | "published" | "pending_import" | "review_required";
 
 export const PUBLIC_VISIBLE_PRODUCT_STATUSES: Array<ProductStatus> = ["active", "published"];
 
@@ -54,7 +54,7 @@ export const useAllProducts = () => {
       const { data, error } = await supabase
         .from("products")
         .select("*")
-        .neq("status", "sold")
+        .not("status", "in", '("sold")')
         .order("sort_order", { ascending: true });
 
       if (error) throw error;
