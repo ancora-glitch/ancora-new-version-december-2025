@@ -125,53 +125,80 @@ const Shop = () => {
           </div>
         </div>
 
-        {/* Subcategory Filters (Clothing only) — visible on hover or when selected */}
-        <div
-          className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto overflow-hidden transition-all duration-250 ease-out"
-          style={{
-            maxHeight: showSubcategories ? '80px' : '0px',
-            opacity: showSubcategories ? 1 : 0,
-            marginBottom: showSubcategories ? undefined : 0,
-          }}
-          onMouseEnter={handleSubcategoryRowEnter}
-          onMouseLeave={handleSubcategoryRowLeave}
-        >
-          <div className="flex flex-wrap justify-center gap-2 pb-4 pt-1">
-            <Button
-              variant={selectedSubcategory === null && isClothingSelected ? "default" : "outline"}
-              size="sm"
-              onClick={() => {
-                if (!isClothingSelected && clothingCategory) {
-                  setSelectedCategory(clothingCategory.id);
-                }
-                setSelectedSubcategory(null);
-              }}
-              className="px-5 py-1.5 h-auto text-xs tracking-wide"
-            >
-              All
-            </Button>
-            {CLOTHING_SUBCATEGORIES.map((sub) => (
+        {/* Subcategory Filters (Clothing only) — overlay on desktop, inline on mobile */}
+        <div className="relative px-4 md:px-8 lg:px-12 max-w-7xl mx-auto">
+          {/* Desktop: absolute overlay, no layout shift */}
+          <div
+            className="hidden md:block absolute left-0 right-0 z-10 px-4 md:px-8 lg:px-12 transition-opacity duration-200 ease-out pointer-events-none"
+            style={{
+              opacity: showSubcategories ? 1 : 0,
+            }}
+            onMouseEnter={handleSubcategoryRowEnter}
+            onMouseLeave={handleSubcategoryRowLeave}
+          >
+            <div className="flex flex-wrap justify-center gap-2 pb-4 pt-1 pointer-events-auto">
               <Button
-                key={sub.value}
-                variant={selectedSubcategory === sub.value ? "default" : "outline"}
+                variant={selectedSubcategory === null && isClothingSelected ? "default" : "outline"}
                 size="sm"
                 onClick={() => {
                   if (!isClothingSelected && clothingCategory) {
                     setSelectedCategory(clothingCategory.id);
                   }
-                  setSelectedSubcategory(sub.value);
+                  setSelectedSubcategory(null);
                 }}
                 className="px-5 py-1.5 h-auto text-xs tracking-wide"
               >
-                {sub.label}
+                All
               </Button>
-            ))}
+              {CLOTHING_SUBCATEGORIES.map((sub) => (
+                <Button
+                  key={sub.value}
+                  variant={selectedSubcategory === sub.value ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    if (!isClothingSelected && clothingCategory) {
+                      setSelectedCategory(clothingCategory.id);
+                    }
+                    setSelectedSubcategory(sub.value);
+                  }}
+                  className="px-5 py-1.5 h-auto text-xs tracking-wide"
+                >
+                  {sub.label}
+                </Button>
+              ))}
+            </div>
           </div>
+
+          {/* Mobile: inline, shown only when clothing is selected */}
+          {isClothingSelected && (
+            <div className="md:hidden">
+              <div className="flex flex-wrap justify-center gap-2 pb-4 pt-1">
+                <Button
+                  variant={selectedSubcategory === null ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedSubcategory(null)}
+                  className="px-5 py-1.5 h-auto text-xs tracking-wide"
+                >
+                  All
+                </Button>
+                {CLOTHING_SUBCATEGORIES.map((sub) => (
+                  <Button
+                    key={sub.value}
+                    variant={selectedSubcategory === sub.value ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedSubcategory(sub.value)}
+                    className="px-5 py-1.5 h-auto text-xs tracking-wide"
+                  >
+                    {sub.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Spacer when no subcategory row */}
-        {!showSubcategories && <div className="mb-6 md:mb-10" />}
-        {showSubcategories && <div className="mb-4 md:mb-6" />}
+        {/* Consistent spacer — no conditional height changes */}
+        <div className="mb-6 md:mb-10" />
 
         {/* Products Grid */}
         <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto">
