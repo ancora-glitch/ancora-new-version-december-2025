@@ -89,6 +89,7 @@ const getStatusBadge = (status: ProductStatus) => {
   if (isPublishedStatus(status)) return <Badge>Published</Badge>;
   if (status === "draft") return <Badge variant="secondary">Draft</Badge>;
   if (status === "sold") return <Badge variant="outline">Sold</Badge>;
+  if (status === "review_required") return <Badge variant="outline" className="text-amber-700 border-amber-400 bg-amber-50">Review</Badge>;
   return <Badge variant="outline">{status}</Badge>;
 };
 
@@ -100,9 +101,11 @@ interface SortableProductItemProps {
   onDelete: (id: string, name: string) => void;
   onTogglePublish: (product: Product) => void;
   onToggleWeeklyEdit: (product: Product) => void;
+  onRecheck: (product: Product) => void;
+  isRechecking: boolean;
 }
 
-const SortableProductItem = ({ product, editingProductId, onEdit, onDelete, onTogglePublish, onToggleWeeklyEdit }: SortableProductItemProps) => {
+const SortableProductItem = ({ product, editingProductId, onEdit, onDelete, onTogglePublish, onToggleWeeklyEdit, onRecheck, isRechecking }: SortableProductItemProps) => {
   const {
     attributes,
     listeners,
@@ -187,6 +190,21 @@ const SortableProductItem = ({ product, editingProductId, onEdit, onDelete, onTo
             </Button>
           </>
         )}
+        {product.affiliate_url && (
+          <Button
+            variant="ghost"
+            size="icon"
+            disabled={isRechecking}
+            onClick={(e) => {
+              e.stopPropagation();
+              onRecheck(product);
+            }}
+            className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+            title="Recheck availability"
+          >
+            {isRechecking ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="icon"
@@ -222,6 +240,8 @@ const AdminPortal = () => {
   const queryClient = useQueryClient();
   const [isSyncingPrices, setIsSyncingPrices] = useState(false);
   const [isRecheckingProduct, setIsRecheckingProduct] = useState(false);
+  const [isRunningScan, setIsRunningScan] = useState(false);
+  const [recheckingProductId, setRecheckingProductId] = useState<string | null>(null);
 
   // Story form state
   const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
@@ -256,7 +276,7 @@ const AdminPortal = () => {
   const [productInWeeklyEdit, setProductInWeeklyEdit] = useState(false);
   const [productAffiliateAutoHandling, setProductAffiliateAutoHandling] = useState(true);
   const [savingProduct, setSavingProduct] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "active" | "sold">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "active" | "sold" | "review_required">("all");
 
   // Category form state
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
@@ -1170,6 +1190,9 @@ const AdminPortal = () => {
                           if (data.auto_unpublished) {
                             toast.success(`Marked sold — ${data.reason}`);
                             setProductStatus("sold");
+                          } else if (data.auto_review_flagged) {
+                            toast.info(`Flagged for review — ${data.reason}`);
+                            setProductStatus("review_required");
                           } else {
                             toast.info(`Still ${data.affiliate_status} — ${data.reason}`);
                           }
@@ -1203,15 +1226,51 @@ const AdminPortal = () => {
                     Existing Products ({filteredProducts?.length || 0}{statusFilter !== "all" ? ` ${statusFilter}` : ""})
                   </h2>
                   <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={isRunningScan}
+                      onClick={async () => {
+                        setIsRunningScan(true);
+                        try {
+                          const { data, error } = await supabase.functions.invoke('recheck-product', {
+                            body: { scan_all: true },
+                          });
+                          if (error) {
+                            toast.error('Scan failed: ' + error.message);
+                            return;
+                          }
+                          if (data.error) {
+                            toast.error(data.error);
+                            return;
+                          }
+                          toast.success(`Scan complete: ${data.total_checked} checked, ${data.sold_marked} marked sold, ${data.review_flagged} flagged for review`);
+                          queryClient.invalidateQueries({ queryKey: ["products"] });
+                          queryClient.invalidateQueries({ queryKey: ["products-all"] });
+                          queryClient.invalidateQueries({ queryKey: ["products-sold"] });
+                        } catch {
+                          toast.error('Scan failed');
+                        } finally {
+                          setIsRunningScan(false);
+                        }
+                      }}
+                    >
+                      {isRunningScan ? (
+                        <><Loader2 className="w-4 h-4 mr-1 animate-spin" />Scanning…</>
+                      ) : (
+                        <><RefreshCw className="w-4 h-4 mr-1" />Scan All</>
+                      )}
+                    </Button>
                     <Filter className="w-4 h-4 text-muted-foreground" />
-                    <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "all" | "draft" | "active" | "sold")}>
-                      <SelectTrigger className="w-[140px] bg-background border-border">
+                    <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "all" | "draft" | "active" | "sold" | "review_required")}>
+                      <SelectTrigger className="w-[160px] bg-background border-border">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All</SelectItem>
                         <SelectItem value="draft">Drafts</SelectItem>
                         <SelectItem value="active">Published</SelectItem>
+                        <SelectItem value="review_required">Review Required</SelectItem>
                         <SelectItem value="sold">Sold</SelectItem>
                       </SelectContent>
                     </Select>
@@ -1240,6 +1299,26 @@ const AdminPortal = () => {
                             onDelete={handleDeleteProduct}
                             onTogglePublish={handleTogglePublish}
                             onToggleWeeklyEdit={handleToggleWeeklyEdit}
+                            isRechecking={recheckingProductId === product.id}
+                            onRecheck={async (p) => {
+                              setRecheckingProductId(p.id);
+                              try {
+                                const { data, error } = await supabase.functions.invoke('recheck-product', {
+                                  body: { product_id: p.id },
+                                });
+                                if (error) { toast.error('Recheck failed'); return; }
+                                if (data.error) { toast.error(data.error); return; }
+                                if (data.auto_unpublished) {
+                                  toast.success(`${p.brand} - ${p.name}: marked sold — ${data.reason}`);
+                                } else if (data.auto_review_flagged) {
+                                  toast.info(`${p.brand} - ${p.name}: flagged for review — ${data.reason}`);
+                                } else {
+                                  toast.info(`${p.brand} - ${p.name}: ${data.affiliate_status}`);
+                                }
+                                queryClient.invalidateQueries({ queryKey: ["products-all"] });
+                                queryClient.invalidateQueries({ queryKey: ["products"] });
+                              } catch { toast.error('Recheck failed'); } finally { setRecheckingProductId(null); }
+                            }}
                           />
                         ))}
                       </div>

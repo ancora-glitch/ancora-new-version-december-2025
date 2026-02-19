@@ -39,7 +39,7 @@ async function verifyAdminOrServiceRole(req: Request): Promise<{ authorized: tru
   return { authorized: true, userId: user.id };
 }
 
-// ── Tradera check ──
+// ── Tradera check (SOAP API) ──
 
 function extractTraderaItemId(url: string | null): string | null {
   if (!url) return null;
@@ -52,7 +52,7 @@ function extractTraderaItemId(url: string | null): string | null {
   return null;
 }
 
-async function checkTradera(itemId: string): Promise<{ status: 'active' | 'sold' | 'unavailable' | 'unknown'; reason: string }> {
+async function checkTradera(itemId: string): Promise<{ status: 'active' | 'sold' | 'unavailable' | 'unknown' | 'review_required'; reason: string }> {
   const appId = Deno.env.get('TRADERA_APP_ID');
   const appKey = Deno.env.get('TRADERA_APP_KEY');
   if (!appId || !appKey) return { status: 'unknown', reason: 'Tradera credentials not configured' };
@@ -82,13 +82,11 @@ async function checkTradera(itemId: string): Promise<{ status: 'active' | 'sold'
     if (!res.ok) return { status: 'unknown', reason: `HTTP ${res.status}` };
     const xml = await res.text();
 
-    // Check status
     const statusMatch = xml.match(/<ItemStatus>(.*?)<\/ItemStatus>/i);
     if (statusMatch) {
       const s = statusMatch[1].toLowerCase();
       if (s === 'ended' || s === 'sold' || s === 'closed') return { status: 'sold', reason: `ItemStatus=${statusMatch[1]}` };
     }
-    // Check EndDate
     const endMatch = xml.match(/<EndDate>(.*?)<\/EndDate>/i);
     if (endMatch) {
       try {
@@ -98,6 +96,64 @@ async function checkTradera(itemId: string): Promise<{ status: 'active' | 'sold'
     return { status: 'active', reason: 'Listing is live' };
   } catch (e: any) {
     return { status: 'unknown', reason: e.message };
+  }
+}
+
+// ── HTML fallback check for Tradera ──
+
+const SOLD_PHRASES_SV = [
+  'vann auktionen',
+  'auktionen är avslutad',
+  'såld',
+  'köpt',
+  'annonsen är avslutad',
+  'annonsen har avslutats',
+  'detta objekt är slutsålt',
+];
+const SOLD_PHRASES_EN = [
+  'listing ended',
+  'auction closed',
+  'this item has been sold',
+  'bidding has ended',
+];
+const ALL_SOLD_PHRASES = [...SOLD_PHRASES_SV, ...SOLD_PHRASES_EN];
+
+async function checkTraderaHtml(affiliateUrl: string): Promise<{ status: 'active' | 'sold' | 'review_required' | 'unknown'; reason: string }> {
+  try {
+    const res = await fetch(affiliateUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AncoraBot/1.0)' },
+      redirect: 'follow',
+    });
+
+    if (res.status === 404 || res.status === 410) {
+      return { status: 'sold', reason: `HTML check: HTTP ${res.status}` };
+    }
+    if (!res.ok) {
+      return { status: 'unknown', reason: `HTML check: HTTP ${res.status}` };
+    }
+
+    const html = await res.text();
+    const lower = html.toLowerCase();
+
+    // Check for sold/ended phrases
+    for (const phrase of ALL_SOLD_PHRASES) {
+      if (lower.includes(phrase)) {
+        return { status: 'sold', reason: `Detected phrase: "${phrase}"` };
+      }
+    }
+
+    // Check for missing buy/bid elements
+    const hasBuyButton = lower.includes('köp nu') || lower.includes('buy now') || lower.includes('buyitnowprice');
+    const hasBidButton = lower.includes('lägg bud') || lower.includes('place bid') || lower.includes('bidbutton');
+    const hasActivePrice = lower.includes('itemprice') || lower.includes('currentprice');
+
+    if (!hasBuyButton && !hasBidButton && !hasActivePrice) {
+      return { status: 'review_required', reason: 'HTML check: no buy/bid/price elements found' };
+    }
+
+    return { status: 'active', reason: 'HTML check: listing appears active' };
+  } catch (e: any) {
+    return { status: 'unknown', reason: `HTML fetch error: ${e.message}` };
   }
 }
 
@@ -162,12 +218,104 @@ function detectMarketplace(product: any): 'tradera' | 'ebay' | null {
   const mp = (product.marketplace || '').toLowerCase();
   if (mp.includes('tradera')) return 'tradera';
   if (mp.includes('ebay')) return 'ebay';
-  // Try to detect from affiliate_url
   const url = product.affiliate_url || '';
   if (url.includes('tradera.com')) return 'tradera';
   if (url.includes('ebay.')) return 'ebay';
   return null;
 }
+
+// ── Batch scan handler ──
+
+async function handleBatchScan(req: Request, supabase: any, corsHeaders: Record<string, string>) {
+  // Fetch all published products with affiliate URLs
+  const { data: products, error } = await supabase
+    .from('products')
+    .select('id, name, brand, slug, marketplace, affiliate_url, tradera_item_id, affiliate_auto_handling, status, affiliate_status')
+    .in('status', ['active', 'published'])
+    .not('affiliate_url', 'is', null);
+
+  if (error) {
+    return new Response(JSON.stringify({ error: 'Failed to fetch products' }), {
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const results: any[] = [];
+  let checked = 0;
+  let soldMarked = 0;
+  let reviewFlagged = 0;
+
+  for (const product of (products || [])) {
+    const marketplace = detectMarketplace(product);
+    if (!marketplace) continue;
+
+    let itemId: string | null = null;
+    if (marketplace === 'tradera') {
+      itemId = product.tradera_item_id || extractTraderaItemId(product.affiliate_url);
+    } else {
+      itemId = extractEbayItemId(product.affiliate_url);
+    }
+    if (!itemId) continue;
+
+    // Primary API check
+    let result = marketplace === 'tradera'
+      ? await checkTradera(itemId)
+      : await checkEbay(itemId);
+
+    // HTML fallback for Tradera when API is inconclusive
+    if (marketplace === 'tradera' && (result.status === 'unknown') && product.affiliate_url) {
+      const htmlResult = await checkTraderaHtml(product.affiliate_url);
+      if (htmlResult.status !== 'unknown') {
+        result = htmlResult;
+      }
+    }
+
+    checked++;
+    const now = new Date().toISOString();
+    const updateData: Record<string, any> = {
+      affiliate_status: result.status,
+      affiliate_last_checked_at: now,
+      affiliate_checked_via: marketplace,
+      updated_at: now,
+    };
+
+    let autoAction: string | null = null;
+
+    if (result.status === 'review_required') {
+      updateData.status = 'review_required';
+      reviewFlagged++;
+      autoAction = 'flagged_review';
+    } else if (result.status !== 'active' && result.status !== 'unknown' && product.affiliate_auto_handling !== false) {
+      updateData.status = 'sold';
+      updateData.unpublished_reason = 'affiliate_unavailable';
+      soldMarked++;
+      autoAction = 'marked_sold';
+    }
+
+    await supabase.from('products').update(updateData).eq('id', product.id);
+
+    results.push({
+      product_id: product.id,
+      product_name: `${product.brand} - ${product.name}`,
+      affiliate_status: result.status,
+      reason: result.reason,
+      action: autoAction,
+    });
+
+    // Brief pause to avoid hammering APIs
+    await new Promise(r => setTimeout(r, 200));
+  }
+
+  return new Response(JSON.stringify({
+    scan_complete: true,
+    total_checked: checked,
+    sold_marked: soldMarked,
+    review_flagged: reviewFlagged,
+    results,
+  }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+}
+
+// ── Main handler ──
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
@@ -177,14 +325,22 @@ serve(async (req) => {
   if (!authResult.authorized) return authResult.response;
 
   try {
-    const { product_id, slug } = await req.json();
-    if (!product_id && !slug) {
-      return new Response(JSON.stringify({ error: 'product_id or slug required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
+    const body = await req.json();
+    const { product_id, slug, scan_all } = body;
 
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
-    let query = supabase.from('products').select('id, name, brand, slug, marketplace, affiliate_url, tradera_item_id, affiliate_auto_handling, status');
+    // Batch scan mode
+    if (scan_all) {
+      return handleBatchScan(req, supabase, corsHeaders);
+    }
+
+    // Single product mode
+    if (!product_id && !slug) {
+      return new Response(JSON.stringify({ error: 'product_id, slug, or scan_all required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    let query = supabase.from('products').select('id, name, brand, slug, marketplace, affiliate_url, tradera_item_id, affiliate_auto_handling, status, affiliate_status');
     if (product_id) query = query.eq('id', product_id);
     else query = query.eq('slug', slug);
 
@@ -198,7 +354,6 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Cannot determine marketplace', product_id: product.id }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Extract item ID
     let itemId: string | null = null;
     if (marketplace === 'tradera') {
       itemId = product.tradera_item_id || extractTraderaItemId(product.affiliate_url);
@@ -206,7 +361,7 @@ serve(async (req) => {
       itemId = extractEbayItemId(product.affiliate_url);
     }
 
-    // Guardrail: try to backfill tradera_item_id if missing
+    // Backfill tradera_item_id if missing
     if (marketplace === 'tradera' && !product.tradera_item_id && itemId) {
       await supabase.from('products').update({ tradera_item_id: itemId }).eq('id', product.id);
     }
@@ -219,10 +374,20 @@ serve(async (req) => {
       }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Run the check
-    const result = marketplace === 'tradera'
+    // Primary API check
+    let result = marketplace === 'tradera'
       ? await checkTradera(itemId)
       : await checkEbay(itemId);
+
+    // HTML fallback for Tradera when API returns unknown
+    if (marketplace === 'tradera' && result.status === 'unknown' && product.affiliate_url) {
+      console.log(`[recheck] API returned unknown for ${product.id}, trying HTML fallback`);
+      const htmlResult = await checkTraderaHtml(product.affiliate_url);
+      if (htmlResult.status !== 'unknown') {
+        result = htmlResult;
+        console.log(`[recheck] HTML fallback result: ${htmlResult.status} — ${htmlResult.reason}`);
+      }
+    }
 
     const now = new Date().toISOString();
     const updateData: Record<string, any> = {
@@ -233,7 +398,12 @@ serve(async (req) => {
     };
 
     let autoUnpublished = false;
-    if (result.status !== 'active' && result.status !== 'unknown' && product.affiliate_auto_handling !== false) {
+    let autoReviewFlagged = false;
+
+    if (result.status === 'review_required' && product.affiliate_auto_handling !== false) {
+      updateData.status = 'review_required';
+      autoReviewFlagged = true;
+    } else if (result.status !== 'active' && result.status !== 'unknown' && result.status !== 'review_required' && product.affiliate_auto_handling !== false) {
       updateData.status = 'sold';
       updateData.unpublished_reason = 'affiliate_unavailable';
       autoUnpublished = true;
@@ -249,6 +419,7 @@ serve(async (req) => {
       affiliate_status: result.status,
       reason: result.reason,
       auto_unpublished: autoUnpublished,
+      auto_review_flagged: autoReviewFlagged,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (e: any) {
     return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
