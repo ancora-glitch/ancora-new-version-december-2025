@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { useProducts, formatPrice } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const CLOTHING_SUBCATEGORIES = [
   { value: "outerwear", label: "Outerwear" },
@@ -16,11 +17,46 @@ const CLOTHING_SUBCATEGORIES = [
 const Shop = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
+  const [isHoveringClothing, setIsHoveringClothing] = useState(false);
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { data: products, isLoading } = useProducts();
   const { data: categories } = useCategories();
+  const isMobile = useIsMobile();
 
   const selectedCatSlug = categories?.find((c) => c.id === selectedCategory)?.slug;
   const isClothingSelected = selectedCatSlug === "clothing";
+  const clothingCategory = categories?.find((c) => c.slug === "clothing");
+
+  // Show subcategory row if clothing is selected OR hovered (desktop only)
+  const showSubcategories = isClothingSelected || (!isMobile && isHoveringClothing);
+
+  const handleClothingMouseEnter = useCallback(() => {
+    if (isMobile) return;
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    setIsHoveringClothing(true);
+  }, [isMobile]);
+
+  const handleClothingMouseLeave = useCallback(() => {
+    if (isMobile) return;
+    // Small delay to allow moving to subcategory row
+    hoverTimeoutRef.current = setTimeout(() => {
+      setIsHoveringClothing(false);
+    }, 150);
+  }, [isMobile]);
+
+  const handleSubcategoryRowEnter = useCallback(() => {
+    if (isMobile) return;
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+  }, [isMobile]);
+
+  const handleSubcategoryRowLeave = useCallback(() => {
+    if (isMobile) return;
+    if (!isClothingSelected) {
+      hoverTimeoutRef.current = setTimeout(() => {
+        setIsHoveringClothing(false);
+      }, 150);
+    }
+  }, [isMobile, isClothingSelected]);
 
   // Filter products by selected category and subcategory
   const filteredProducts = products?.filter((product) => {
@@ -62,56 +98,80 @@ const Shop = () => {
               onClick={() => {
                 setSelectedCategory(null);
                 setSelectedSubcategory(null);
+                setIsHoveringClothing(false);
               }}
               className="px-6 py-2 h-auto text-sm tracking-wide"
             >
               All
             </Button>
-            {categories?.map((category) => (
+            {categories?.map((category) => {
+              const isClothingBtn = category.slug === "clothing";
+              return (
+                <Button
+                  key={category.id}
+                  variant={selectedCategory === category.id ? "default" : "outline"}
+                  onClick={() => {
+                    setSelectedCategory(category.id);
+                    setSelectedSubcategory(null);
+                  }}
+                  onMouseEnter={isClothingBtn ? handleClothingMouseEnter : undefined}
+                  onMouseLeave={isClothingBtn ? handleClothingMouseLeave : undefined}
+                  className="px-6 py-2 h-auto text-sm tracking-wide"
+                >
+                  {category.name}
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Subcategory Filters (Clothing only) — visible on hover or when selected */}
+        <div
+          className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto overflow-hidden transition-all duration-250 ease-out"
+          style={{
+            maxHeight: showSubcategories ? '80px' : '0px',
+            opacity: showSubcategories ? 1 : 0,
+            marginBottom: showSubcategories ? undefined : 0,
+          }}
+          onMouseEnter={handleSubcategoryRowEnter}
+          onMouseLeave={handleSubcategoryRowLeave}
+        >
+          <div className="flex flex-wrap justify-center gap-2 pb-4 pt-1">
+            <Button
+              variant={selectedSubcategory === null && isClothingSelected ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                if (!isClothingSelected && clothingCategory) {
+                  setSelectedCategory(clothingCategory.id);
+                }
+                setSelectedSubcategory(null);
+              }}
+              className="px-5 py-1.5 h-auto text-xs tracking-wide"
+            >
+              All
+            </Button>
+            {CLOTHING_SUBCATEGORIES.map((sub) => (
               <Button
-                key={category.id}
-                variant={selectedCategory === category.id ? "default" : "outline"}
+                key={sub.value}
+                variant={selectedSubcategory === sub.value ? "default" : "outline"}
+                size="sm"
                 onClick={() => {
-                  setSelectedCategory(category.id);
-                  setSelectedSubcategory(null);
+                  if (!isClothingSelected && clothingCategory) {
+                    setSelectedCategory(clothingCategory.id);
+                  }
+                  setSelectedSubcategory(sub.value);
                 }}
-                className="px-6 py-2 h-auto text-sm tracking-wide"
+                className="px-5 py-1.5 h-auto text-xs tracking-wide"
               >
-                {category.name}
+                {sub.label}
               </Button>
             ))}
           </div>
         </div>
 
-        {/* Subcategory Filters (Clothing only) */}
-        {isClothingSelected && (
-          <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto mb-10 md:mb-14">
-            <div className="flex flex-wrap justify-center gap-2">
-              <Button
-                variant={selectedSubcategory === null ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedSubcategory(null)}
-                className="px-5 py-1.5 h-auto text-xs tracking-wide"
-              >
-                All
-              </Button>
-              {CLOTHING_SUBCATEGORIES.map((sub) => (
-                <Button
-                  key={sub.value}
-                  variant={selectedSubcategory === sub.value ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedSubcategory(sub.value)}
-                  className="px-5 py-1.5 h-auto text-xs tracking-wide"
-                >
-                  {sub.label}
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Spacer when no subcategory row */}
-        {!isClothingSelected && <div className="mb-6 md:mb-10" />}
+        {!showSubcategories && <div className="mb-6 md:mb-10" />}
+        {showSubcategories && <div className="mb-4 md:mb-6" />}
 
         {/* Products Grid */}
         <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto">
