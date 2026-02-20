@@ -1,4 +1,12 @@
 import { Instagram } from "lucide-react";
+
+const SubstackIcon = ({ className, strokeWidth = 1.5 }: { className?: string; strokeWidth?: number }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M4 4h16" />
+    <path d="M4 8h16" />
+    <path d="M4 12l8 6 8-6" />
+  </svg>
+);
 import { Link } from "react-router-dom";
 export const Footer = () => {
   return <footer className="bg-primary text-primary-foreground">
@@ -13,6 +21,9 @@ export const Footer = () => {
             <div className="flex gap-4 pt-2">
               <a href="https://www.instagram.com/ancora_edit/" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Instagram" className="p-2.5 rounded-full border border-primary-foreground/30 hover:bg-primary-foreground/10 transition-colors duration-200">
                 <Instagram className="w-5 h-5" strokeWidth={1.5} />
+              </a>
+              <a href="https://substack.com/@theancoraedit" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Substack" className="p-2.5 rounded-full border border-primary-foreground/30 hover:bg-primary-foreground/10 transition-colors duration-200">
+                <SubstackIcon className="w-5 h-5" strokeWidth={1.5} />
               </a>
             </div>
           </div>

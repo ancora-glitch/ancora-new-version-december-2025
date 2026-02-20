@@ -2,6 +2,14 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Mail, ExternalLink } from "lucide-react";
 
+const SubstackIcon = ({ className, strokeWidth = 1.5 }: { className?: string; strokeWidth?: number }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M4 4h16" />
+    <path d="M4 8h16" />
+    <path d="M4 12l8 6 8-6" />
+  </svg>
+);
+
 const Contact = () => {
   return (
     <div className="min-h-screen bg-background">
@@ -43,6 +51,20 @@ const Contact = () => {
               >
                 <ExternalLink className="w-4 h-4" strokeWidth={1.5} />
                 @ancora_edit
+              </a>
+            </div>
+
+            {/* Substack */}
+            <div className="border-b border-primary/10 pb-8">
+              <h2 className="font-serif text-lg text-primary mb-3">Substack</h2>
+              <a 
+                href="https://substack.com/@theancoraedit"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-foreground hover:text-primary transition-colors duration-200 flex items-center gap-2"
+              >
+                <SubstackIcon className="w-4 h-4" strokeWidth={1.5} />
+                @theancoraedit
               </a>
             </div>
           </div>
