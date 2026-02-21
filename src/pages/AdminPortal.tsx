@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useStyleGuides } from "@/hooks/useStyleGuides";
+import { useAllStyleGuides, type StoryStatus } from "@/hooks/useStyleGuides";
 import { useAllProducts, useSoldProducts, type ProductStatus } from "@/hooks/useProducts";
 import { useAllCategories, type Category, type CategoryStatus } from "@/hooks/useCategories";
 import { supabase } from "@/integrations/supabase/client";
@@ -233,7 +233,7 @@ const SortableProductItem = ({ product, editingProductId, onEdit, onDelete, onTo
 };
 
 const AdminPortal = () => {
-  const { data: stories, isLoading: storiesLoading } = useStyleGuides();
+  const { data: stories, isLoading: storiesLoading } = useAllStyleGuides();
   const { data: products, isLoading: productsLoading } = useAllProducts();
   const { data: soldProducts, isLoading: soldProductsLoading } = useSoldProducts();
   const { data: categories, isLoading: categoriesLoading } = useAllCategories();
@@ -252,6 +252,7 @@ const AdminPortal = () => {
   const [storySlug, setStorySlug] = useState("");
   const [storyAuthor, setStoryAuthor] = useState<string>("");
   const [savingStory, setSavingStory] = useState(false);
+  const [storyStatusFilter, setStoryStatusFilter] = useState<"all" | StoryStatus>("draft");
   const [showInlineImagePicker, setShowInlineImagePicker] = useState(false);
   const [inlineImageCaption, setInlineImageCaption] = useState("");
   const [selectedInlineImage, setSelectedInlineImage] = useState<string[]>([]);
@@ -307,7 +308,7 @@ const AdminPortal = () => {
     setStoryAuthor("");
   };
 
-  const handleEditStory = (story: { id: string; title: string; image: string; intro_text: string; body: string; slug: string; author?: string | null }) => {
+  const handleEditStory = (story: { id: string; title: string; image: string; intro_text: string; body: string; slug: string; author?: string | null; status?: string }) => {
     setEditingStoryId(story.id);
     setStoryTitle(story.title);
     setStoryImage([story.image]);
@@ -507,6 +508,7 @@ const AdminPortal = () => {
       toast.success(editingStoryId ? "Story updated" : "Story saved");
       resetStoryForm();
       queryClient.invalidateQueries({ queryKey: ["style-guides"] });
+      queryClient.invalidateQueries({ queryKey: ["style-guides-all"] });
     }
     setSavingStory(false);
   };
@@ -522,8 +524,65 @@ const AdminPortal = () => {
         resetStoryForm();
       }
       queryClient.invalidateQueries({ queryKey: ["style-guides"] });
+      queryClient.invalidateQueries({ queryKey: ["style-guides-all"] });
     }
   };
+
+  const handlePublishStory = async (story: { id: string; title: string; image: string; body: string }) => {
+    // Guardrails
+    if (!story.title?.trim()) { toast.error("Cannot publish: title is empty"); return; }
+    if (!story.image) { toast.error("Cannot publish: hero image is missing"); return; }
+    if (!story.body?.trim()) { toast.error("Cannot publish: body is empty"); return; }
+
+    const { error } = await supabase
+      .from("style_guides")
+      .update({ status: "published" as any, published_at: new Date().toISOString() })
+      .eq("id", story.id);
+
+    if (error) {
+      toast.error("Failed to publish: " + error.message);
+    } else {
+      toast.success("Story published");
+      queryClient.invalidateQueries({ queryKey: ["style-guides"] });
+      queryClient.invalidateQueries({ queryKey: ["style-guides-all"] });
+    }
+  };
+
+  const handleUnpublishStory = async (id: string) => {
+    const { error } = await supabase
+      .from("style_guides")
+      .update({ status: "draft" as any, unpublished_at: new Date().toISOString() })
+      .eq("id", id);
+
+    if (error) {
+      toast.error("Failed to unpublish: " + error.message);
+    } else {
+      toast.success("Story moved to drafts");
+      queryClient.invalidateQueries({ queryKey: ["style-guides"] });
+      queryClient.invalidateQueries({ queryKey: ["style-guides-all"] });
+    }
+  };
+
+  const handleArchiveStory = async (id: string) => {
+    const { error } = await supabase
+      .from("style_guides")
+      .update({ status: "archived" as any })
+      .eq("id", id);
+
+    if (error) {
+      toast.error("Failed to archive: " + error.message);
+    } else {
+      toast.success("Story archived");
+      queryClient.invalidateQueries({ queryKey: ["style-guides"] });
+      queryClient.invalidateQueries({ queryKey: ["style-guides-all"] });
+    }
+  };
+
+  // Filter stories based on status
+  const filteredStories = stories?.filter((s: any) => {
+    if (storyStatusFilter === "all") return true;
+    return s.status === storyStatusFilter;
+  });
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1631,12 +1690,27 @@ const AdminPortal = () => {
 
               {/* Stories List */}
               <div>
-                <h2 className="font-display text-lg text-primary mb-6">Existing Stories ({stories?.length || 0})</h2>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="font-display text-lg text-primary">Stories ({filteredStories?.length || 0})</h2>
+                  <div className="flex gap-2">
+                    {(["draft", "published", "archived", "all"] as const).map((f) => (
+                      <Button
+                        key={f}
+                        variant={storyStatusFilter === f ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setStoryStatusFilter(f)}
+                        className="capitalize"
+                      >
+                        {f}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
                 {storiesLoading ? (
                   <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-16 bg-muted rounded-sm animate-pulse" />)}</div>
-                ) : stories && stories.length > 0 ? (
+                ) : filteredStories && filteredStories.length > 0 ? (
                   <div className="space-y-3">
-                    {stories.map((story) => (
+                    {filteredStories.map((story: any) => (
                       <div 
                         key={story.id} 
                         className={`flex items-center justify-between p-4 border rounded-sm bg-card cursor-pointer transition-colors ${
@@ -1651,11 +1725,44 @@ const AdminPortal = () => {
                             <img src={story.image} alt={story.title} className="w-12 h-12 object-cover rounded-sm flex-shrink-0" />
                           )}
                           <div className="min-w-0">
-                            <h3 className="font-medium text-primary truncate">{story.title}</h3>
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <h3 className="font-medium text-primary truncate">{story.title}</h3>
+                              {story.status === "published" && <Badge>Published</Badge>}
+                              {story.status === "draft" && <Badge variant="secondary">Draft</Badge>}
+                              {story.status === "archived" && <Badge variant="outline">Archived</Badge>}
+                            </div>
                             <p className="text-muted-foreground text-sm truncate">{story.intro_text}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
+                          {story.status === "draft" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePublishStory(story);
+                              }}
+                              className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+                              title="Publish"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          )}
+                          {story.status === "published" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleUnpublishStory(story.id);
+                              }}
+                              className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+                              title="Unpublish"
+                            >
+                              <EyeOff className="w-4 h-4" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
@@ -1683,7 +1790,9 @@ const AdminPortal = () => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-muted-foreground text-center py-8 border border-border rounded-sm">No stories yet.</p>
+                  <p className="text-muted-foreground text-center py-8 border border-border rounded-sm">
+                    {storyStatusFilter === "all" ? "No stories yet." : `No ${storyStatusFilter} stories.`}
+                  </p>
                 )}
               </div>
             </TabsContent>

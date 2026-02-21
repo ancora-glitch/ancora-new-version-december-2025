@@ -432,8 +432,11 @@ export type Database = {
           id: string
           image: string
           intro_text: string
+          published_at: string | null
           slug: string
+          status: Database["public"]["Enums"]["story_status"]
           title: string
+          unpublished_at: string | null
           updated_at: string
         }
         Insert: {
@@ -443,8 +446,11 @@ export type Database = {
           id?: string
           image: string
           intro_text: string
+          published_at?: string | null
           slug: string
+          status?: Database["public"]["Enums"]["story_status"]
           title: string
+          unpublished_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -454,8 +460,11 @@ export type Database = {
           id?: string
           image?: string
           intro_text?: string
+          published_at?: string | null
           slug?: string
+          status?: Database["public"]["Enums"]["story_status"]
           title?: string
+          unpublished_at?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -726,6 +735,7 @@ export type Database = {
         | "draft"
         | "pending_import"
         | "review_required"
+      story_status: "draft" | "published" | "archived"
       weekly_edit_status: "draft" | "scheduled" | "published"
     }
     CompositeTypes: {
@@ -868,6 +878,7 @@ export const Constants = {
         "pending_import",
         "review_required",
       ],
+      story_status: ["draft", "published", "archived"],
       weekly_edit_status: ["draft", "scheduled", "published"],
     },
   },
