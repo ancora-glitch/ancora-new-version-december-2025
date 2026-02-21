@@ -622,6 +622,8 @@ interface StoryViewRow {
   total: number;
   views_7d: number;
   views_30d: number;
+  unique_7d: number;
+  unique_30d: number;
 }
 
 const StoryViewsSection = () => {
@@ -639,7 +641,7 @@ const StoryViewsSection = () => {
       // Get all story views
       const { data: views, error: viewsErr } = await supabase
         .from("story_views")
-        .select("story_id, viewed_at");
+        .select("story_id, viewed_at, ip_hash");
 
       if (viewsErr) return [];
 
@@ -648,13 +650,14 @@ const StoryViewsSection = () => {
       const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
 
       // Aggregate views per story
-      const viewsByStory: Record<string, { total: number; d7: number; d30: number }> = {};
+      const viewsByStory: Record<string, { total: number; d7: number; d30: number; ips7d: Set<string>; ips30d: Set<string> }> = {};
       views?.forEach((v) => {
-        if (!viewsByStory[v.story_id]) viewsByStory[v.story_id] = { total: 0, d7: 0, d30: 0 };
+        if (!viewsByStory[v.story_id]) viewsByStory[v.story_id] = { total: 0, d7: 0, d30: 0, ips7d: new Set(), ips30d: new Set() };
         viewsByStory[v.story_id].total++;
         const ts = new Date(v.viewed_at).getTime();
-        if (ts >= sevenDaysAgo) viewsByStory[v.story_id].d7++;
-        if (ts >= thirtyDaysAgo) viewsByStory[v.story_id].d30++;
+        const ip = v.ip_hash || v.story_id + ts; // fallback to ensure uniqueness when no ip_hash
+        if (ts >= sevenDaysAgo) { viewsByStory[v.story_id].d7++; viewsByStory[v.story_id].ips7d.add(ip); }
+        if (ts >= thirtyDaysAgo) { viewsByStory[v.story_id].d30++; viewsByStory[v.story_id].ips30d.add(ip); }
       });
 
       return stories.map((s) => ({
@@ -664,6 +667,8 @@ const StoryViewsSection = () => {
         total: viewsByStory[s.id]?.total ?? 0,
         views_7d: viewsByStory[s.id]?.d7 ?? 0,
         views_30d: viewsByStory[s.id]?.d30 ?? 0,
+        unique_7d: viewsByStory[s.id]?.ips7d.size ?? 0,
+        unique_30d: viewsByStory[s.id]?.ips30d.size ?? 0,
       })).sort((a, b) => b.total - a.total);
     },
     refetchInterval: 30000,
@@ -698,7 +703,9 @@ const StoryViewsSection = () => {
                     <TableHead className="w-24">Status</TableHead>
                     <TableHead className="text-right w-16">Total</TableHead>
                     <TableHead className="text-right w-14">7d</TableHead>
+                    <TableHead className="text-right w-20">Unique (7d)</TableHead>
                     <TableHead className="text-right w-14">30d</TableHead>
+                    <TableHead className="text-right w-20">Unique (30d)</TableHead>
                     <TableHead className="w-28">Published</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -713,7 +720,9 @@ const StoryViewsSection = () => {
                       <TableCell>{statusBadge(row.story_status)}</TableCell>
                       <TableCell className="text-right font-semibold">{row.total}</TableCell>
                       <TableCell className="text-right text-muted-foreground">{row.views_7d}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{row.unique_7d}</TableCell>
                       <TableCell className="text-right text-muted-foreground">{row.views_30d}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{row.unique_30d}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {row.published_at
                           ? new Date(row.published_at).toLocaleDateString("sv-SE")
