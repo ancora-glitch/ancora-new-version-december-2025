@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Eye, MousePointer, TrendingUp, BarChart3, Calendar, ShoppingBag, Users } from "lucide-react";
+import { Eye, MousePointer, TrendingUp, BarChart3, Calendar, ShoppingBag, Users, BookOpen } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -572,6 +572,9 @@ export const AnalyticsDashboard = () => {
         </CardContent>
       </Card>
 
+      {/* Story Views */}
+      <StoryViewsSection />
+
       {/* Popular Pages */}
       <Card className="border-border/30">
         <CardHeader>
@@ -607,5 +610,123 @@ export const AnalyticsDashboard = () => {
         </CardContent>
       </Card>
     </div>
+  );
+};
+
+// ── Story Views Section ──────────────────────────────────────
+
+interface StoryViewRow {
+  story_title: string;
+  story_status: string;
+  published_at: string | null;
+  total: number;
+  views_7d: number;
+  views_30d: number;
+}
+
+const StoryViewsSection = () => {
+  const { data: storyViews, isLoading } = useQuery<StoryViewRow[]>({
+    queryKey: ["story-views-stats"],
+    queryFn: async () => {
+      // Get all stories
+      const { data: stories, error: storiesErr } = await supabase
+        .from("style_guides")
+        .select("id, title, status, published_at")
+        .order("published_at", { ascending: false });
+
+      if (storiesErr || !stories) return [];
+
+      // Get all story views
+      const { data: views, error: viewsErr } = await supabase
+        .from("story_views")
+        .select("story_id, viewed_at");
+
+      if (viewsErr) return [];
+
+      const now = Date.now();
+      const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+      const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+
+      // Aggregate views per story
+      const viewsByStory: Record<string, { total: number; d7: number; d30: number }> = {};
+      views?.forEach((v) => {
+        if (!viewsByStory[v.story_id]) viewsByStory[v.story_id] = { total: 0, d7: 0, d30: 0 };
+        viewsByStory[v.story_id].total++;
+        const ts = new Date(v.viewed_at).getTime();
+        if (ts >= sevenDaysAgo) viewsByStory[v.story_id].d7++;
+        if (ts >= thirtyDaysAgo) viewsByStory[v.story_id].d30++;
+      });
+
+      return stories.map((s) => ({
+        story_title: s.title,
+        story_status: s.status,
+        published_at: s.published_at,
+        total: viewsByStory[s.id]?.total ?? 0,
+        views_7d: viewsByStory[s.id]?.d7 ?? 0,
+        views_30d: viewsByStory[s.id]?.d30 ?? 0,
+      })).sort((a, b) => b.total - a.total);
+    },
+    refetchInterval: 30000,
+  });
+
+  const statusBadge = (status: string) => {
+    if (status === "published") return <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800">Published</span>;
+    if (status === "archived") return <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground">Archived</span>;
+    return <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-yellow-100 text-yellow-800">Draft</span>;
+  };
+
+  return (
+    <Card className="border-border/30">
+      <CardHeader>
+        <CardTitle className="text-base font-medium text-foreground flex items-center gap-2">
+          <BookOpen size={16} className="text-primary" />
+          Story Views
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="animate-pulse h-20 bg-muted rounded" />
+        ) : !storyViews?.length ? (
+          <p className="text-muted-foreground text-sm">No stories yet</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <div className="max-h-[400px] overflow-y-auto">
+              <Table>
+                <TableHeader className="sticky top-0 bg-card z-10">
+                  <TableRow>
+                    <TableHead>Story</TableHead>
+                    <TableHead className="w-24">Status</TableHead>
+                    <TableHead className="text-right w-16">Total</TableHead>
+                    <TableHead className="text-right w-14">7d</TableHead>
+                    <TableHead className="text-right w-14">30d</TableHead>
+                    <TableHead className="w-28">Published</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {storyViews.map((row, i) => (
+                    <TableRow key={i}>
+                      <TableCell>
+                        <p className="font-medium text-foreground truncate max-w-[220px]">
+                          {row.story_title}
+                        </p>
+                      </TableCell>
+                      <TableCell>{statusBadge(row.story_status)}</TableCell>
+                      <TableCell className="text-right font-semibold">{row.total}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{row.views_7d}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{row.views_30d}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {row.published_at
+                          ? new Date(row.published_at).toLocaleDateString("sv-SE")
+                          : "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };

@@ -424,6 +424,38 @@ export type Database = {
         }
         Relationships: []
       }
+      story_views: {
+        Row: {
+          id: string
+          ip_hash: string | null
+          story_id: string
+          user_agent_hash: string | null
+          viewed_at: string
+        }
+        Insert: {
+          id?: string
+          ip_hash?: string | null
+          story_id: string
+          user_agent_hash?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          id?: string
+          ip_hash?: string | null
+          story_id?: string
+          user_agent_hash?: string | null
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_views_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "style_guides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       style_guides: {
         Row: {
           author: string | null

@@ -1,10 +1,12 @@
 import { useParams, Link } from "react-router-dom";
+import { useEffect, useRef } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useStyleGuide } from "@/hooks/useStyleGuides";
 import { ArrowLeft } from "lucide-react";
 import DOMPurify from "dompurify";
 import { SmartCropImage } from "@/components/SmartCropImage";
+import { supabase } from "@/integrations/supabase/client";
 
 // Convert markdown-style image syntax to HTML figure elements
 const convertInlineImages = (text: string): string => {
@@ -77,6 +79,42 @@ const formatBodyContent = (body: string): string => {
 const StyleGuide = () => {
   const { slug } = useParams<{ slug: string }>();
   const { data: guide, isLoading, error } = useStyleGuide(slug || "");
+  const viewTracked = useRef(false);
+
+  // Track story view (once per page load, non-admin, non-preview)
+  useEffect(() => {
+    if (viewTracked.current || !slug || !guide) return;
+    // Skip admin/preview
+    if (window.location.hostname.includes("preview") && window.location.hostname.includes("id-preview")) return;
+    if (window.location.pathname.startsWith("/admin")) return;
+
+    viewTracked.current = true;
+
+    // Check if current user is admin before tracking
+    const trackView = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: isAdmin } = await supabase.rpc("has_role", {
+            _user_id: user.id,
+            _role: "admin",
+          });
+          if (isAdmin) return;
+        }
+
+        const backendUrl = import.meta.env.VITE_SUPABASE_URL;
+        await fetch(`${backendUrl}/functions/v1/register-story-view`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ story_slug: slug }),
+        });
+      } catch {
+        // Silently fail — analytics should not break the page
+      }
+    };
+
+    trackView();
+  }, [slug, guide]);
 
   if (isLoading) {
     return (
