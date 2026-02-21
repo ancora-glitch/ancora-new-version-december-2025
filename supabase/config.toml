@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.recheck-product]
 verify_jwt = false
+
+[functions.register-story-view]
+verify_jwt = false
