@@ -229,7 +229,7 @@ const Partners = () => {
                 href="https://substack.com/@theancoraedit"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-muted-foreground hover:text-primary transition-colors duration-200 underline underline-offset-4">
+                className="mt-2 text-sm text-muted-foreground hover:text-primary transition-colors duration-200 underline underline-offset-4">
 
                 Follow our journey on Substack
               </a>
