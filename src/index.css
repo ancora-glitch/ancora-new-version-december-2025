@@ -150,6 +150,22 @@
   color: #000000 !important;
 }
 
+/* Partners page: tighter intra-section spacing */
+.partners-compact p {
+  margin-bottom: 0.45em;
+}
+
+.partners-compact .article-subheader {
+  margin-top: 1.25rem;
+  margin-bottom: 0.4rem;
+}
+
+.partners-compact ul,
+.partners-compact ol {
+  margin-top: 0.15em;
+  margin-bottom: 0.3em;
+}
+
 /* Article Intro/Ingress */
 .article-intro {
   font-family: 'Source Serif 4', Georgia, serif;
