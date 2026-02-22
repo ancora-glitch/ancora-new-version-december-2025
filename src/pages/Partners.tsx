@@ -26,9 +26,9 @@ const Partners = () => {
       <main className="flex-1 pt-24 md:pt-32">
         {/* Hero */}
         <section
-          ref={(el) => (sectionsRef.current[0] = el)}
-          className="fade-section px-6 md:px-12 lg:px-24 md:py-16 py-[32px]"
-        >
+          ref={(el) => sectionsRef.current[0] = el}
+          className="fade-section px-6 md:px-12 lg:px-24 md:py-16 py-[32px]">
+
           <div className="max-w-[700px] mx-auto">
             <h1 className="font-serif text-primary text-4xl md:text-5xl lg:text-6xl leading-tight mb-6">
               Partner with Ancora
@@ -37,9 +37,9 @@ const Partners = () => {
         </section>
 
         <section
-          ref={(el) => (sectionsRef.current[1] = el)}
-          className="fade-section md:px-12 lg:px-24 md:py-4 px-[60px] py-[8px]"
-        >
+          ref={(el) => sectionsRef.current[1] = el}
+          className="fade-section md:px-12 lg:px-24 md:py-4 px-[60px] py-[8px]">
+
           <div className="max-w-[700px] mx-auto">
             <p className="article-intro">
               <em>Be part of a new curated destination for modern resale.</em>
@@ -48,9 +48,9 @@ const Partners = () => {
         </section>
 
         <section
-          ref={(el) => (sectionsRef.current[2] = el)}
-          className="fade-section px-6 md:px-12 lg:px-24 md:py-6 py-0"
-        >
+          ref={(el) => sectionsRef.current[2] = el}
+          className="fade-section px-6 md:px-12 lg:px-24 md:py-6 py-0">
+
           <div className="max-w-[700px] mx-auto article-body partners-compact">
             <p>
               We're building a highly curated edit of pre-loved fashion — and
@@ -59,27 +59,27 @@ const Partners = () => {
             <div className="pt-4 pb-1 flex flex-col items-start gap-2">
               <a
                 href="mailto:ancoraedit@gmail.com"
-                className="inline-block bg-primary text-primary-foreground px-8 py-3 text-xs font-medium uppercase tracking-[0.16em] hover:bg-primary/90 transition-colors duration-200"
-              >
+                className="inline-block bg-primary text-primary-foreground px-8 py-3 text-xs font-medium uppercase tracking-[0.16em] hover:bg-primary/90 transition-colors duration-200">
+
                 Become a partner
               </a>
-              <a
-                href="https://substack.com/@theancoraedit"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-muted-foreground hover:text-primary transition-colors duration-200 underline underline-offset-4"
-              >
-                Follow our journey on Substack
-              </a>
+              
+
+
+
+
+
+
+
             </div>
           </div>
         </section>
 
         {/* What is Ancora? */}
         <section
-          ref={(el) => (sectionsRef.current[3] = el)}
-          className="fade-section px-6 md:px-12 lg:px-24 md:py-12 py-[16px]"
-        >
+          ref={(el) => sectionsRef.current[3] = el}
+          className="fade-section px-6 md:px-12 lg:px-24 md:py-12 py-[16px]">
+
           <div className="max-w-[700px] mx-auto article-body partners-compact">
             <h2 className="article-subheader">What is Ancora?</h2>
             <p>
@@ -102,9 +102,9 @@ const Partners = () => {
 
         {/* Why partner with Ancora? */}
         <section
-          ref={(el) => (sectionsRef.current[4] = el)}
-          className="fade-section px-6 md:px-12 lg:px-24 md:py-8 py-[4px]"
-        >
+          ref={(el) => sectionsRef.current[4] = el}
+          className="fade-section px-6 md:px-12 lg:px-24 md:py-8 py-[4px]">
+
           <div className="max-w-[700px] mx-auto article-body partners-compact">
             <h2 className="article-subheader">Why partner with Ancora?</h2>
 
@@ -156,9 +156,9 @@ const Partners = () => {
 
         {/* Why join now? */}
         <section
-          ref={(el) => (sectionsRef.current[5] = el)}
-          className="fade-section px-6 md:px-12 lg:px-24 md:py-12 py-[16px]"
-        >
+          ref={(el) => sectionsRef.current[5] = el}
+          className="fade-section px-6 md:px-12 lg:px-24 md:py-12 py-[16px]">
+
           <div className="max-w-[700px] mx-auto article-body partners-compact">
             <h2 className="article-subheader">Why join now?</h2>
             <p>
@@ -181,9 +181,9 @@ const Partners = () => {
 
         {/* Who we're looking for */}
         <section
-          ref={(el) => (sectionsRef.current[6] = el)}
-          className="fade-section px-6 md:px-12 lg:px-24 md:py-8 py-[4px]"
-        >
+          ref={(el) => sectionsRef.current[6] = el}
+          className="fade-section px-6 md:px-12 lg:px-24 md:py-8 py-[4px]">
+
           <div className="max-w-[700px] mx-auto article-body partners-compact">
             <h2 className="article-subheader">Who we're looking for</h2>
             <p>We partner with:</p>
@@ -202,9 +202,9 @@ const Partners = () => {
 
         {/* How it works */}
         <section
-          ref={(el) => (sectionsRef.current[7] = el)}
-          className="fade-section px-6 md:px-12 lg:px-24 md:py-12 py-[16px]"
-        >
+          ref={(el) => sectionsRef.current[7] = el}
+          className="fade-section px-6 md:px-12 lg:px-24 md:py-12 py-[16px]">
+
           <div className="max-w-[700px] mx-auto article-body partners-compact">
             <h2 className="article-subheader">How it works</h2>
             <ol className="list-decimal pl-6 space-y-1 text-muted-foreground">
@@ -221,9 +221,9 @@ const Partners = () => {
 
         {/* Final CTA */}
         <section
-          ref={(el) => (sectionsRef.current[8] = el)}
-          className="fade-section px-6 md:px-12 lg:px-24 py-16 md:py-20"
-        >
+          ref={(el) => sectionsRef.current[8] = el}
+          className="fade-section px-6 md:px-12 lg:px-24 py-16 md:py-20">
+
           <div className="max-w-[700px] mx-auto text-center">
             <h2 className="font-serif text-primary text-2xl md:text-3xl leading-tight mb-6">
               Want to be part of Ancora from the beginning?
@@ -231,16 +231,16 @@ const Partners = () => {
             <div className="flex flex-col items-center gap-2">
               <a
                 href="mailto:ancoraedit@gmail.com"
-                className="inline-block bg-primary text-primary-foreground px-8 py-3 text-xs font-medium uppercase tracking-[0.16em] hover:bg-primary/90 transition-colors duration-200"
-              >
+                className="inline-block bg-primary text-primary-foreground px-8 py-3 text-xs font-medium uppercase tracking-[0.16em] hover:bg-primary/90 transition-colors duration-200">
+
                 Email us
               </a>
               <a
                 href="https://substack.com/@theancoraedit"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-muted-foreground hover:text-primary transition-colors duration-200 underline underline-offset-4"
-              >
+                className="text-sm text-muted-foreground hover:text-primary transition-colors duration-200 underline underline-offset-4">
+
                 Follow our journey on Substack
               </a>
             </div>
@@ -249,8 +249,8 @@ const Partners = () => {
       </main>
 
       <Footer />
-    </div>
-  );
+    </div>);
+
 };
 
 export default Partners;
