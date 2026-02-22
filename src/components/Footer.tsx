@@ -36,6 +36,9 @@ export const Footer = () => {
             <Link to="/contact" className="text-sm tracking-wide hover:opacity-70 transition-opacity duration-200">
               Contact
             </Link>
+            <Link to="/partners" className="text-sm tracking-wide hover:opacity-70 transition-opacity duration-200">
+              Partners
+            </Link>
             <Link to="/terms" className="text-sm tracking-wide hover:opacity-70 transition-opacity duration-200">
               Terms & Conditions
             </Link>
