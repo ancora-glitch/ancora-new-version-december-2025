@@ -90,12 +90,8 @@ const Partners = () => {
               We act as a digital storefront — highlighting exceptional pieces
               and directing buyers straight to our partners.
             </p>
-            <p className="font-serif text-primary text-lg leading-snug pt-1">
-              We don't compete.
-              <br />
-              We curate.
-              <br />
-              And we drive traffic where it belongs — to you.
+            <p className="pt-1">
+              We don't compete. We curate. And we drive traffic where it belongs — to you.
             </p>
           </div>
         </section>
@@ -108,8 +104,7 @@ const Partners = () => {
           <div className="max-w-[700px] mx-auto article-body partners-compact">
             <h2 className="article-subheader">Why partner with Ancora?</h2>
 
-            <h3 className="font-serif text-primary text-lg mt-5 mb-1">
-              We send buyers your way
+            <h3 className="article-subheader !text-lg !mt-4 !mb-1">
             </h3>
             <p>
               Ancora works as a curated storefront. When someone finds a piece
@@ -117,8 +112,7 @@ const Partners = () => {
               marketplace. We are a traffic driver.
             </p>
 
-            <h3 className="font-serif text-primary text-lg mt-5 mb-1">
-              Editorial context
+            <h3 className="article-subheader !text-lg !mt-4 !mb-1">
             </h3>
             <p>
               Your pieces aren't just listed — they're placed in a styled,
@@ -131,8 +125,7 @@ const Partners = () => {
               <li>Themed curation</li>
             </ul>
 
-            <h3 className="font-serif text-primary text-lg mt-5 mb-1">
-              Social visibility
+            <h3 className="article-subheader !text-lg !mt-4 !mb-1">
             </h3>
             <p>
               Selected partners and products are highlighted across:
@@ -142,8 +135,7 @@ const Partners = () => {
               <li>Substack</li>
             </ul>
 
-            <h3 className="font-serif text-primary text-lg mt-5 mb-1">
-              Data (coming soon)
+            <h3 className="article-subheader !text-lg !mt-4 !mb-1">
             </h3>
             <p>As we grow, we'll share insights on:</p>
             <ul className="list-disc pl-6 space-y-0.5 text-muted-foreground">
@@ -171,10 +163,8 @@ const Partners = () => {
               <li>Build visibility alongside us</li>
               <li>Grow with the platform from the start</li>
             </ul>
-            <p className="font-serif text-primary text-lg leading-snug pt-2">
-              This is not about buying ads.
-              <br />
-              It's about building something new together.
+            <p className="pt-2">
+              This is not about buying ads. It's about building something new together.
             </p>
           </div>
         </section>
@@ -213,7 +203,7 @@ const Partners = () => {
               <li>We link directly to your listing</li>
               <li>You handle the transaction</li>
             </ol>
-            <p className="font-serif text-primary text-lg leading-snug pt-2">
+            <p className="pt-2">
               Simple. Transparent. Win–win.
             </p>
           </div>
