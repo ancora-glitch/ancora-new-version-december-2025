@@ -127,8 +127,8 @@ Featured in:
 
             <h3 className="article-subheader !text-lg !mt-4 !mb-1">
             </h3>
-            <p>
-              Selected partners and products are highlighted across:
+            <p>Selected partners and products are also highlighted across:
+
             </p>
             <ul className="list-disc pl-6 space-y-0.5 text-muted-foreground">
               <li>Instagram</li>
