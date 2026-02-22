@@ -114,9 +114,9 @@ const Partners = () => {
 
             <h3 className="article-subheader !text-lg !mt-4 !mb-1">
             </h3>
-            <p>
-              Your pieces aren't just listed — they're placed in a styled,
-              curated context. Featured in:
+            <p>Your pieces aren't just listed — they're placed in a styled, curated context. 
+Featured in:
+
             </p>
             <ul className="list-disc pl-6 space-y-0.5 text-muted-foreground">
               <li>Weekly edits</li>
