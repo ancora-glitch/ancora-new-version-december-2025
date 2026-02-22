@@ -27,10 +27,10 @@ const Partners = () => {
         {/* Hero */}
         <section
           ref={(el) => (sectionsRef.current[0] = el)}
-          className="fade-section px-6 md:px-12 lg:px-24 md:py-24 py-[43px]"
+          className="fade-section px-6 md:px-12 lg:px-24 md:py-16 py-[32px]"
         >
           <div className="max-w-[700px] mx-auto">
-            <h1 className="font-serif text-primary text-4xl md:text-5xl lg:text-6xl leading-tight mb-8">
+            <h1 className="font-serif text-primary text-4xl md:text-5xl lg:text-6xl leading-tight mb-6">
               Partner with Ancora
             </h1>
           </div>
@@ -38,7 +38,7 @@ const Partners = () => {
 
         <section
           ref={(el) => (sectionsRef.current[1] = el)}
-          className="fade-section md:px-12 lg:px-24 md:py-12 px-[60px] py-[19px]"
+          className="fade-section md:px-12 lg:px-24 md:py-4 px-[60px] py-[8px]"
         >
           <div className="max-w-[700px] mx-auto">
             <p className="article-intro">
@@ -49,7 +49,7 @@ const Partners = () => {
 
         <section
           ref={(el) => (sectionsRef.current[2] = el)}
-          className="fade-section px-6 md:px-12 lg:px-24 md:py-12 py-0"
+          className="fade-section px-6 md:px-12 lg:px-24 md:py-6 py-0"
         >
           <div className="max-w-[700px] mx-auto article-body partners-compact">
             <p>
@@ -78,7 +78,7 @@ const Partners = () => {
         {/* What is Ancora? */}
         <section
           ref={(el) => (sectionsRef.current[3] = el)}
-          className="fade-section px-6 md:px-12 lg:px-24 md:py-24 py-[22px]"
+          className="fade-section px-6 md:px-12 lg:px-24 md:py-12 py-[16px]"
         >
           <div className="max-w-[700px] mx-auto article-body partners-compact">
             <h2 className="article-subheader">What is Ancora?</h2>
@@ -103,7 +103,7 @@ const Partners = () => {
         {/* Why partner with Ancora? */}
         <section
           ref={(el) => (sectionsRef.current[4] = el)}
-          className="fade-section px-6 md:px-12 lg:px-24 md:py-12 py-[5px]"
+          className="fade-section px-6 md:px-12 lg:px-24 md:py-8 py-[4px]"
         >
           <div className="max-w-[700px] mx-auto article-body partners-compact">
             <h2 className="article-subheader">Why partner with Ancora?</h2>
@@ -157,7 +157,7 @@ const Partners = () => {
         {/* Why join now? */}
         <section
           ref={(el) => (sectionsRef.current[5] = el)}
-          className="fade-section px-6 md:px-12 lg:px-24 md:py-24 py-[22px]"
+          className="fade-section px-6 md:px-12 lg:px-24 md:py-12 py-[16px]"
         >
           <div className="max-w-[700px] mx-auto article-body partners-compact">
             <h2 className="article-subheader">Why join now?</h2>
@@ -182,7 +182,7 @@ const Partners = () => {
         {/* Who we're looking for */}
         <section
           ref={(el) => (sectionsRef.current[6] = el)}
-          className="fade-section px-6 md:px-12 lg:px-24 md:py-12 py-[5px]"
+          className="fade-section px-6 md:px-12 lg:px-24 md:py-8 py-[4px]"
         >
           <div className="max-w-[700px] mx-auto article-body partners-compact">
             <h2 className="article-subheader">Who we're looking for</h2>
@@ -203,7 +203,7 @@ const Partners = () => {
         {/* How it works */}
         <section
           ref={(el) => (sectionsRef.current[7] = el)}
-          className="fade-section px-6 md:px-12 lg:px-24 md:py-24 py-[22px]"
+          className="fade-section px-6 md:px-12 lg:px-24 md:py-12 py-[16px]"
         >
           <div className="max-w-[700px] mx-auto article-body partners-compact">
             <h2 className="article-subheader">How it works</h2>
@@ -222,7 +222,7 @@ const Partners = () => {
         {/* Final CTA */}
         <section
           ref={(el) => (sectionsRef.current[8] = el)}
-          className="fade-section px-6 md:px-12 lg:px-24 py-24 md:py-32"
+          className="fade-section px-6 md:px-12 lg:px-24 py-16 md:py-20"
         >
           <div className="max-w-[700px] mx-auto text-center">
             <h2 className="font-serif text-primary text-2xl md:text-3xl leading-tight mb-6">
