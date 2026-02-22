@@ -8,6 +8,7 @@ import StyleGuide from "./pages/StyleGuide";
 import Stories from "./pages/Stories";
 
 import About from "./pages/About";
+import Partners from "./pages/Partners";
 import Contact from "./pages/Contact";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/home" element={<Navigate to="/" replace />} />
             <Route path="/about" element={<About />} />
+            <Route path="/partners" element={<Partners />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/stories" element={<Stories />} />

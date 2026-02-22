@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { PullQuote } from "@/components/PullQuote";
@@ -89,6 +90,18 @@ const About = () => {
         <section ref={el => sectionsRef.current[6] = el} className="fade-section px-6 md:px-12 lg:px-24 py-12">
           <div className="max-w-[700px] mx-auto">
             <img src={teamAncoraImage} alt="Team Ancora" className="w-full h-auto" loading="lazy" />
+          </div>
+        </section>
+
+        {/* Partner link */}
+        <section ref={el => sectionsRef.current[7] = el} className="fade-section px-6 md:px-12 lg:px-24 pb-24 pt-0">
+          <div className="max-w-[700px] mx-auto">
+            <p className="text-sm text-muted-foreground">
+              Interested in partnering with us?{" "}
+              <Link to="/partners" className="text-primary hover:opacity-70 transition-opacity duration-200 underline underline-offset-4">
+                Partners
+              </Link>
+            </p>
           </div>
         </section>
       </main>
