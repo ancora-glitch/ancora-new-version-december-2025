@@ -163,9 +163,9 @@ const Partners = () => {
               <li>Build visibility alongside us</li>
               <li>Grow with the platform from the start</li>
             </ul>
-            <p className="pt-2">
-              This is not about buying ads. It's about building something new together.
-            </p>
+            
+
+
           </div>
         </section>
 
