@@ -150,25 +150,27 @@ const StoryPreview = () => {
                 </p>
               )}
 
-              <p className="article-intro">{guide.intro_text}</p>
-              <div className="w-16 h-px bg-primary/30 mb-12" />
+              <div className="max-w-[700px] w-full">
+                <p className="article-intro">{guide.intro_text}</p>
+                <div className="w-16 h-px bg-primary/30 mb-12" />
 
-              <div
-                className="prose prose-lg max-w-none prose-editorial
-                  prose-headings:font-heading prose-headings:text-primary prose-headings:font-semibold
-                  prose-h2:text-xl prose-h2:md:text-2xl prose-h2:mt-14 prose-h2:mb-8
-                  prose-h3:text-lg prose-h3:md:text-xl prose-h3:mt-10 prose-h3:mb-5
-                  prose-p:text-foreground prose-p:leading-[1.85] prose-p:mb-10 prose-p:text-[17px]
-                  prose-strong:text-foreground prose-strong:font-semibold prose-strong:text-[inherit] prose-strong:not-italic
-                  prose-em:text-foreground prose-em:italic prose-em:text-[inherit]
-                  prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-                  prose-blockquote:border-l-primary prose-blockquote:border-l-2 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-primary prose-blockquote:my-10
-                  prose-ul:text-foreground prose-ul:list-disc prose-ul:pl-6 prose-ul:space-y-4 prose-ul:my-10
-                  prose-ol:text-foreground prose-ol:list-decimal prose-ol:pl-6 prose-ol:space-y-4 prose-ol:my-10
-                  prose-li:mb-4 prose-li:pl-2 prose-li:leading-[1.8] prose-li:text-[17px] prose-li:marker:text-primary prose-li:marker:font-semibold
-                  prose-img:rounded-[5px] prose-img:shadow-none prose-img:my-10"
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatBodyContent(guide.body), { ADD_TAGS: ['figure', 'figcaption'], ADD_ATTR: ['loading'] }) }}
-              />
+                <div
+                  className="prose prose-lg max-w-none prose-editorial
+                    prose-headings:font-heading prose-headings:text-primary prose-headings:font-semibold
+                    prose-h2:text-xl prose-h2:md:text-2xl prose-h2:mt-14 prose-h2:mb-8
+                    prose-h3:text-lg prose-h3:md:text-xl prose-h3:mt-10 prose-h3:mb-5
+                    prose-p:text-foreground prose-p:leading-[1.85] prose-p:mb-10 prose-p:text-[17px]
+                    prose-strong:text-foreground prose-strong:font-semibold prose-strong:text-[inherit] prose-strong:not-italic
+                    prose-em:text-foreground prose-em:italic prose-em:text-[inherit]
+                    prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+                    prose-blockquote:border-l-primary prose-blockquote:border-l-2 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-primary prose-blockquote:my-10
+                    prose-ul:text-foreground prose-ul:list-disc prose-ul:pl-6 prose-ul:space-y-4 prose-ul:my-10
+                    prose-ol:text-foreground prose-ol:list-decimal prose-ol:pl-6 prose-ol:space-y-4 prose-ol:my-10
+                    prose-li:mb-4 prose-li:pl-2 prose-li:leading-[1.8] prose-li:text-[17px] prose-li:marker:text-primary prose-li:marker:font-semibold
+                    prose-img:rounded-[5px] prose-img:shadow-none prose-img:my-10"
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatBodyContent(guide.body), { ADD_TAGS: ['figure', 'figcaption'], ADD_ATTR: ['loading', 'class', 'src', 'alt'] }) }}
+                />
+              </div>
             </article>
 
             <aside className="hidden lg:block pt-20">
