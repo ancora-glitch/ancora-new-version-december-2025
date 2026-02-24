@@ -68,3 +68,21 @@ export const useStyleGuide = (slug: string) => {
     enabled: !!slug,
   });
 };
+
+// Admin preview: fetch by ID regardless of status
+export const useStyleGuidePreview = (id: string) => {
+  return useQuery({
+    queryKey: ["style-guide-preview", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("style_guides")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data as StyleGuide | null;
+    },
+    enabled: !!id,
+  });
+};

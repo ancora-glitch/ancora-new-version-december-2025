@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import StyleGuide from "./pages/StyleGuide";
+import StoryPreview from "./pages/StoryPreview";
 import Stories from "./pages/Stories";
 
 import About from "./pages/About";
@@ -46,6 +47,14 @@ const App = () => (
             <Route path="/edits" element={<Navigate to="/this-weeks-edit" replace />} />
             <Route path="/shop" element={<Shop />} />
             <Route path="/category/:slug" element={<CategoryPage />} />
+            <Route
+              path="/stories/preview/:id"
+              element={
+                <RequireAdmin>
+                  <StoryPreview />
+                </RequireAdmin>
+              }
+            />
             <Route
               path="/admin-portal"
               element={

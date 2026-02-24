@@ -1608,9 +1608,22 @@ const AdminPortal = () => {
                   <Textarea id="storyBody" value={storyBody} onChange={(e) => setStoryBody(e.target.value)} placeholder="The full story content..." className="bg-background border-border min-h-[200px] font-mono text-sm" />
                 </div>
 
-                <Button type="submit" disabled={savingStory} className="w-full">
-                  {savingStory ? "Saving..." : editingStoryId ? "Update Story" : "Save Story"}
-                </Button>
+                <div className="flex gap-3">
+                  {editingStoryId && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => window.open(`/stories/preview/${editingStoryId}`, '_blank')}
+                      className="flex-1"
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      Preview
+                    </Button>
+                  )}
+                  <Button type="submit" disabled={savingStory} className="flex-1">
+                    {savingStory ? "Saving..." : editingStoryId ? "Update Story" : "Save Story"}
+                  </Button>
+                </div>
               </form>
 
               {/* Inline Image Picker Dialog */}
