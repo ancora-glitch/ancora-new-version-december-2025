@@ -233,7 +233,7 @@ const StyleGuide = () => {
                   prose-ol:text-foreground prose-ol:list-decimal prose-ol:pl-6 prose-ol:space-y-4 prose-ol:my-10
                   prose-li:mb-4 prose-li:pl-2 prose-li:leading-[1.8] prose-li:text-[17px] prose-li:marker:text-primary prose-li:marker:font-semibold
                   prose-img:rounded-[5px] prose-img:shadow-none prose-img:my-10"
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatBodyContent(guide.body)) }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatBodyContent(guide.body), { ADD_TAGS: ['figure', 'figcaption'], ADD_ATTR: ['loading'] }) }}
               />
             </article>
 
