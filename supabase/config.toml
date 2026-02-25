@@ -18,6 +18,9 @@ verify_jwt = false
 [functions.ebay-search]
 verify_jwt = false
 
+[functions.ebay-item]
+verify_jwt = false
+
 [functions.ebay-availability]
 verify_jwt = false
 
