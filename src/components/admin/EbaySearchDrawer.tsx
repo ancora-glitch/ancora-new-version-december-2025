@@ -18,7 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { useCreateImportItem, type AisCondition, type AisSignals } from "@/hooks/useImportItems";
+import { useImportToProduct, checkProductDuplicate } from "@/hooks/useImportToProduct";
+import type { AisCondition } from "@/hooks/useImportItems";
 import { toast } from "sonner";
 import { Loader2, Search, Package, AlertCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -45,7 +46,7 @@ interface EbaySearchDrawerProps {
 }
 
 export function EbaySearchDrawer({ open, onOpenChange, onImported }: EbaySearchDrawerProps) {
-  const createMutation = useCreateImportItem();
+  const importMutation = useImportToProduct();
   
   // Search form state
   const [keywords, setKeywords] = useState("");
@@ -75,13 +76,28 @@ export function EbaySearchDrawer({ open, onOpenChange, onImported }: EbaySearchD
     setSelectedItems(new Set());
 
     try {
-      // First, check which eBay items already exist in AIS
-      const { data: existingItems } = await supabase
+      // Check which eBay items already exist as Products
+      const { data: existingProducts } = await supabase
+        .from("products")
+        .select("affiliate_url")
+        .eq("marketplace", "ebay")
+        .not("affiliate_url", "is", null);
+      
+      // Build a set of known eBay item IDs from affiliate URLs
+      const existingSet = new Set<string>();
+      for (const p of existingProducts || []) {
+        // Extract eBay item ID from affiliate URL if possible
+        const match = p.affiliate_url?.match(/itm\/(\d+)/);
+        if (match) existingSet.add(match[1]);
+      }
+      // Also check AIS for backwards compat
+      const { data: existingAis } = await supabase
         .from("ancora_import_items")
         .select("source_ref")
         .eq("source_type", "ebay");
-      
-      const existingSet = new Set((existingItems || []).map(item => item.source_ref));
+      for (const a of existingAis || []) {
+        existingSet.add(a.source_ref);
+      }
       setExistingRefs(existingSet);
 
       // Call the edge function
@@ -143,8 +159,8 @@ export function EbaySearchDrawer({ open, onOpenChange, onImported }: EbaySearchD
           continue;
         }
 
-        // Create AIS record
-        const signals: AisSignals = {
+        // Create Product draft directly (+ AIS log in background)
+        const signals = {
           keywords: item.keywords,
           colors: [],
           era: null,
@@ -153,46 +169,48 @@ export function EbaySearchDrawer({ open, onOpenChange, onImported }: EbaySearchD
         };
 
         // ── PRIORITY INVARIANT ──
-        // Partner/API-provided values ALWAYS win over parser output.
-        // Parser is only used as fallback when partner field is missing/empty.
-        // Do NOT change this priority order without updating the Tradera adapter too.
-        // ── END PRIORITY INVARIANT ──
         const parsed = parseListingFields({
           title: item.title,
-          description: "", // eBay search doesn't return description
+          description: "",
           conditionEnum: item.condition,
           images: item.images,
         });
 
-        await createMutation.mutateAsync({
-          source_type: "ebay",
+        await importMutation.mutateAsync({
+          marketplace: "ebay",
           source_ref: item.itemId,
           source_url: item.itemUrl,
           affiliate_url: item.affiliateUrl,
           title: item.title,
           description: null,
-          images: item.images,
+          brand: parsed.brand_text || "Unknown",
+          size: parsed.size_text || null,
+          color: parsed.color_text || null,
+          material: parsed.material_text || null,
+          condition: parsed.condition_text || item.conditionText || item.condition,
           price: item.price,
           currency: item.currency,
-          condition: item.condition,
+          primary_image: parsed.primary_image || null,
+          images: item.images,
+          category_id: null,
           provenance: item.seller,
+          condition_enum: item.condition,
           signals,
-          status: "draft",
-          // New structured fields
-          brand_text: parsed.brand_text,
-          size_text: parsed.size_text,
-          color_text: parsed.color_text,
-          material_text: parsed.material_text,
-          condition_text: parsed.condition_text,
-          primary_image: parsed.primary_image,
-          marketplace: "ebay",
         });
 
         imported++;
       }
 
       if (imported > 0) {
-        toast.success(`Imported ${imported} item${imported > 1 ? "s" : ""} as drafts`);
+        toast.success(`Created ${imported} draft product${imported > 1 ? "s" : ""}`, {
+          action: {
+            label: "Go to Drafts",
+            onClick: () => {
+              const tabTrigger = document.querySelector('[data-value="products"]') as HTMLElement;
+              tabTrigger?.click();
+            },
+          },
+        });
       }
       if (skipped > 0) {
         toast.info(`Skipped ${skipped} already imported item${skipped > 1 ? "s" : ""}`);
@@ -221,7 +239,7 @@ export function EbaySearchDrawer({ open, onOpenChange, onImported }: EbaySearchD
         <SheetHeader>
           <SheetTitle className="font-display">Search eBay</SheetTitle>
           <SheetDescription>
-            Find items on eBay and import them as AIS drafts for review.
+            Find items on eBay and import them as draft products for review.
           </SheetDescription>
         </SheetHeader>
 

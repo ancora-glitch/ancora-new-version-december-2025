@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
-import { useCreateImportItem, type AisCondition, type AisSignals } from "@/hooks/useImportItems";
+import { useImportToProduct, checkProductDuplicate } from "@/hooks/useImportToProduct";
+import type { AisCondition } from "@/hooks/useImportItems";
 import { useTraderaUsage } from "@/hooks/useTraderaUsage";
 import { toast } from "sonner";
 import { Loader2, Search, Package, AlertCircle, AlertTriangle, Clock, Zap, ImageIcon, Sparkles } from "lucide-react";
@@ -89,7 +90,7 @@ function extractKeywords(title: string): string[] {
 }
 
 export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaSearchDrawerProps) {
-  const createMutation = useCreateImportItem();
+  const importMutation = useImportToProduct();
   const { data: usage, refetch: refetchUsage } = useTraderaUsage();
   
   // Search form state
@@ -146,13 +147,14 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
     setSelectedItems(new Set());
 
     try {
-      // Check which Tradera items already exist in AIS
-      const { data: existingItems } = await supabase
-        .from("ancora_import_items")
-        .select("source_ref")
-        .eq("source_type", "tradera");
+      // Check which Tradera items already exist as Products
+      const { data: existingProducts } = await supabase
+        .from("products")
+        .select("tradera_item_id")
+        .eq("marketplace", "tradera")
+        .not("tradera_item_id", "is", null);
       
-      const existingSet = new Set((existingItems || []).map(item => item.source_ref));
+      const existingSet = new Set((existingProducts || []).map(p => p.tradera_item_id!));
       setExistingRefs(existingSet);
 
       // Call the tradera-search edge function
@@ -386,7 +388,7 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
             }
             // === END HERO SELECTION ===
 
-            const signals: AisSignals = {
+            const signals = {
               keywords: extractKeywords(itemDetails.shortDescription),
               colors: [],
               era: null,
@@ -397,7 +399,6 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
             // ── PRIORITY INVARIANT ──
             // Partner/API-provided values ALWAYS win over parser output.
             // Parser is only used as fallback when partner field is missing/empty.
-            // Do NOT change this priority order without updating the eBay adapter too.
             // ── END PRIORITY INVARIANT ──
             const parsed = parseListingFields({
               title: itemDetails.shortDescription,
@@ -409,28 +410,27 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
               images,
             });
 
-            await createMutation.mutateAsync({
-              source_type: "tradera",
+            // Create Product draft directly (+ AIS log in background)
+            await importMutation.mutateAsync({
+              marketplace: "tradera",
               source_ref: sourceRef,
               source_url: itemDetails.itemLink,
               affiliate_url: itemDetails.itemLink,
               title: itemDetails.shortDescription,
               description: itemDetails.longDescription || null,
-              images,
+              brand: parsed.brand_text || "Unknown",
+              size: parsed.size_text || null,
+              color: parsed.color_text || null,
+              material: parsed.material_text || null,
+              condition: parsed.condition_text || mapCondition(itemDetails.condition),
               price: itemDetails.buyItNowPrice || itemDetails.price || null,
               currency: "SEK",
-              condition: mapCondition(itemDetails.condition),
+              primary_image: parsed.primary_image || null,
+              images,
+              category_id: null,
               provenance: itemDetails.sellerAlias || "Tradera",
+              condition_enum: mapCondition(itemDetails.condition),
               signals,
-              status: "draft",
-              // New structured fields
-              brand_text: parsed.brand_text,
-              size_text: parsed.size_text,
-              color_text: parsed.color_text,
-              material_text: parsed.material_text,
-              condition_text: parsed.condition_text,
-              primary_image: parsed.primary_image,
-              marketplace: "tradera",
             });
           }
 
@@ -445,13 +445,22 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
       }
 
       if (imported > 0) {
-        toast.success(`Importerade ${imported} objekt med högupplösta bilder`);
+        toast.success(`Created ${imported} draft product${imported > 1 ? "s" : ""}`, {
+          action: {
+            label: "Go to Drafts",
+            onClick: () => {
+              // Navigate to products tab with draft filter
+              const tabTrigger = document.querySelector('[data-value="products"]') as HTMLElement;
+              tabTrigger?.click();
+            },
+          },
+        });
       }
       if (skipped > 0) {
-        toast.info(`Hoppade över ${skipped} redan importerade objekt`);
+        toast.info(`Skipped ${skipped} already imported item${skipped > 1 ? "s" : ""}`);
       }
       if (failed > 0) {
-        toast.warning(`${failed} objekt kunde inte importeras`);
+        toast.warning(`${failed} item${failed > 1 ? "s" : ""} could not be imported`);
       }
 
       // Reset and close
@@ -481,7 +490,7 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
         <SheetHeader>
           <SheetTitle className="font-display">Sök på Tradera</SheetTitle>
           <SheetDescription>
-            Hitta objekt på Tradera och importera dem som AIS-utkast med alla högupplösta bilder.
+            Find items on Tradera and import them as draft products with HD images.
           </SheetDescription>
         </SheetHeader>
 

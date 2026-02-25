@@ -326,19 +326,7 @@ export function ImportItemDetail({ itemId, onClose }: ImportItemDetailProps) {
                 </Button>
               )}
               
-              <Button
-                variant="default"
-                size="sm"
-                onClick={handlePromote}
-                disabled={promoteMutation.isPending}
-              >
-                {promoteMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <ArrowUpRight className="w-4 h-4 mr-1" />
-                )}
-                Promote
-              </Button>
+              {/* Promote button hidden — imports now create Products directly */}
 
               <Button
                 variant="ghost"
