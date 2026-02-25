@@ -20,6 +20,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { selectHeroImage } from "@/lib/heroImageSelector";
 import { parseListingFields } from "@/lib/listingParser";
+import { normalizeTraderaCondition, normalizeTraderaMaterial, normalizeTraderaColor, normalizeTraderaBrand } from "@/lib/traderaNormalization";
 
 interface TraderaSearchItem {
   id: number;
@@ -485,22 +486,23 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
             }
 
             // Create Product draft directly (+ AIS log in background)
-            // ── PRIORITY: API values > parser fallback ──
-            const apiConditionText = mapConditionToText(itemDetails.condition);
-            const apiMaterial = itemDetails.material || null;
+            // ── TRADERA NORMALIZATION: SV → EN ──
+            const rawConditionSV = itemDetails.condition || null;
+            const rawMaterialSV = itemDetails.material || null;
+            const rawColorSV = itemDetails.attributes?.['term_102'] || parsed.color_text || null;
+            const rawBrandSV = itemDetails.brand || parsed.brand_text || null;
 
-            // ── DEBUG: end-to-end field mapping trace ──
-            console.info("[TraderaImportMapping]", {
-              itemId,
-              apiConditionRaw: itemDetails.condition,
-              apiConditionText,
-              parsedCondition: parsed?.condition_text,
-              finalCondition: apiConditionText || parsed?.condition_text || null,
-              apiMaterial,
-              parsedMaterial: parsed?.material_text,
-              finalMaterial: apiMaterial || parsed?.material_text || null,
-              rateLimited: false,
-              usedFallbackThumbnails: false,
+            const normCond = normalizeTraderaCondition(rawConditionSV);
+            const normMat = normalizeTraderaMaterial(rawMaterialSV);
+            const normColor = normalizeTraderaColor(rawColorSV);
+            const normBrand = normalizeTraderaBrand(rawBrandSV);
+
+            console.info("[TraderaNormalize]", {
+              source_ref: sourceRef,
+              cond_sv: normCond.original, cond_en: normCond.en,
+              mat_sv: normMat.original, mat_en: normMat.en,
+              color_sv: normColor.original, color_en: normColor.en,
+              brand_raw: normBrand.original, brand_clean: normBrand.cleaned,
             });
 
             await importMutation.mutateAsync({
@@ -516,11 +518,15 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
               description_en: descriptionEn,
               language,
               translated_at: translatedAt,
-              brand: parsed.brand_text || "Unknown",
+              brand: normBrand.cleaned || parsed.brand_text || "Unknown",
+              brand_original: normBrand.original || null,
               size: parsed.size_text || null,
-              color: parsed.color_text || null,
-              material: apiMaterial || parsed.material_text || null,
-              condition: apiConditionText || parsed.condition_text || null,
+              color: normColor.en || parsed.color_text || null,
+              color_original: normColor.original || null,
+              material: normMat.en || parsed.material_text || null,
+              material_original: normMat.original || null,
+              condition: normCond.en || parsed.condition_text || null,
+              condition_original: normCond.original || null,
               price: itemDetails.buyItNowPrice || itemDetails.price || null,
               currency: "SEK",
               primary_image: parsed.primary_image || null,

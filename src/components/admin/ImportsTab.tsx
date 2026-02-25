@@ -90,11 +90,11 @@ export function ImportsTab() {
     try {
       const { data, error } = await supabase.functions.invoke('tradera-backfill-condition-material', { body: { forceFresh } });
       if (error) {
-        toast.error('Condition/material backfill failed: ' + error.message);
+        toast.error('Tradera field backfill failed: ' + error.message);
       } else {
-        console.info("[BackfillConditionMaterial]", data);
+        console.info("[BackfillTraderaFields]", data);
         toast.success(
-          `Backfill complete:\nProcessed: ${data.processed ?? 0}\nUpdated condition: ${data.updated_condition ?? 0}\nUpdated material: ${data.updated_material ?? 0}\nSkipped (already set): ${data.skipped_already_set ?? 0}\nRate limited: ${data.rate_limited ?? 0}`
+          `Backfill complete:\nProcessed: ${data.processed ?? 0}\nCondition: ${data.updated_condition ?? 0}\nMaterial: ${data.updated_material ?? 0}\nColor: ${data.updated_color ?? 0}\nBrand: ${data.updated_brand ?? 0}\nSkipped: ${data.skipped_already_set ?? 0}\nRate limited: ${data.rate_limited ?? 0}`
         );
       }
     } catch (e: any) {
@@ -184,7 +184,7 @@ export function ImportsTab() {
               ) : (
                 <Wand2 className="w-4 h-4 mr-2" />
               )}
-              Backfill cond/mat (cached)
+              Backfill Tradera fields (cached)
             </Button>
             <Button
               variant="outline"
@@ -196,7 +196,7 @@ export function ImportsTab() {
               ) : (
                 <RefreshCw className="w-4 h-4 mr-2" />
               )}
-              Backfill cond/mat (fresh)
+              Backfill Tradera fields (fresh)
             </Button>
             <Button onClick={() => setShowNewDialog(true)}>
               <Plus className="w-4 h-4 mr-2" />

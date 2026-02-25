@@ -257,10 +257,13 @@ export type Database = {
             | Database["public"]["Enums"]["ancora_select_source"]
             | null
           brand: string
+          brand_original: string | null
           category_id: string | null
           color: string | null
+          color_original: string | null
           color_sv: string | null
           condition: string | null
+          condition_original: string | null
           condition_sv: string | null
           created_at: string
           description: string | null
@@ -275,6 +278,7 @@ export type Database = {
           language: string | null
           marketplace: string | null
           material: string | null
+          material_original: string | null
           material_sv: string | null
           name: string
           name_en: string | null
@@ -303,10 +307,13 @@ export type Database = {
             | Database["public"]["Enums"]["ancora_select_source"]
             | null
           brand: string
+          brand_original?: string | null
           category_id?: string | null
           color?: string | null
+          color_original?: string | null
           color_sv?: string | null
           condition?: string | null
+          condition_original?: string | null
           condition_sv?: string | null
           created_at?: string
           description?: string | null
@@ -321,6 +328,7 @@ export type Database = {
           language?: string | null
           marketplace?: string | null
           material?: string | null
+          material_original?: string | null
           material_sv?: string | null
           name: string
           name_en?: string | null
@@ -349,10 +357,13 @@ export type Database = {
             | Database["public"]["Enums"]["ancora_select_source"]
             | null
           brand?: string
+          brand_original?: string | null
           category_id?: string | null
           color?: string | null
+          color_original?: string | null
           color_sv?: string | null
           condition?: string | null
+          condition_original?: string | null
           condition_sv?: string | null
           created_at?: string
           description?: string | null
@@ -367,6 +378,7 @@ export type Database = {
           language?: string | null
           marketplace?: string | null
           material?: string | null
+          material_original?: string | null
           material_sv?: string | null
           name?: string
           name_en?: string | null
