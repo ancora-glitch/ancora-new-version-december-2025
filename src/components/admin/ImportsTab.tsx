@@ -92,12 +92,10 @@ export function ImportsTab() {
       if (error) {
         toast.error('Condition/material backfill failed: ' + error.message);
       } else {
-        const parts = [`Processed ${data.processed}`];
-        if (data.updated_condition > 0) parts.push(`${data.updated_condition} condition`);
-        if (data.updated_material > 0) parts.push(`${data.updated_material} material`);
-        if (data.skipped_already_set > 0) parts.push(`${data.skipped_already_set} already set`);
-        if (data.rate_limited > 0) parts.push(`${data.rate_limited} rate-limited`);
-        toast.success('Backfill: ' + parts.join(', '));
+        console.info("[BackfillConditionMaterial]", data);
+        toast.success(
+          `Backfill complete:\nProcessed: ${data.processed ?? 0}\nUpdated condition: ${data.updated_condition ?? 0}\nUpdated material: ${data.updated_material ?? 0}\nSkipped (already set): ${data.skipped_already_set ?? 0}\nRate limited: ${data.rate_limited ?? 0}`
+        );
       }
     } catch (e: any) {
       toast.error('Backfill error: ' + e.message);
