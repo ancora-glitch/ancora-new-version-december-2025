@@ -85,10 +85,10 @@ export function ImportsTab() {
     }
   };
 
-  const handleBackfillConditionMaterial = async () => {
+  const handleBackfillConditionMaterial = async (forceFresh = false) => {
     setIsBackfillingCondMat(true);
     try {
-      const { data, error } = await supabase.functions.invoke('tradera-backfill-condition-material');
+      const { data, error } = await supabase.functions.invoke('tradera-backfill-condition-material', { body: { forceFresh } });
       if (error) {
         toast.error('Condition/material backfill failed: ' + error.message);
       } else {
@@ -176,7 +176,7 @@ export function ImportsTab() {
             </Button>
             <Button
               variant="outline"
-              onClick={handleBackfillConditionMaterial}
+              onClick={() => handleBackfillConditionMaterial()}
               disabled={isBackfillingCondMat}
             >
               {isBackfillingCondMat ? (
@@ -184,7 +184,19 @@ export function ImportsTab() {
               ) : (
                 <Wand2 className="w-4 h-4 mr-2" />
               )}
-              Backfill condition/material (200)
+              Backfill cond/mat (cached)
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleBackfillConditionMaterial(true)}
+              disabled={isBackfillingCondMat}
+            >
+              {isBackfillingCondMat ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
+              Backfill cond/mat (fresh)
             </Button>
             <Button onClick={() => setShowNewDialog(true)}>
               <Plus className="w-4 h-4 mr-2" />

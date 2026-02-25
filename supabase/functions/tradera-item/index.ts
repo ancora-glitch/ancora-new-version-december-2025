@@ -3,6 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const ALLOWED_HEADERS = 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version';
 
+const TRADERA_CACHE_VERSION = 2;
+
 function getCorsHeaders(req: Request) {
   const origin = req.headers.get('Origin') || '';
   const isAllowed =
@@ -60,12 +62,13 @@ async function checkRateLimit(supabase: ReturnType<typeof createClient>): Promis
   return data as RateLimitResult;
 }
 
-// Check cache for existing results
+// Check cache for existing results (version-aware)
 async function checkCache(supabase: ReturnType<typeof createClient>, cacheKey: string): Promise<any | null> {
   const { data, error } = await supabase
     .from('tradera_cache')
     .select('raw_payload, fetched_at')
     .eq('cache_key', cacheKey)
+    .eq('cache_version', TRADERA_CACHE_VERSION)
     .gt('expires_at', new Date().toISOString())
     .maybeSingle();
 
@@ -75,15 +78,15 @@ async function checkCache(supabase: ReturnType<typeof createClient>, cacheKey: s
   }
 
   if (data) {
-    console.log(`Cache HIT for ${cacheKey}, fetched at ${data.fetched_at}`);
+    console.log(`Cache HIT for ${cacheKey} (v${TRADERA_CACHE_VERSION}), fetched at ${data.fetched_at}`);
     return data.raw_payload;
   }
 
-  console.log(`Cache MISS for ${cacheKey}`);
+  console.log(`Cache MISS for ${cacheKey} (v${TRADERA_CACHE_VERSION})`);
   return null;
 }
 
-// Store result in cache
+// Store result in cache (version-aware)
 async function storeCache(supabase: ReturnType<typeof createClient>, cacheKey: string, cacheType: string, payload: any) {
   const expiresAt = new Date();
   expiresAt.setHours(expiresAt.getHours() + 24);
@@ -93,6 +96,7 @@ async function storeCache(supabase: ReturnType<typeof createClient>, cacheKey: s
     .upsert({
       cache_key: cacheKey,
       cache_type: cacheType,
+      cache_version: TRADERA_CACHE_VERSION,
       raw_payload: payload,
       fetched_at: new Date().toISOString(),
       expires_at: expiresAt.toISOString(),
@@ -101,7 +105,7 @@ async function storeCache(supabase: ReturnType<typeof createClient>, cacheKey: s
   if (error) {
     console.error('Cache store error:', error);
   } else {
-    console.log(`Cached result for ${cacheKey}`);
+    console.log(`Cached result for ${cacheKey} (v${TRADERA_CACHE_VERSION})`);
   }
 }
 
@@ -157,7 +161,6 @@ serve(async (req) => {
     const rateLimitResult = await checkRateLimit(supabase);
     
     if (!rateLimitResult.allowed) {
-      // INVARIANT: Rate limits must never crash the edge function or break the import pipeline.
       console.warn('RATE LIMIT EXCEEDED (quota):', rateLimitResult);
       return new Response(
         JSON.stringify({ 
@@ -199,8 +202,6 @@ serve(async (req) => {
       body: soapEnvelope,
     });
 
-    // INVARIANT: Rate limits must never crash the edge function or break the import pipeline.
-    // Return structured response on 429 — never throw, never return HTTP error status.
     if (response.status === 429) {
       const errorBody = await response.text();
       const retryAfterHeader = response.headers.get('retry-after');
@@ -220,7 +221,6 @@ serve(async (req) => {
       );
     }
     
-    // Other errors - fail immediately
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Tradera API error:', response.status, errorText);
@@ -233,14 +233,12 @@ serve(async (req) => {
     const xmlText = await response.text();
     console.log('Received item details XML, length:', xmlText.length);
     
-    // Log a snippet to help debug image extraction
     const imageLinksStart = xmlText.indexOf('<ImageLinks>');
     const imageLinksEnd = xmlText.indexOf('</ImageLinks>');
     if (imageLinksStart > -1 && imageLinksEnd > -1) {
       console.log('ImageLinks section found:', xmlText.substring(imageLinksStart, imageLinksEnd + 13).substring(0, 500));
     }
 
-    // Parse the item details
     const item = parseItemDetails(xmlText);
     
     if (!item) {
@@ -254,7 +252,7 @@ serve(async (req) => {
 
     const result = { item };
 
-    // Cache the successful result
+    // Cache the successful result with current version
     await storeCache(supabase, cacheKey, 'item', result);
 
     return new Response(
@@ -292,24 +290,15 @@ interface TraderaItemDetail {
   attributes: Record<string, string>;
 }
 
-/**
- * Normalizes a Tradera image URL to get the highest resolution version.
- * Tradera uses URL patterns like:
- * - /minithumb/... (smallest)
- * - /thumbs/... or /thumb/...
- * - /medium/...
- * - /images/... (largest/original)
- */
 function normalizeToHighRes(url: string): string {
   if (!url) return url;
   
   try {
-    // Replace resolution path segments with /images/ for highest res
     let normalized = url
-      .replace(/^http:\/\//i, 'https://') // Force HTTPS
+      .replace(/^http:\/\/i/i, 'https://')
       .replace(/\/(minithumb|thumbs|thumb|medium|normal|small|tiny|mini|preview|xs|s|m)\//gi, '/images/')
-      .replace(/[_-](thumb|thumbnail|small|medium|large|xl|xxl|xs|s|m|l)(\.[a-z]+)$/gi, '$2') // Remove size suffixes
-      .replace(/\?.*$/, ''); // Remove query params that might force size
+      .replace(/[_-](thumb|thumbnail|small|medium|large|xl|xxl|xs|s|m|l)(\.[a-z]+)$/gi, '$2')
+      .replace(/\?.*$/, '');
     
     return normalized;
   } catch {
@@ -317,10 +306,6 @@ function normalizeToHighRes(url: string): string {
   }
 }
 
-/**
- * Extracts a base identifier from an image URL for deduplication.
- * This helps detect when the same image appears in different resolutions/sizes.
- */
 function extractImageIdentifier(url: string): string {
   if (!url) return "";
   
@@ -328,7 +313,6 @@ function extractImageIdentifier(url: string): string {
     const urlObj = new URL(url);
     const pathname = urlObj.pathname;
     
-    // Remove all resolution/size indicators to get the base image ID
     const cleanPath = pathname
       .replace(/\/(minithumb|thumbs|thumb|medium|images|normal|small|tiny|mini|preview|xs|s|m|l)\//gi, '/img/')
       .replace(/[_-](thumb|thumbnail|small|medium|large|xl|xxl|original|hires|lowres|preview|tiny|mini|xs|s|m|l)\b/gi, "")
@@ -341,117 +325,59 @@ function extractImageIdentifier(url: string): string {
   }
 }
 
-/**
- * Determines if a URL is likely a high-resolution version
- */
 function isHighResVersion(url: string): boolean {
   const lowResPatterns = [
-    /\/minithumb\//i,
-    /\/thumbs?\//i,
-    /\/small\//i,
-    /\/tiny\//i,
-    /\/mini\//i,
-    /\/preview\//i,
-    /\/xs\//i,
-    /\/s\//i,
-    /\/m\//i,
-    /_thumb\./i,
-    /_small\./i,
-    /_xs\./i,
-    /_s\./i,
-    /_t\./i,
-    /size=small/i,
-    /size=thumb/i,
-    /\/\d{2,3}x\d{2,3}\//,
+    /\/minithumb\//i, /\/thumbs?\//i, /\/small\//i, /\/tiny\//i, /\/mini\//i,
+    /\/preview\//i, /\/xs\//i, /\/s\//i, /\/m\//i,
+    /_thumb\./i, /_small\./i, /_xs\./i, /_s\./i, /_t\./i,
+    /size=small/i, /size=thumb/i, /\/\d{2,3}x\d{2,3}\//,
   ];
-
   const highResPatterns = [
-    /\/images\//i,
-    /\/large\//i,
-    /\/original\//i,
-    /\/hires\//i,
-    /\/full\//i,
-    /_l\./i,
-    /_xl\./i,
-    /_large\./i,
-    /_original\./i,
+    /\/images\//i, /\/large\//i, /\/original\//i, /\/hires\//i, /\/full\//i,
+    /_l\./i, /_xl\./i, /_large\./i, /_original\./i,
   ];
-
   const urlLower = url.toLowerCase();
-  
-  // Check high-res patterns first (they take priority)
-  if (highResPatterns.some(pattern => pattern.test(urlLower))) {
-    return true;
-  }
-  
-  if (lowResPatterns.some(pattern => pattern.test(urlLower))) {
-    return false;
-  }
-  
-  return true; // Default: assume okay quality
+  if (highResPatterns.some(pattern => pattern.test(urlLower))) return true;
+  if (lowResPatterns.some(pattern => pattern.test(urlLower))) return false;
+  return true;
 }
 
-/**
- * Selects the best quality URL from a group of similar images
- */
 function selectBestQuality(urls: string[]): string {
   if (urls.length === 1) return urls[0];
-  
   const sorted = [...urls].sort((a, b) => {
     const aIsHigh = isHighResVersion(a);
     const bIsHigh = isHighResVersion(b);
-    
     if (aIsHigh && !bIsHigh) return -1;
     if (!aIsHigh && bIsHigh) return 1;
-    
-    // Prefer /images/ path (Tradera's highest res)
     const aHasImages = /\/images\//i.test(a);
     const bHasImages = /\/images\//i.test(b);
     if (aHasImages && !bHasImages) return -1;
     if (!aHasImages && bHasImages) return 1;
-    
-    // Prefer longer URLs (often more specific/full resolution)
     return b.length - a.length;
   });
-  
   return sorted[0];
 }
 
-/**
- * Deduplicates images by extracting base identifiers and keeping best quality versions.
- * This handles cases where the same image appears as thumbnail + full-res.
- */
 function deduplicateImages(urls: string[]): string[] {
   if (urls.length === 0) return [];
-  
-  // First, normalize all URLs to high-res versions
   const normalizedUrls = urls.map(normalizeToHighRes);
-  
-  // Group images by their base identifier
   const imageGroups = new Map<string, string[]>();
-  
   for (const url of normalizedUrls) {
     const identifier = extractImageIdentifier(url);
     const existing = imageGroups.get(identifier) || [];
     existing.push(url);
     imageGroups.set(identifier, existing);
   }
-  
-  // For each group, select the highest quality version
   const uniqueImages: string[] = [];
   const processedIdentifiers = new Set<string>();
-  
-  // Process in original order to preserve ordering
   for (const url of normalizedUrls) {
     const identifier = extractImageIdentifier(url);
     if (processedIdentifiers.has(identifier)) continue;
-    
     const group = imageGroups.get(identifier) || [url];
     const bestUrl = selectBestQuality(group);
     uniqueImages.push(bestUrl);
     processedIdentifiers.add(identifier);
   }
-  
   console.log(`Deduplicated images: ${urls.length} -> ${uniqueImages.length}`);
   return uniqueImages;
 }
@@ -461,13 +387,11 @@ function parseItemDetails(xml: string): TraderaItemDetail | null {
     const id = extractNumber(xml, 'Id');
     if (!id) return null;
 
-    // Collect images from ALL available fields in the Tradera payload
     const rawImageLinks: string[] = [];
     const seenUrls = new Set<string>();
     
     const addImageUrl = (url: string | undefined) => {
       if (!url || !url.startsWith('http')) return;
-      // Normalize to HTTPS and high-res
       const normalizedUrl = normalizeToHighRes(url);
       const lowerUrl = normalizedUrl.toLowerCase();
       if (!seenUrls.has(lowerUrl)) {
@@ -476,7 +400,6 @@ function parseItemDetails(xml: string): TraderaItemDetail | null {
       }
     };
 
-    // 1. Prioritize high-res fields first
     const largeImageMatches = xml.match(/<(?:LargeImageLink|OriginalImageLink|FullImageLink|HighResImageLink)>([^<]+)<\/(?:LargeImageLink|OriginalImageLink|FullImageLink|HighResImageLink)>/gi);
     if (largeImageMatches) {
       for (const match of largeImageMatches) {
@@ -485,7 +408,6 @@ function parseItemDetails(xml: string): TraderaItemDetail | null {
       }
     }
 
-    // 2. Extract from <ImageLinks> section (contains multiple <Url> elements)
     const imageLinksSection = xml.match(/<ImageLinks>([\s\S]*?)<\/ImageLinks>/gi);
     if (imageLinksSection) {
       for (const section of imageLinksSection) {
@@ -499,19 +421,16 @@ function parseItemDetails(xml: string): TraderaItemDetail | null {
       }
     }
 
-    // 3. Extract standalone <Url> elements outside ImageLinks
     const allUrlMatches = xml.match(/<Url>([^<]+)<\/Url>/gi);
     if (allUrlMatches) {
       for (const match of allUrlMatches) {
         const url = match.replace(/<\/?Url>/gi, '').trim();
-        // Only add if it looks like an image URL
         if (url.includes('tradera.net') || /\.(jpg|jpeg|png|webp|gif)/i.test(url)) {
           addImageUrl(url);
         }
       }
     }
 
-    // 4. Extract from <ImageLink> elements
     const imageLinkMatches = xml.match(/<ImageLink>([^<]+)<\/ImageLink>/gi);
     if (imageLinkMatches) {
       for (const match of imageLinkMatches) {
@@ -520,7 +439,6 @@ function parseItemDetails(xml: string): TraderaItemDetail | null {
       }
     }
 
-    // 5. Extract from <ItemImage> or <MainImage> elements
     const itemImageMatches = xml.match(/<(?:ItemImage|MainImage)>([^<]+)<\/(?:ItemImage|MainImage)>/gi);
     if (itemImageMatches) {
       for (const match of itemImageMatches) {
@@ -529,7 +447,6 @@ function parseItemDetails(xml: string): TraderaItemDetail | null {
       }
     }
 
-    // 6. Extract from <Image> elements (generic)
     const genericImageMatches = xml.match(/<Image>([^<]+)<\/Image>/gi);
     if (genericImageMatches) {
       for (const match of genericImageMatches) {
@@ -538,7 +455,6 @@ function parseItemDetails(xml: string): TraderaItemDetail | null {
       }
     }
 
-    // 7. Extract from <ThumbnailLink> elements (lowest priority, only if no other images)
     if (rawImageLinks.length === 0) {
       const thumbnailMatches = xml.match(/<ThumbnailLink>([^<]+)<\/ThumbnailLink>/gi);
       if (thumbnailMatches) {
@@ -550,23 +466,15 @@ function parseItemDetails(xml: string): TraderaItemDetail | null {
     }
 
     console.log(`Collected ${rawImageLinks.length} raw images from all fields`);
-
-    // Deduplicate by normalizing URLs and keeping best quality versions
     const imageLinks = deduplicateImages(rawImageLinks);
 
-    // Extract attributes from Tradera's actual XML structure:
-    // <TermAttributeValues><TermAttributeValue><Values><string>VALUE</string></Values></TermAttributeValue></TermAttributeValues>
-    // Also try legacy <Attribute><Name>/<Value> format as fallback
     const attributes: Record<string, string> = {};
 
-    // NEW: Parse TermAttributeValue elements (actual Tradera GetItem format)
     const termAttrSection = xml.match(/<TermAttributeValues>([\s\S]*?)<\/TermAttributeValues>/);
     if (termAttrSection) {
       const termAttrMatches = termAttrSection[1].match(/<TermAttributeValue>([\s\S]*?)<\/TermAttributeValue>/g);
       if (termAttrMatches) {
-        console.info('[TraderaRawTermAttrCount]', termAttrMatches.length);
         for (const tav of termAttrMatches) {
-          // Extract the Id (attribute type ID) and Values
           const attrId = extractText(tav, 'Id');
           const valuesSection = tav.match(/<Values>([\s\S]*?)<\/Values>/);
           const valueStrings = valuesSection
@@ -579,17 +487,6 @@ function parseItemDetails(xml: string): TraderaItemDetail | null {
       }
     }
 
-    // Also extract from ItemAttributes (numbered attribute IDs)
-    const itemAttrSection = xml.match(/<ItemAttributes>([\s\S]*?)<\/ItemAttributes>/);
-    if (itemAttrSection) {
-      const intMatches = itemAttrSection[1].match(/<int>(\d+)<\/int>/g);
-      if (intMatches) {
-        const attrIds = intMatches.map(m => m.replace(/<\/?int>/g, ''));
-        console.info('[TraderaRawItemAttributeIds]', JSON.stringify(attrIds));
-      }
-    }
-
-    // Legacy: Parse <Attribute> elements (older format, fallback)
     const attrMatches = xml.match(/<Attribute>([\s\S]*?)<\/Attribute>/g);
     if (attrMatches) {
       for (const attrXml of attrMatches) {
@@ -605,12 +502,11 @@ function parseItemDetails(xml: string): TraderaItemDetail | null {
     // term_121 = Skick (condition), term_105 = Material, term_3 = Märke (brand),
     // term_102 = Färg (color), term_97 = Kön (gender), term_100 = Storlek (size)
     const condition_raw = extractText(xml, 'ItemCondition')
-      || attributes['term_121']  // Tradera condition attribute
+      || attributes['term_121']
       || attributes['skick'] || attributes['condition'] || null;
-    const material_raw = attributes['term_105']  // Tradera material attribute
+    const material_raw = attributes['term_105']
       || attributes['material'] || attributes['materiel'] || null;
 
-    // ── DEBUG: attribute mapping trace ──
     console.info('[TraderaGetItemFields]', JSON.stringify({
       itemId: id,
       condition_raw,
