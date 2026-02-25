@@ -601,20 +601,16 @@ function parseItemDetails(xml: string): TraderaItemDetail | null {
       }
     }
 
-    const condition_raw = extractText(xml, 'ItemCondition') || attributes['skick'] || attributes['condition'] || null;
-    const material_raw = attributes['material'] || attributes['materiel'] || null;
+    // Known Tradera TermAttributeValue IDs:
+    // term_121 = Skick (condition), term_105 = Material, term_3 = Märke (brand),
+    // term_102 = Färg (color), term_97 = Kön (gender), term_100 = Storlek (size)
+    const condition_raw = extractText(xml, 'ItemCondition')
+      || attributes['term_121']  // Tradera condition attribute
+      || attributes['skick'] || attributes['condition'] || null;
+    const material_raw = attributes['term_105']  // Tradera material attribute
+      || attributes['material'] || attributes['materiel'] || null;
 
-    // ── TEMPORARY DEBUG: discover actual XML structure ──
-    console.info('[TraderaRawAttributes]', JSON.stringify(attributes));
-    console.info('[TraderaRawConditionCandidates]', JSON.stringify({
-      ItemCondition: extractText(xml, 'ItemCondition') ?? null,
-      Condition: extractText(xml, 'Condition') ?? null,
-      condition_raw,
-      material_raw,
-      all_attribute_keys: Object.keys(attributes),
-    }));
-
-    // Developer log: raw structured fields from GetItem
+    // ── DEBUG: attribute mapping trace ──
     console.info('[TraderaGetItemFields]', JSON.stringify({
       itemId: id,
       condition_raw,
