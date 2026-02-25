@@ -173,10 +173,31 @@ export type Database = {
         }
         Relationships: []
       }
+      cron_job_state: {
+        Row: {
+          cursor_value: number
+          job_name: string
+          updated_at: string
+        }
+        Insert: {
+          cursor_value?: number
+          job_name: string
+          updated_at?: string
+        }
+        Update: {
+          cursor_value?: number
+          job_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cron_runs: {
         Row: {
+          batch_size: number | null
           checked_count: number | null
           created_at: string
+          cursor_after: number | null
+          cursor_before: number | null
           duration_ms: number | null
           error_message: string | null
           finished_at: string | null
@@ -189,8 +210,11 @@ export type Database = {
           status: string
         }
         Insert: {
+          batch_size?: number | null
           checked_count?: number | null
           created_at?: string
+          cursor_after?: number | null
+          cursor_before?: number | null
           duration_ms?: number | null
           error_message?: string | null
           finished_at?: string | null
@@ -203,8 +227,11 @@ export type Database = {
           status?: string
         }
         Update: {
+          batch_size?: number | null
           checked_count?: number | null
           created_at?: string
+          cursor_after?: number | null
+          cursor_before?: number | null
           duration_ms?: number | null
           error_message?: string | null
           finished_at?: string | null
