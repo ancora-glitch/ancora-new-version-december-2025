@@ -110,7 +110,7 @@ serve(async (req) => {
       // Latest run (any status)
       const { data: latest } = await serviceClient
         .from('cron_runs')
-        .select('ran_at, started_at, finished_at, status, duration_ms, items_processed, checked_count, sold_marked, error_message')
+        .select('ran_at, started_at, finished_at, status, duration_ms, items_processed, checked_count, sold_marked, error_message, batch_size, cursor_before, cursor_after')
         .eq('job_name', jobName)
         .order('ran_at', { ascending: false })
         .limit(1)
@@ -140,6 +140,9 @@ serve(async (req) => {
             sold_marked: latest.sold_marked ?? 0,
             error_message: latest.error_message ?? null,
             lastSuccess,
+            batch_size: (latest as any).batch_size ?? null,
+            cursor_before: (latest as any).cursor_before ?? null,
+            cursor_after: (latest as any).cursor_after ?? null,
           }
         : { lastRun: null, status: 'never', lastSuccess: null };
     } catch (_) {
