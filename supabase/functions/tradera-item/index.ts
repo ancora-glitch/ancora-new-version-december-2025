@@ -567,6 +567,18 @@ function parseItemDetails(xml: string): TraderaItemDetail | null {
       }
     }
 
+    const condition_raw = extractText(xml, 'ItemCondition') || attributes['skick'] || attributes['condition'] || null;
+    const material_raw = attributes['material'] || attributes['materiel'] || null;
+
+    // Developer log: raw structured fields from GetItem
+    console.info('[TraderaGetItemFields]', JSON.stringify({
+      itemId: id,
+      condition_raw,
+      material_raw,
+      has_attributes: Object.keys(attributes).length > 0,
+      attribute_keys: Object.keys(attributes),
+    }));
+
     const item: TraderaItemDetail = {
       id,
       shortDescription: extractText(xml, 'ShortDescription') || extractText(xml, 'Title') || '',
@@ -578,10 +590,10 @@ function parseItemDetails(xml: string): TraderaItemDetail | null {
       sellerId: extractNumber(xml, 'SellerId') || 0,
       sellerAlias: extractText(xml, 'SellerAlias'),
       endDate: extractText(xml, 'EndDate'),
-      condition: extractText(xml, 'ItemCondition') || attributes['skick'] || attributes['condition'],
+      condition: condition_raw || undefined,
       brand: extractText(xml, 'Brand') || attributes['märke'] || attributes['brand'],
       size: attributes['storlek'] || attributes['size'],
-      material: attributes['material'],
+      material: material_raw || undefined,
       attributes,
     };
 

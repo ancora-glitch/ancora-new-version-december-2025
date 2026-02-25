@@ -67,11 +67,30 @@ interface TraderaSearchDrawerProps {
 function mapCondition(traderaCondition?: string): AisCondition {
   if (!traderaCondition) return "unknown";
   const lower = traderaCondition.toLowerCase();
-  if (lower.includes("new") || lower.includes("ny")) return "new";
-  if (lower.includes("excellent") || lower.includes("utmärkt")) return "excellent";
-  if (lower.includes("good") || lower.includes("god") || lower.includes("bra")) return "good";
+  if (lower.includes("new") || lower.includes("ny") || lower.includes("oanvänd")) return "new";
+  if (lower.includes("excellent") || lower.includes("utmärkt") || lower.includes("mycket gott")) return "excellent";
+  if (lower.includes("good") || lower.includes("god") || lower.includes("bra") || lower.includes("begagnad")) return "good";
   if (lower.includes("fair") || lower.includes("hyfsad") || lower.includes("ok")) return "fair";
   return "unknown";
+}
+
+// Map raw Tradera condition string to a human-readable English label for Product.condition
+function mapConditionToText(traderaCondition?: string): string | null {
+  if (!traderaCondition) return null;
+  const lower = traderaCondition.toLowerCase().trim();
+  // Swedish → English mapping
+  if (lower === "oanvänd" || lower === "ny" || lower === "ny med etikett") return "New";
+  if (lower === "ny utan etikett") return "New without tags";
+  if (lower.includes("utmärkt") || lower.includes("mycket gott skick")) return "Excellent";
+  if (lower === "begagnad" || lower.includes("gott skick") || lower.includes("bra skick")) return "Good";
+  if (lower.includes("hyfsad") || lower.includes("ok skick")) return "Fair";
+  // English pass-through
+  if (lower.includes("new")) return "New";
+  if (lower.includes("excellent")) return "Excellent";
+  if (lower.includes("good")) return "Good";
+  if (lower.includes("fair")) return "Fair";
+  // Return the raw string as-is if we can't map it (better than null)
+  return traderaCondition;
 }
 
 // Extract keywords from title
@@ -464,6 +483,10 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
             }
 
             // Create Product draft directly (+ AIS log in background)
+            // ── PRIORITY: API values > parser fallback ──
+            const apiConditionText = mapConditionToText(itemDetails.condition);
+            const apiMaterial = itemDetails.material || null;
+
             await importMutation.mutateAsync({
               marketplace: "tradera",
               source_ref: sourceRef,
@@ -480,8 +503,8 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
               brand: parsed.brand_text || "Unknown",
               size: parsed.size_text || null,
               color: parsed.color_text || null,
-              material: parsed.material_text || null,
-              condition: parsed.condition_text || mapCondition(itemDetails.condition),
+              material: apiMaterial || parsed.material_text || null,
+              condition: apiConditionText || parsed.condition_text || null,
               price: itemDetails.buyItNowPrice || itemDetails.price || null,
               currency: "SEK",
               primary_image: parsed.primary_image || null,
