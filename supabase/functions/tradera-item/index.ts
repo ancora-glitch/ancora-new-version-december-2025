@@ -554,8 +554,42 @@ function parseItemDetails(xml: string): TraderaItemDetail | null {
     // Deduplicate by normalizing URLs and keeping best quality versions
     const imageLinks = deduplicateImages(rawImageLinks);
 
-    // Extract attributes
+    // Extract attributes from Tradera's actual XML structure:
+    // <TermAttributeValues><TermAttributeValue><Values><string>VALUE</string></Values></TermAttributeValue></TermAttributeValues>
+    // Also try legacy <Attribute><Name>/<Value> format as fallback
     const attributes: Record<string, string> = {};
+
+    // NEW: Parse TermAttributeValue elements (actual Tradera GetItem format)
+    const termAttrSection = xml.match(/<TermAttributeValues>([\s\S]*?)<\/TermAttributeValues>/);
+    if (termAttrSection) {
+      const termAttrMatches = termAttrSection[1].match(/<TermAttributeValue>([\s\S]*?)<\/TermAttributeValue>/g);
+      if (termAttrMatches) {
+        console.info('[TraderaRawTermAttrCount]', termAttrMatches.length);
+        for (const tav of termAttrMatches) {
+          // Extract the Id (attribute type ID) and Values
+          const attrId = extractText(tav, 'Id');
+          const valuesSection = tav.match(/<Values>([\s\S]*?)<\/Values>/);
+          const valueStrings = valuesSection
+            ? (valuesSection[1].match(/<string>([^<]*)<\/string>/g) || []).map(s => s.replace(/<\/?string>/g, '').trim())
+            : [];
+          if (attrId && valueStrings.length > 0) {
+            attributes[`term_${attrId}`] = valueStrings.join(', ');
+          }
+        }
+      }
+    }
+
+    // Also extract from ItemAttributes (numbered attribute IDs)
+    const itemAttrSection = xml.match(/<ItemAttributes>([\s\S]*?)<\/ItemAttributes>/);
+    if (itemAttrSection) {
+      const intMatches = itemAttrSection[1].match(/<int>(\d+)<\/int>/g);
+      if (intMatches) {
+        const attrIds = intMatches.map(m => m.replace(/<\/?int>/g, ''));
+        console.info('[TraderaRawItemAttributeIds]', JSON.stringify(attrIds));
+      }
+    }
+
+    // Legacy: Parse <Attribute> elements (older format, fallback)
     const attrMatches = xml.match(/<Attribute>([\s\S]*?)<\/Attribute>/g);
     if (attrMatches) {
       for (const attrXml of attrMatches) {
@@ -571,23 +605,13 @@ function parseItemDetails(xml: string): TraderaItemDetail | null {
     const material_raw = attributes['material'] || attributes['materiel'] || null;
 
     // ── TEMPORARY DEBUG: discover actual XML structure ──
-    // Log all top-level XML element names (first-level children of GetItemResult)
-    const topLevelKeys = [...new Set((xml.match(/<([A-Za-z]+)[^>]*>/g) || []).map(t => t.replace(/<\/?|\s.*|>/g, '')))];
-    console.info('[TraderaRawKeys]', JSON.stringify(topLevelKeys));
-
-    if (Object.keys(attributes).length > 0) {
-      console.info('[TraderaRawAttributeNames]', JSON.stringify(Object.keys(attributes)));
-    }
-
+    console.info('[TraderaRawAttributes]', JSON.stringify(attributes));
     console.info('[TraderaRawConditionCandidates]', JSON.stringify({
       ItemCondition: extractText(xml, 'ItemCondition') ?? null,
       Condition: extractText(xml, 'Condition') ?? null,
-      ItemConditionText: extractText(xml, 'ItemConditionText') ?? null,
-      skick_attr: attributes['skick'] ?? null,
-      condition_attr: attributes['condition'] ?? null,
-      conditionRelatedAttrs: Object.entries(attributes)
-        .filter(([k]) => k.includes('skick') || k.includes('condition'))
-        .reduce((o, [k, v]) => ({ ...o, [k]: v }), {}),
+      condition_raw,
+      material_raw,
+      all_attribute_keys: Object.keys(attributes),
     }));
 
     // Developer log: raw structured fields from GetItem
