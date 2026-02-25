@@ -292,6 +292,8 @@ serve(async (req) => {
 
         if (itemDetails.hasEnded) {
           const affiliateAutoHandling = product.affiliate_auto_handling !== false;
+          // INVARIANT: Only update availability/status fields. Never overwrite editorial content
+          // (name, description, name_en, description_en, images, brand, etc.)
           const updateData: Record<string, any> = {
             affiliate_status: 'sold',
             affiliate_last_checked_at: new Date().toISOString(),
@@ -324,6 +326,8 @@ serve(async (req) => {
 
         const newPrice = `${Math.round(itemDetails.price)} SEK`;
         const priceChanged = newPrice !== product.price;
+        // INVARIANT: Only update availability/status/price fields. Never overwrite editorial content
+        // (name, description, name_en, description_en, images, brand, etc.)
         const updateData: Record<string, any> = {
           affiliate_status: 'active',
           affiliate_last_checked_at: new Date().toISOString(),

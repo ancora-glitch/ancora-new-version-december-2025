@@ -255,6 +255,8 @@ serve(async (req) => {
 
       const availability = await checkEbayItemAvailability(itemId, accessToken);
       const affiliateAutoHandling = product.affiliate_auto_handling !== false;
+      // INVARIANT: Only update availability/status fields. Never overwrite editorial content
+      // (name, description, name_en, description_en, images, brand, etc.)
       const updateData: Record<string, any> = {
         affiliate_status: availability.status,
         affiliate_last_checked_at: new Date().toISOString(),
