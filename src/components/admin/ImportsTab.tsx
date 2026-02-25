@@ -130,8 +130,8 @@ export function ImportsTab() {
             </div>
           )}
           <p className="text-sm text-muted-foreground leading-relaxed whitespace-normal break-words">
-            Review and curate import candidates before promoting them to products. 
-            This is an internal, editorial layer — nothing is auto-published.
+            Search and import items from Tradera/eBay — they become draft Products directly.
+            This log tracks import provenance and deduplication.
           </p>
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" onClick={() => setShowTraderaDrawer(true)}>
@@ -442,7 +442,7 @@ export function ImportsTab() {
 
       {/* Candidates list */}
       <div ref={listRef}>
-        <h3 className="font-medium text-primary mb-4">Candidates</h3>
+        <h3 className="font-medium text-primary mb-4">Import log</h3>
         <ImportItemsList
           onSelectItem={handleSelectItem}
           selectedItemId={selectedItemId}

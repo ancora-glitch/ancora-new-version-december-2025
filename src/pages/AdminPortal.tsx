@@ -18,7 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StorageImagePicker } from "@/components/StorageImagePicker";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
-import TraderaSearch from "@/components/TraderaSearch";
+// Legacy TraderaSearch removed from admin tabs
 import { Badge } from "@/components/ui/badge";
 import { ImportsTab } from "@/components/admin/ImportsTab";
 import { WeeklyEditsTab } from "@/components/admin/WeeklyEditsTab";
@@ -772,12 +772,11 @@ const AdminPortal = () => {
           </p>
 
           <Tabs defaultValue="statistics" className="w-full">
-            <TabsList className="grid w-full grid-cols-7 mb-8">
+            <TabsList className="grid w-full grid-cols-6 mb-8">
               <TabsTrigger value="statistics">Statistics</TabsTrigger>
               <TabsTrigger value="imports">Imports</TabsTrigger>
               <TabsTrigger value="weekly-edits">Edits</TabsTrigger>
               <TabsTrigger value="categories">Categories</TabsTrigger>
-              <TabsTrigger value="tradera">Tradera</TabsTrigger>
               <TabsTrigger value="products">Products</TabsTrigger>
               <TabsTrigger value="stories">Stories</TabsTrigger>
             </TabsList>
@@ -964,63 +963,7 @@ const AdminPortal = () => {
               </div>
             </TabsContent>
 
-            {/* TRADERA TAB */}
-            <TabsContent value="tradera" className="space-y-6">
-              {/* Sync Prices Button */}
-              <div className="p-4 border border-border rounded-sm bg-card flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium text-primary">Price Synchronization</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Update prices for all active Tradera products
-                  </p>
-                </div>
-                <Button
-                  onClick={async () => {
-                    setIsSyncingPrices(true);
-                    try {
-                      const { data, error } = await supabase.functions.invoke('tradera-sync');
-                      if (error) {
-                        toast.error('Sync failed: ' + error.message);
-                        return;
-                      }
-                      if (data.error) {
-                        toast.error('Sync failed: ' + data.error);
-                        return;
-                      }
-                      const { summary } = data;
-                      toast.success(
-                        `Sync complete: ${summary.updated} updated, ${summary.ended} ended, ${summary.unchanged} unchanged`
-                      );
-                       queryClient.invalidateQueries({ queryKey: ['products'] });
-                       queryClient.invalidateQueries({ queryKey: ['products-all'] });
-                       queryClient.invalidateQueries({ queryKey: ['products-weekly-edit'] });
-                       queryClient.invalidateQueries({ queryKey: ['category-products'] });
-                    } catch (e) {
-                      toast.error('Sync failed');
-                      console.error(e);
-                    } finally {
-                      setIsSyncingPrices(false);
-                    }
-                  }}
-                  disabled={isSyncingPrices}
-                  variant="outline"
-                >
-                  {isSyncingPrices ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Syncing...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Sync Prices Now
-                    </>
-                  )}
-                </Button>
-              </div>
-              
-              <TraderaSearch />
-            </TabsContent>
+            {/* TRADERA TAB — deprecated, hidden from nav */}
 
             {/* PRODUCTS TAB */}
             <TabsContent value="products" className="space-y-10">
