@@ -152,25 +152,38 @@ serve(async (req) => {
         return match ? match[1].trim() : undefined;
       };
 
-      // Extract attributes
+      // Extract attributes from TermAttributeValues (actual Tradera format)
       const attributes: Record<string, string> = {};
+      const termAttrSection = xml.match(/<TermAttributeValues>([\s\S]*?)<\/TermAttributeValues>/);
+      if (termAttrSection) {
+        const termAttrMatches = termAttrSection[1].match(/<TermAttributeValue>([\s\S]*?)<\/TermAttributeValue>/g);
+        if (termAttrMatches) {
+          for (const tav of termAttrMatches) {
+            const attrId = (() => { const m = tav.match(/<Id[^>]*>(.*?)<\/Id>/s); return m ? m[1].trim() : null; })();
+            const valuesSection = tav.match(/<Values>([\s\S]*?)<\/Values>/);
+            const valueStrings = valuesSection
+              ? (valuesSection[1].match(/<string>([^<]*)<\/string>/g) || []).map(s => s.replace(/<\/?string>/g, '').trim())
+              : [];
+            if (attrId && valueStrings.length > 0) {
+              attributes[`term_${attrId}`] = valueStrings.join(', ');
+            }
+          }
+        }
+      }
+
+      // Legacy: <Attribute> elements
       const attrMatches = xml.match(/<Attribute>([\s\S]*?)<\/Attribute>/g);
       if (attrMatches) {
         for (const attrXml of attrMatches) {
-          const name = extractText.call(null, 'Name') ? (() => {
-            const m = attrXml.match(/<Name[^>]*>(.*?)<\/Name>/s);
-            return m ? m[1].trim() : null;
-          })() : null;
-          const value = (() => {
-            const m = attrXml.match(/<Value[^>]*>(.*?)<\/Value>/s);
-            return m ? m[1].trim() : null;
-          })();
+          const name = (() => { const m = attrXml.match(/<Name[^>]*>(.*?)<\/Name>/s); return m ? m[1].trim() : null; })();
+          const value = (() => { const m = attrXml.match(/<Value[^>]*>(.*?)<\/Value>/s); return m ? m[1].trim() : null; })();
           if (name && value) attributes[name.toLowerCase()] = value;
         }
       }
 
-      const conditionRaw = extractText('ItemCondition') || attributes['skick'] || attributes['condition'] || null;
-      const materialRaw = attributes['material'] || attributes['materiel'] || null;
+      // term_121 = Skick (condition), term_105 = Material
+      const conditionRaw = extractText('ItemCondition') || attributes['term_121'] || attributes['skick'] || attributes['condition'] || null;
+      const materialRaw = attributes['term_105'] || attributes['material'] || attributes['materiel'] || null;
 
       const patch: Record<string, unknown> = {};
 
