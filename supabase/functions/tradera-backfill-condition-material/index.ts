@@ -3,6 +3,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const ALLOWED_HEADERS = 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version';
 
+const TRADERA_CACHE_VERSION = 2;
+const BATCH_SIZE = 50;
+
 function getCorsHeaders(req: Request) {
   const origin = req.headers.get('Origin') || '';
   const isAllowed =
@@ -20,7 +23,6 @@ function getCorsHeaders(req: Request) {
   return headers;
 }
 
-// Map raw Tradera condition string to human-readable English
 function mapConditionToText(raw?: string | null): string | null {
   if (!raw) return null;
   const lower = raw.toLowerCase().trim();
@@ -33,7 +35,7 @@ function mapConditionToText(raw?: string | null): string | null {
   if (lower.includes("excellent")) return "Excellent";
   if (lower.includes("good")) return "Good";
   if (lower.includes("fair")) return "Fair";
-  return raw; // Return raw if unmapped
+  return raw;
 }
 
 serve(async (req) => {
@@ -63,7 +65,22 @@ serve(async (req) => {
     }
   }
 
+  // Parse body params
+  let forceFresh = false;
+  try {
+    const body = await req.json();
+    forceFresh = body?.forceFresh === true;
+  } catch (_) {
+    // No body or invalid JSON — defaults apply
+  }
+
   const serviceClient = createClient(supabaseUrl, serviceRoleKey);
+  const appId = Deno.env.get('TRADERA_APP_ID');
+  const appKey = Deno.env.get('TRADERA_APP_KEY');
+
+  if (!appId || !appKey) {
+    return new Response(JSON.stringify({ error: 'Tradera credentials not configured' }), { status: 500, headers: corsHeaders });
+  }
 
   // Select Tradera products missing condition or material
   const { data: products, error: fetchErr } = await serviceClient
@@ -72,20 +89,13 @@ serve(async (req) => {
     .ilike('marketplace', 'tradera')
     .not('tradera_item_id', 'is', null)
     .or('condition.is.null,material.is.null')
-    .limit(200);
+    .limit(BATCH_SIZE);
 
   if (fetchErr) {
     return new Response(JSON.stringify({ error: fetchErr.message }), { status: 500, headers: corsHeaders });
   }
 
-  const appId = Deno.env.get('TRADERA_APP_ID');
-  const appKey = Deno.env.get('TRADERA_APP_KEY');
-
-  if (!appId || !appKey) {
-    return new Response(JSON.stringify({ error: 'Tradera credentials not configured' }), { status: 500, headers: corsHeaders });
-  }
-
-  let processed = 0, updated_condition = 0, updated_material = 0, skipped_already_set = 0, rate_limited = 0;
+  let processed = 0, updated_condition = 0, updated_material = 0, skipped_already_set = 0, rate_limited = 0, errors = 0;
 
   for (const product of products || []) {
     processed++;
@@ -97,7 +107,40 @@ serve(async (req) => {
       continue;
     }
 
-    // Check rate limit
+    let xml: string | null = null;
+
+    // Try cache first (unless forceFresh)
+    if (!forceFresh) {
+      const cacheKey = `item:${product.tradera_item_id}`;
+      const { data: cached } = await serviceClient
+        .from('tradera_cache')
+        .select('raw_payload')
+        .eq('cache_key', cacheKey)
+        .eq('cache_version', TRADERA_CACHE_VERSION)
+        .gt('expires_at', new Date().toISOString())
+        .maybeSingle();
+
+      if (cached?.raw_payload?.item) {
+        // Use cached parsed item directly
+        const item = cached.raw_payload.item;
+        const patch: Record<string, unknown> = {};
+        if (needsCondition && item.condition) {
+          patch.condition = mapConditionToText(item.condition);
+          updated_condition++;
+        }
+        if (needsMaterial && item.material) {
+          patch.material = item.material;
+          updated_material++;
+        }
+        if (Object.keys(patch).length > 0) {
+          const { error: upErr } = await serviceClient.from('products').update(patch).eq('id', product.id);
+          if (upErr) { console.error(`[backfill] Update failed for ${product.id}:`, upErr.message); errors++; }
+        }
+        continue;
+      }
+    }
+
+    // Need fresh API call — check rate limit
     const { data: rlData } = await serviceClient.rpc('tradera_increment_usage', { daily_limit: 75 });
     if (rlData && !rlData.allowed) {
       rate_limited = (products || []).length - processed + 1;
@@ -141,76 +184,97 @@ serve(async (req) => {
 
       if (!response.ok) {
         console.error(`[backfill] API error for ${product.tradera_item_id}: ${response.status}`);
+        errors++;
         continue;
       }
 
-      const xml = await response.text();
+      xml = await response.text();
 
-      // Extract condition and material from XML
-      const extractText = (tag: string): string | undefined => {
-        const match = xml.match(new RegExp(`<${tag}[^>]*>(.*?)<\/${tag}>`, 's'));
-        return match ? match[1].trim() : undefined;
-      };
+      // If forceFresh, update cache with new version
+      if (forceFresh) {
+        const cacheKey = `item:${product.tradera_item_id}`;
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + 24);
+        // We store the raw result after parsing below — but first parse attributes from xml
+      }
+    } catch (err) {
+      console.error(`[backfill] Exception fetching ${product.tradera_item_id}:`, err);
+      errors++;
+      continue;
+    }
 
-      // Extract attributes from TermAttributeValues (actual Tradera format)
-      const attributes: Record<string, string> = {};
-      const termAttrSection = xml.match(/<TermAttributeValues>([\s\S]*?)<\/TermAttributeValues>/);
-      if (termAttrSection) {
-        const termAttrMatches = termAttrSection[1].match(/<TermAttributeValue>([\s\S]*?)<\/TermAttributeValue>/g);
-        if (termAttrMatches) {
-          for (const tav of termAttrMatches) {
-            const attrId = (() => { const m = tav.match(/<Id[^>]*>(.*?)<\/Id>/s); return m ? m[1].trim() : null; })();
-            const valuesSection = tav.match(/<Values>([\s\S]*?)<\/Values>/);
-            const valueStrings = valuesSection
-              ? (valuesSection[1].match(/<string>([^<]*)<\/string>/g) || []).map(s => s.replace(/<\/?string>/g, '').trim())
-              : [];
-            if (attrId && valueStrings.length > 0) {
-              attributes[`term_${attrId}`] = valueStrings.join(', ');
-            }
+    if (!xml) continue;
+
+    // Parse condition and material from XML
+    const extractText = (tag: string): string | undefined => {
+      const match = xml!.match(new RegExp(`<${tag}[^>]*>(.*?)<\/${tag}>`, 's'));
+      return match ? match[1].trim() : undefined;
+    };
+
+    const attributes: Record<string, string> = {};
+    const termAttrSection = xml.match(/<TermAttributeValues>([\s\S]*?)<\/TermAttributeValues>/);
+    if (termAttrSection) {
+      const termAttrMatches = termAttrSection[1].match(/<TermAttributeValue>([\s\S]*?)<\/TermAttributeValue>/g);
+      if (termAttrMatches) {
+        for (const tav of termAttrMatches) {
+          const attrId = (() => { const m = tav.match(/<Id[^>]*>(.*?)<\/Id>/s); return m ? m[1].trim() : null; })();
+          const valuesSection = tav.match(/<Values>([\s\S]*?)<\/Values>/);
+          const valueStrings = valuesSection
+            ? (valuesSection[1].match(/<string>([^<]*)<\/string>/g) || []).map(s => s.replace(/<\/?string>/g, '').trim())
+            : [];
+          if (attrId && valueStrings.length > 0) {
+            attributes[`term_${attrId}`] = valueStrings.join(', ');
           }
         }
       }
+    }
 
-      // Legacy: <Attribute> elements
-      const attrMatches = xml.match(/<Attribute>([\s\S]*?)<\/Attribute>/g);
-      if (attrMatches) {
-        for (const attrXml of attrMatches) {
-          const name = (() => { const m = attrXml.match(/<Name[^>]*>(.*?)<\/Name>/s); return m ? m[1].trim() : null; })();
-          const value = (() => { const m = attrXml.match(/<Value[^>]*>(.*?)<\/Value>/s); return m ? m[1].trim() : null; })();
-          if (name && value) attributes[name.toLowerCase()] = value;
-        }
+    // Legacy fallback
+    const attrMatches = xml.match(/<Attribute>([\s\S]*?)<\/Attribute>/g);
+    if (attrMatches) {
+      for (const attrXml of attrMatches) {
+        const name = (() => { const m = attrXml.match(/<Name[^>]*>(.*?)<\/Name>/s); return m ? m[1].trim() : null; })();
+        const value = (() => { const m = attrXml.match(/<Value[^>]*>(.*?)<\/Value>/s); return m ? m[1].trim() : null; })();
+        if (name && value) attributes[name.toLowerCase()] = value;
       }
+    }
 
-      // term_121 = Skick (condition), term_105 = Material
-      const conditionRaw = extractText('ItemCondition') || attributes['term_121'] || attributes['skick'] || attributes['condition'] || null;
-      const materialRaw = attributes['term_105'] || attributes['material'] || attributes['materiel'] || null;
+    const conditionRaw = extractText('ItemCondition') || attributes['term_121'] || attributes['skick'] || attributes['condition'] || null;
+    const materialRaw = attributes['term_105'] || attributes['material'] || attributes['materiel'] || null;
 
-      const patch: Record<string, unknown> = {};
+    const patch: Record<string, unknown> = {};
 
-      if (needsCondition && conditionRaw) {
-        patch.condition = mapConditionToText(conditionRaw);
-        updated_condition++;
-      }
-      if (needsMaterial && materialRaw) {
-        patch.material = materialRaw;
-        updated_material++;
-      }
+    if (needsCondition && conditionRaw) {
+      patch.condition = mapConditionToText(conditionRaw);
+      updated_condition++;
+    }
+    if (needsMaterial && materialRaw) {
+      patch.material = materialRaw;
+      updated_material++;
+    }
 
-      if (Object.keys(patch).length > 0) {
-        const { error: upErr } = await serviceClient
-          .from('products')
-          .update(patch)
-          .eq('id', product.id);
-        if (upErr) {
-          console.error(`[backfill] Update failed for ${product.id}:`, upErr.message);
-        }
-      }
-    } catch (err) {
-      console.error(`[backfill] Exception for ${product.tradera_item_id}:`, err);
+    if (Object.keys(patch).length > 0) {
+      const { error: upErr } = await serviceClient.from('products').update(patch).eq('id', product.id);
+      if (upErr) { console.error(`[backfill] Update failed for ${product.id}:`, upErr.message); errors++; }
+    }
+
+    // Update cache with v2 after fresh fetch
+    if (forceFresh) {
+      const cacheKey = `item:${product.tradera_item_id}`;
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24);
+      await serviceClient.from('tradera_cache').upsert({
+        cache_key: cacheKey,
+        cache_type: 'item',
+        cache_version: TRADERA_CACHE_VERSION,
+        raw_payload: { item: { condition: conditionRaw, material: materialRaw, attributes } },
+        fetched_at: new Date().toISOString(),
+        expires_at: expiresAt.toISOString(),
+      }, { onConflict: 'cache_key' });
     }
   }
 
-  console.info(`[tradera-backfill] processed=${processed} condition=${updated_condition} material=${updated_material} skipped=${skipped_already_set} rate_limited=${rate_limited}`);
+  console.info(`[tradera-backfill] forceFresh=${forceFresh} processed=${processed} condition=${updated_condition} material=${updated_material} skipped=${skipped_already_set} rate_limited=${rate_limited} errors=${errors}`);
 
   return new Response(JSON.stringify({
     processed,
@@ -218,6 +282,7 @@ serve(async (req) => {
     updated_material,
     skipped_already_set,
     rate_limited,
+    errors,
   }), {
     status: 200,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },

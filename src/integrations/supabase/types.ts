@@ -556,6 +556,7 @@ export type Database = {
         Row: {
           cache_key: string
           cache_type: string
+          cache_version: number
           created_at: string
           expires_at: string
           fetched_at: string
@@ -565,6 +566,7 @@ export type Database = {
         Insert: {
           cache_key: string
           cache_type: string
+          cache_version?: number
           created_at?: string
           expires_at?: string
           fetched_at?: string
@@ -574,6 +576,7 @@ export type Database = {
         Update: {
           cache_key?: string
           cache_type?: string
+          cache_version?: number
           created_at?: string
           expires_at?: string
           fetched_at?: string
