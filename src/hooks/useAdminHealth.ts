@@ -10,6 +10,9 @@ export interface CronStatus {
   sold_marked: number;
   error_message?: string | null;
   lastSuccess?: string | null;
+  batch_size?: number | null;
+  cursor_before?: number | null;
+  cursor_after?: number | null;
 }
 
 export interface TranslationBudget {

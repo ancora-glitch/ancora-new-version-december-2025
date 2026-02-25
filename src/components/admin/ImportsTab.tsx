@@ -20,7 +20,7 @@ function cronStatusLabel(run: CronStatus): { label: string; color: string; icon:
   if (!run.lastRun) return { label: 'Never', color: 'text-amber-500', icon: 'warn' };
   if (run.status === 'error') return { label: 'Action needed', color: 'text-destructive', icon: 'error' };
   const minutesAgo = (Date.now() - new Date(run.lastRun).getTime()) / 60000;
-  if (minutesAgo > 45) return { label: 'Stale', color: 'text-amber-500', icon: 'warn' };
+  if (minutesAgo > 150) return { label: 'Stale', color: 'text-amber-500', icon: 'warn' };
   return { label: 'Healthy', color: 'text-green-600', icon: 'ok' };
 }
 
@@ -220,6 +220,7 @@ export function ImportsTab() {
           <TooltipProvider>
             <div className="flex items-center gap-3 p-2.5 rounded-sm border border-border bg-muted/20 text-xs mt-2 flex-wrap">
               <span className="text-muted-foreground font-medium">Cron status:</span>
+              <Badge variant="secondary" className="text-[10px] h-5 px-1.5">Batching ON (25/run · 2h)</Badge>
               {hasAnyError && (
                 <Badge variant="destructive" className="text-[10px] h-5 px-1.5">Action needed</Badge>
               )}
@@ -248,7 +249,12 @@ export function ImportsTab() {
                   tooltipLines.push(`Last run: ${lastRun.toLocaleString("sv-SE")} (${minutesAgo}min ago)`);
                 }
                 tooltipLines.push(`Duration: ${run.duration_ms ?? 0}ms`);
-                tooltipLines.push(`Items: ${run.items_processed ?? 0}`);
+                if (run.batch_size) {
+                  tooltipLines.push(`Batch: ${run.checked_count ?? 0}/${run.items_processed ?? 0} (max ${run.batch_size})`);
+                  tooltipLines.push(`Cursor: ${run.cursor_before ?? '?'} → ${run.cursor_after ?? '?'}`);
+                } else {
+                  tooltipLines.push(`Items: ${run.items_processed ?? 0}`);
+                }
                 if ((run.sold_marked ?? 0) > 0) tooltipLines.push(`Sold/completed: ${run.sold_marked}`);
                 if (run.error_message) tooltipLines.push(`Error: ${run.error_message}`);
                 if (run.lastSuccess) {
