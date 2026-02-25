@@ -41,6 +41,7 @@ export function ImportsTab() {
   const { data: health, isLoading: healthLoading, error: healthError, check: runHealthCheck } = useAdminHealth();
   const [isBackfilling, setIsBackfilling] = useState(false);
   const [isBackfillingFields, setIsBackfillingFields] = useState(false);
+  const [isBackfillingCondMat, setIsBackfillingCondMat] = useState(false);
 
   useEffect(() => { runHealthCheck(); }, [runHealthCheck]);
 
@@ -81,6 +82,27 @@ export function ImportsTab() {
       toast.error('Backfill error: ' + e.message);
     } finally {
       setIsBackfillingFields(false);
+    }
+  };
+
+  const handleBackfillConditionMaterial = async () => {
+    setIsBackfillingCondMat(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('tradera-backfill-condition-material');
+      if (error) {
+        toast.error('Condition/material backfill failed: ' + error.message);
+      } else {
+        const parts = [`Processed ${data.processed}`];
+        if (data.updated_condition > 0) parts.push(`${data.updated_condition} condition`);
+        if (data.updated_material > 0) parts.push(`${data.updated_material} material`);
+        if (data.skipped_already_set > 0) parts.push(`${data.skipped_already_set} already set`);
+        if (data.rate_limited > 0) parts.push(`${data.rate_limited} rate-limited`);
+        toast.success('Backfill: ' + parts.join(', '));
+      }
+    } catch (e: any) {
+      toast.error('Backfill error: ' + e.message);
+    } finally {
+      setIsBackfillingCondMat(false);
     }
   };
 
@@ -153,6 +175,18 @@ export function ImportsTab() {
                 <Wand2 className="w-4 h-4 mr-2" />
               )}
               Backfill fields (200)
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleBackfillConditionMaterial}
+              disabled={isBackfillingCondMat}
+            >
+              {isBackfillingCondMat ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Wand2 className="w-4 h-4 mr-2" />
+              )}
+              Backfill condition/material (200)
             </Button>
             <Button onClick={() => setShowNewDialog(true)}>
               <Plus className="w-4 h-4 mr-2" />

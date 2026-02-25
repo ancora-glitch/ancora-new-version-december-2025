@@ -364,7 +364,9 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
           }
 
           if (!itemDetails) {
-            console.warn(`[AIS Import] Could not fetch details for item ${itemId}, skipping (not falling back to thumbnails)`);
+            // GUARDRAIL: Never create a draft Product from search-only payload (missing condition/material).
+            console.warn(`[AIS Import] Could not fetch details for item ${itemId} — aborting import (no partial drafts)`);
+            toast.error(`Item ${itemId}: could not fetch full details — skipped`);
             failed++;
             continue;
           } else {
@@ -486,6 +488,20 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
             // ── PRIORITY: API values > parser fallback ──
             const apiConditionText = mapConditionToText(itemDetails.condition);
             const apiMaterial = itemDetails.material || null;
+
+            // ── DEBUG: end-to-end field mapping trace ──
+            console.info("[TraderaImportMapping]", {
+              itemId,
+              apiConditionRaw: itemDetails.condition,
+              apiConditionText,
+              parsedCondition: parsed?.condition_text,
+              finalCondition: apiConditionText || parsed?.condition_text || null,
+              apiMaterial,
+              parsedMaterial: parsed?.material_text,
+              finalMaterial: apiMaterial || parsed?.material_text || null,
+              rateLimited: false,
+              usedFallbackThumbnails: false,
+            });
 
             await importMutation.mutateAsync({
               marketplace: "tradera",
