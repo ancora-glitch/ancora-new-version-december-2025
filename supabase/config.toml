@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.register-story-view]
 verify_jwt = false
+
+[functions.tradera-backfill-condition-material]
+verify_jwt = false
