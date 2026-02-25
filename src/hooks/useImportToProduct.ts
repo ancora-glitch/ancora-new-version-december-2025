@@ -20,10 +20,14 @@ export interface ImportToProductInput {
 
   // Structured fields
   brand: string;
+  brand_original?: string | null;
   size: string | null;
   color: string | null;
+  color_original?: string | null;
   material: string | null;
+  material_original?: string | null;
   condition: string | null;
+  condition_original?: string | null;
 
   // Price
   price: number | null;
@@ -67,6 +71,7 @@ export function useImportToProduct() {
 
       const productData = {
         brand: input.brand || "Unknown",
+        brand_original: input.brand_original || null,
         name: displayName,
         name_original: input.title_original || input.title,
         name_en: input.title_en || null,
@@ -79,8 +84,11 @@ export function useImportToProduct() {
         language: input.language || "sv",
         translated_at: input.translated_at || null,
         condition: input.condition || null,
+        condition_original: input.condition_original || null,
         material: input.material || null,
+        material_original: input.material_original || null,
         color: input.color || null,
+        color_original: input.color_original || null,
         size: input.size || null,
         status: "draft" as const,
         slug,
