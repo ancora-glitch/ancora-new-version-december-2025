@@ -39,6 +39,27 @@ interface EbayItem {
   keywords: string[];
 }
 
+interface EbayItemDetail {
+  itemId: string;
+  title: string;
+  description: string | null;
+  shortDescription: string | null;
+  price: number | null;
+  currency: string;
+  condition: string | null;
+  conditionText: string | null;
+  brand: string | null;
+  color: string | null;
+  size: string | null;
+  material: string | null;
+  seller: string | null;
+  itemUrl: string | null;
+  affiliateUrl: string | null;
+  images: string[];
+  categoryPath: string | null;
+  itemLocation: string | null;
+}
+
 interface EbaySearchDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -138,6 +159,48 @@ export function EbaySearchDrawer({ open, onOpenChange, onImported }: EbaySearchD
     setSelectedItems(newSelected);
   };
 
+  /**
+   * Fetch full item details from eBay Browse API getItem endpoint.
+   */
+  const fetchEbayItemDetails = async (itemId: string): Promise<EbayItemDetail | null> => {
+    try {
+      const { data, error } = await supabase.functions.invoke("ebay-item", {
+        body: { itemId },
+      });
+      if (error) {
+        console.error("ebay-item fetch error:", error);
+        return null;
+      }
+      return data?.item || null;
+    } catch (err) {
+      console.error("ebay-item exception:", err);
+      return null;
+    }
+  };
+
+  /**
+   * Build a fallback description from structured attributes when API returns none.
+   */
+  const buildFallbackDescription = (
+    item: EbayItem,
+    detail: EbayItemDetail | null,
+    parsed: ReturnType<typeof parseListingFields>
+  ): string => {
+    const parts: string[] = [];
+    const brand = detail?.brand || parsed.brand_text || "Unknown";
+    if (brand && brand !== "Unknown") parts.push(brand);
+    if (detail?.size || parsed.size_text) parts.push(`Size: ${detail?.size || parsed.size_text}`);
+    if (detail?.color || parsed.color_text) parts.push(`Color: ${detail?.color || parsed.color_text}`);
+    if (detail?.material || parsed.material_text) parts.push(`Material: ${detail?.material || parsed.material_text}`);
+    const cond = detail?.conditionText || item.conditionText || item.condition;
+    if (cond && cond !== "unknown") parts.push(`Condition: ${cond}`);
+    if (detail?.categoryPath) parts.push(`Category: ${detail.categoryPath}`);
+    if (detail?.itemLocation) parts.push(`Location: ${detail.itemLocation}`);
+    parts.push(`Buy it now on eBay`);
+    if (item.itemUrl) parts.push(item.itemUrl);
+    return parts.join(". ") + ".";
+  };
+
   const handleImport = async () => {
     if (selectedItems.size === 0) {
       toast.error("Please select items to import");
@@ -159,44 +222,66 @@ export function EbaySearchDrawer({ open, onOpenChange, onImported }: EbaySearchD
           continue;
         }
 
-        // Create Product draft directly (+ AIS log in background)
+        // Fetch full item details for description enrichment
+        const detail = await fetchEbayItemDetails(item.itemId);
+
+        const images = detail?.images?.length ? detail.images : item.images;
+
+        // ── PRIORITY INVARIANT ──
+        const parsed = parseListingFields({
+          title: detail?.title || item.title,
+          description: detail?.description || "",
+          apiBrand: detail?.brand || undefined,
+          apiSize: detail?.size || undefined,
+          apiColor: detail?.color || undefined,
+          apiMaterial: detail?.material || undefined,
+          conditionEnum: item.condition,
+          images,
+        });
+
+        // Description priority: full API desc > shortDescription > fallback from attributes
+        let description = detail?.description || detail?.shortDescription || null;
+        let usedFallback = false;
+        if (!description) {
+          description = buildFallbackDescription(item, detail, parsed);
+          usedFallback = true;
+        }
+
         const signals = {
           keywords: item.keywords,
           colors: [],
           era: null,
-          material: null,
+          material: detail?.material || null,
           vibe: null,
         };
 
-        // ── PRIORITY INVARIANT ──
-        const parsed = parseListingFields({
-          title: item.title,
-          description: "",
-          conditionEnum: item.condition,
-          images: item.images,
-        });
-
-        await importMutation.mutateAsync({
+        const importInput: any = {
           marketplace: "ebay",
           source_ref: item.itemId,
-          source_url: item.itemUrl,
-          affiliate_url: item.affiliateUrl,
-          title: item.title,
-          description: null,
-          brand: parsed.brand_text || "Unknown",
+          source_url: detail?.itemUrl || item.itemUrl,
+          affiliate_url: detail?.affiliateUrl || item.affiliateUrl,
+          title: detail?.title || item.title,
+          title_en: detail?.title || item.title,
+          description,
+          description_en: description,
+          language: "en",
+          brand: parsed.brand_text || detail?.brand || "Unknown",
           size: parsed.size_text || null,
           color: parsed.color_text || null,
           material: parsed.material_text || null,
           condition: parsed.condition_text || item.conditionText || item.condition,
-          price: item.price,
-          currency: item.currency,
+          price: detail?.price ?? item.price,
+          currency: detail?.currency || item.currency,
           primary_image: parsed.primary_image || null,
-          images: item.images,
+          images,
           category_id: null,
-          provenance: item.seller,
+          provenance: detail?.seller || item.seller,
           condition_enum: item.condition,
           signals,
-        });
+          _usedFallbackDescription: usedFallback,
+        };
+
+        await importMutation.mutateAsync(importInput);
 
         imported++;
       }

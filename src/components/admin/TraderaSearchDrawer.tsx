@@ -89,6 +89,17 @@ function extractKeywords(title: string): string[] {
     .slice(0, 10);
 }
 
+// Simple heuristic: is text likely already English?
+function isLikelyEnglish(text: string): boolean {
+  if (!text) return false;
+  const hasSwedishChars = /[åäöÅÄÖ]/.test(text);
+  if (hasSwedishChars) return false;
+  const swedishStopwords = ["och", "för", "med", "som", "det", "den", "ett", "att", "har", "kan", "inte", "från", "ska", "till"];
+  const lowerText = text.toLowerCase();
+  const matches = swedishStopwords.filter(w => new RegExp(`\\b${w}\\b`).test(lowerText));
+  return matches.length < 2;
+}
+
 export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaSearchDrawerProps) {
   const importMutation = useImportToProduct();
   const { data: usage, refetch: refetchUsage } = useTraderaUsage();
@@ -410,14 +421,62 @@ export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaS
               images,
             });
 
+            // ── TRANSLATION ──
+            // Call translate-swedish unless text is likely already English
+            const originalTitle = itemDetails.shortDescription;
+            const originalDesc = itemDetails.longDescription || "";
+            let titleEn: string | null = null;
+            let descriptionEn: string | null = null;
+            let translatedAt: string | null = null;
+            let language = "sv";
+
+            const textToCheck = `${originalTitle} ${originalDesc}`;
+            if (isLikelyEnglish(textToCheck)) {
+              // Already English — skip translation
+              titleEn = originalTitle;
+              descriptionEn = originalDesc || null;
+              language = "en";
+              translatedAt = new Date().toISOString();
+              console.info(`[Tradera Import] Skipping translation (already English): ${sourceRef}`);
+            } else {
+              try {
+                const { data: txData, error: txError } = await supabase.functions.invoke("translate-swedish", {
+                  body: {
+                    name: originalTitle,
+                    description: originalDesc,
+                    condition: parsed.condition_text || "",
+                    material: parsed.material_text || "",
+                    size: parsed.size_text || "",
+                    brand: parsed.brand_text || "",
+                  },
+                });
+                if (!txError && txData && txData.name) {
+                  titleEn = txData.name;
+                  descriptionEn = txData.description || null;
+                  translatedAt = new Date().toISOString();
+                  console.info(`[Tradera Import] Translated: ${sourceRef}`);
+                } else {
+                  console.warn(`[Tradera Import] Translation failed (non-blocking): ${sourceRef}`, txError);
+                }
+              } catch (txErr) {
+                console.warn(`[Tradera Import] Translation exception (non-blocking): ${sourceRef}`, txErr);
+              }
+            }
+
             // Create Product draft directly (+ AIS log in background)
             await importMutation.mutateAsync({
               marketplace: "tradera",
               source_ref: sourceRef,
               source_url: itemDetails.itemLink,
               affiliate_url: itemDetails.itemLink,
-              title: itemDetails.shortDescription,
-              description: itemDetails.longDescription || null,
+              title: originalTitle,
+              title_original: originalTitle,
+              title_en: titleEn,
+              description: originalDesc || null,
+              description_original: originalDesc || null,
+              description_en: descriptionEn,
+              language,
+              translated_at: translatedAt,
               brand: parsed.brand_text || "Unknown",
               size: parsed.size_text || null,
               color: parsed.color_text || null,

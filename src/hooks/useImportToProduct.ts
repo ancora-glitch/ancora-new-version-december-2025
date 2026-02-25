@@ -101,6 +101,15 @@ export function useImportToProduct() {
 
       if (productError) throw productError;
 
+      // Developer-facing import log
+      console.info("[ImportToProduct]", {
+        marketplace: input.marketplace,
+        source_ref: input.source_ref,
+        has_description: !!(input.description_en || input.description),
+        translated: !!input.translated_at,
+        used_fallback_description: !!(input as any)._usedFallbackDescription,
+      });
+
       // AIS invisible log — non-blocking
       try {
         const aisPayload: Record<string, unknown> = {
