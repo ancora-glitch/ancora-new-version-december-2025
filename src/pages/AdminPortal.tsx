@@ -53,10 +53,14 @@ interface Product {
   id: string;
   brand: string;
   name: string;
+  name_en?: string | null;
+  name_original?: string | null;
   price: string;
   image: string;
   additional_images?: string[];
   description?: string | null;
+  description_en?: string | null;
+  description_original?: string | null;
   affiliate_url?: string | null;
   marketplace?: string | null;
   condition?: string | null;
@@ -447,13 +451,15 @@ const AdminPortal = () => {
   const handleEditProduct = (product: Product) => {
     setEditingProductId(product.id);
     setProductBrand(product.brand);
-    setProductName(product.name);
+    // Prefer name_en for editing; fall back to name
+    setProductName(product.name_en || product.name);
     setProductPrice(product.price);
     setProductSize(product.size || "");
    setProductColor((product as any).color || "");
     const allImages = [product.image, ...(product.additional_images || [])];
     setProductImages(allImages);
-    setProductDescription(product.description || "");
+    // Prefer description_en for editing; fall back to description
+    setProductDescription(product.description_en || product.description || "");
     setProductAffiliateUrl(product.affiliate_url || "");
     setProductMarketplace(product.marketplace || "");
     setProductCondition(product.condition || "");
@@ -596,15 +602,20 @@ const AdminPortal = () => {
     const mainImage = productImages[0];
     const additionalImages = productImages.slice(1);
     
+    const trimmedName = productName.trim();
+    const trimmedDesc = productDescription.trim() || null;
+
     const productData = {
       brand: productBrand.trim(),
-      name: productName.trim(),
+      name: trimmedName,
+      name_en: trimmedName,           // mirror edits to name_en (primary display field)
+      description: trimmedDesc,
+      description_en: trimmedDesc,     // mirror edits to description_en (primary display field)
       price: productPrice.trim(),
       size: productSize.trim() || null,
      color: productColor.trim() || null,
       image: mainImage,
       additional_images: additionalImages,
-      description: productDescription.trim() || null,
       affiliate_url: productAffiliateUrl.trim() || null,
       marketplace: productMarketplace.trim() || null,
       condition: productCondition.trim() || null,
