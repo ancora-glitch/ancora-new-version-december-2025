@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { X, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { trackBuyNowClickBeacon } from "@/hooks/useAnalytics";
+import { toEbayAffiliateUrl } from "@/lib/ebayAffiliate";
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -45,7 +46,9 @@ export const ProductModal = ({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const analyticsTrackedRef = useRef(false);
 
-  const redirectUrl = cleanUrl(affiliateUrl);
+  const redirectUrl = marketplace?.toLowerCase() === "ebay"
+    ? (toEbayAffiliateUrl(affiliateUrl) || cleanUrl(affiliateUrl))
+    : cleanUrl(affiliateUrl);
   const partnerName = marketplace || "Instagram";
 
   // Track Buy Now click for analytics (called on link click)

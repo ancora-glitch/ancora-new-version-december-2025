@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { Loader2, Search, Package, AlertCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { parseListingFields } from "@/lib/listingParser";
+import { buildEbayAffiliateUrl } from "@/lib/ebayAffiliate";
 
 interface EbayItem {
   itemId: string;
@@ -259,7 +260,7 @@ export function EbaySearchDrawer({ open, onOpenChange, onImported }: EbaySearchD
           marketplace: "ebay",
           source_ref: item.itemId,
           source_url: detail?.itemUrl || item.itemUrl,
-          affiliate_url: detail?.affiliateUrl || item.affiliateUrl,
+          affiliate_url: buildEbayAffiliateUrl(item.itemId),
           title: detail?.title || item.title,
           title_en: detail?.title || item.title,
           description,

@@ -10,6 +10,7 @@ import { deduplicateImages } from "@/lib/imageUtils";
 import { trackBuyNowClickBeacon } from "@/hooks/useAnalytics";
 import { markProductViewed } from "@/lib/sessionAnalytics";
 import { useState } from "react";
+import { toEbayAffiliateUrl } from "@/lib/ebayAffiliate";
 
 // Track product page view (excludes admins) and marks product as viewed in session
 const trackProductPageView = async (productId: string, productName: string, brand: string) => {
@@ -448,7 +449,11 @@ const ProductDetail = () => {
                   </div>
                 ) : (
                   <a
-                    href={cleanUrl(product.affiliate_url)}
+                    href={
+                      product.marketplace?.toLowerCase() === "ebay"
+                        ? (toEbayAffiliateUrl(product.affiliate_url) || cleanUrl(product.affiliate_url))
+                        : cleanUrl(product.affiliate_url)
+                    }
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={handleBuyNowClick}
