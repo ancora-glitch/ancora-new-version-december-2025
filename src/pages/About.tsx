@@ -1,9 +1,18 @@
 import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import { Instagram } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { PullQuote } from "@/components/PullQuote";
 import teamAncoraImage from "@/assets/team-ancora.png";
+
+const SubstackIcon = ({ className, strokeWidth = 1.5 }: { className?: string; strokeWidth?: number }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M4 4h16" />
+    <path d="M4 8h16" />
+    <path d="M4 12l8 6 8-6" />
+  </svg>
+);
 const About = () => {
   const sectionsRef = useRef<(HTMLElement | null)[]>([]);
   useEffect(() => {
@@ -93,8 +102,43 @@ const About = () => {
           </div>
         </section>
 
+        {/* Follow Ancora */}
+        <section ref={el => sectionsRef.current[7] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-8 py-[4px]">
+          <div className="max-w-[700px] mx-auto article-body">
+            <h2 className="article-subheader">Follow Ancora</h2>
+            <div className="flex flex-col gap-4 pt-2">
+              <a
+                href="https://www.instagram.com/ancora_edit/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-3 text-foreground hover:text-primary transition-colors duration-200 group"
+              >
+                <span className="p-2.5 rounded-full border border-border group-hover:border-primary transition-colors duration-200">
+                  <Instagram className="w-5 h-5" strokeWidth={1.5} />
+                </span>
+                <span className="text-base underline underline-offset-4 decoration-border group-hover:decoration-primary transition-colors duration-200">
+                  Instagram
+                </span>
+              </a>
+              <a
+                href="https://substack.com/@theancoraedit"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-3 text-foreground hover:text-primary transition-colors duration-200 group"
+              >
+                <span className="p-2.5 rounded-full border border-border group-hover:border-primary transition-colors duration-200">
+                  <SubstackIcon className="w-5 h-5" strokeWidth={1.5} />
+                </span>
+                <span className="text-base underline underline-offset-4 decoration-border group-hover:decoration-primary transition-colors duration-200">
+                  Substack
+                </span>
+              </a>
+            </div>
+          </div>
+        </section>
+
         {/* Partner link */}
-        <section ref={el => sectionsRef.current[7] = el} className="fade-section px-6 md:px-12 lg:px-24 pb-24 pt-0">
+        <section ref={el => sectionsRef.current[8] = el} className="fade-section px-6 md:px-12 lg:px-24 pb-24 pt-0">
           <div className="max-w-[700px] mx-auto">
             <p className="text-sm text-muted-foreground">
               Interested in partnering with us?{" "}
