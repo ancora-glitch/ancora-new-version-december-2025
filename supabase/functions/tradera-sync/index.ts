@@ -137,7 +137,7 @@ async function fetchTraderaItem(itemId: string, appId: string, appKey: string): 
     if (response.status === 429) return { price: 0, hasEnded: false, rateLimited: true };
     if (!response.ok) return null;
     const xml = await response.text();
-    const hasEnded = checkIfEnded(xml);
+    const hasEnded = checkIfEnded(xml, itemId);
     const price = extractNumber(xml, 'MaxBid') || extractNumber(xml, 'NextBid') ||
                   extractNumber(xml, 'BuyItNowPrice') || extractNumber(xml, 'Price') || 0;
     return { price, hasEnded };
@@ -146,17 +146,52 @@ async function fetchTraderaItem(itemId: string, appId: string, appKey: string): 
   }
 }
 
-function checkIfEnded(xml: string): boolean {
+interface AvailabilitySignals {
+  itemStatus: string | null;
+  endDate: Date | null;
+  quantity: number | null;
+  buyNowAvailable: boolean | null;
+}
+
+function extractAvailabilitySignals(xml: string): AvailabilitySignals {
   const statusMatch = xml.match(/<ItemStatus>(.*?)<\/ItemStatus>/i);
-  if (statusMatch) {
-    const status = statusMatch[1].toLowerCase();
-    if (status === 'ended' || status === 'sold' || status === 'closed') return true;
-  }
   const endDateMatch = xml.match(/<EndDate>(.*?)<\/EndDate>/i);
+  const quantityMatch = xml.match(/<Quantity>(.*?)<\/Quantity>/i);
+  const buyNowMatch = xml.match(/<BuyNowAvailable>(.*?)<\/BuyNowAvailable>/i);
+
+  let endDate: Date | null = null;
   if (endDateMatch) {
-    try { if (new Date(endDateMatch[1]) < new Date()) return true; } catch { /* ignore */ }
+    try { endDate = new Date(endDateMatch[1]); if (isNaN(endDate.getTime())) endDate = null; } catch { endDate = null; }
   }
-  return false;
+
+  return {
+    itemStatus: statusMatch?.[1] ?? null,
+    endDate,
+    quantity: quantityMatch ? parseInt(quantityMatch[1], 10) : null,
+    buyNowAvailable: buyNowMatch ? buyNowMatch[1].toLowerCase() === 'true' : null,
+  };
+}
+
+function checkIfEnded(xml: string, itemId?: string): boolean {
+  const signals = extractAvailabilitySignals(xml);
+  const now = new Date();
+
+  const statusEnded = signals.itemStatus !== null &&
+    ['ended', 'closed', 'sold'].includes(signals.itemStatus.toLowerCase());
+
+  const pastEndDate = signals.endDate !== null && signals.endDate < now;
+
+  const zeroQuantity = signals.quantity !== null && signals.quantity === 0;
+
+  const buyNowGone = signals.buyNowAvailable === false && pastEndDate;
+
+  const markedSold = statusEnded || pastEndDate || zeroQuantity || buyNowGone;
+
+  console.log(
+    `[TraderaAvailability] source_ref=${itemId ?? 'unknown'} status=${signals.itemStatus} endDate=${signals.endDate?.toISOString() ?? 'null'} quantity=${signals.quantity} buyNowAvailable=${signals.buyNowAvailable} -> marked_sold=${markedSold}`
+  );
+
+  return markedSold;
 }
 
 function extractNumber(xml: string, tag: string): number | undefined {
