@@ -11,7 +11,7 @@ import { Plus, Search, AlertTriangle, Zap, RotateCcw, RefreshCw, CheckCircle2, X
 import { useTraderaUsage } from "@/hooks/useTraderaUsage";
 import { usePendingRetryCount } from "@/hooks/useRetryJobs";
 import { Progress } from "@/components/ui/progress";
-import { useAdminHealth, CronStatus } from "@/hooks/useAdminHealth";
+import { useAdminHealth, CronStatus, TraderaSyncCoverage } from "@/hooks/useAdminHealth";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -42,6 +42,7 @@ export function ImportsTab() {
   const [isBackfilling, setIsBackfilling] = useState(false);
   const [isBackfillingFields, setIsBackfillingFields] = useState(false);
   const [isBackfillingCondMat, setIsBackfillingCondMat] = useState(false);
+  const [isSyncingTradera, setIsSyncingTradera] = useState(false);
 
   useEffect(() => { runHealthCheck(); }, [runHealthCheck]);
 
@@ -333,6 +334,96 @@ export function ImportsTab() {
             </div>
           </TooltipProvider>
         )}
+
+        {/* Tradera Sync Coverage */}
+        {health?.tradera_sync_coverage && (() => {
+          const cov = health.tradera_sync_coverage;
+          const syncRun = health.cron?.tradera_sync;
+          const lastRunDate = cov.last_finished_at ? new Date(cov.last_finished_at) : null;
+          const minutesSinceRun = lastRunDate ? (Date.now() - lastRunDate.getTime()) / 60000 : Infinity;
+          const isStale = minutesSinceRun > 180;
+          const isZeroCoverage = cov.last_checked_count === 0 && cov.active_tradera_count > 0;
+          const isError = syncRun?.status === 'error';
+          const hasWarning = isStale || isZeroCoverage || isError;
+
+          const handleRunSync = async () => {
+            setIsSyncingTradera(true);
+            try {
+              const { data, error } = await supabase.functions.invoke('tradera-sync');
+              if (error) {
+                toast.error('Sync failed: ' + error.message);
+              } else {
+                const s = data?.summary;
+                toast.success(
+                  `Sync complete: ${s?.checked ?? 0} checked, ${s?.ended ?? 0} ended, ${s?.updated ?? 0} updated, ${s?.errors ?? 0} errors`
+                );
+                runHealthCheck();
+              }
+            } catch (e: any) {
+              toast.error('Sync error: ' + e.message);
+            } finally {
+              setIsSyncingTradera(false);
+            }
+          };
+
+          return (
+            <div className={`flex items-center gap-3 p-2.5 rounded-sm border text-xs mt-2 flex-wrap ${
+              hasWarning ? 'border-amber-400 bg-amber-50/50' : 'border-border bg-muted/20'
+            }`}>
+              <span className="text-muted-foreground font-medium">Tradera sync:</span>
+              <span className="tabular-nums">
+                {cov.active_tradera_count} active products
+              </span>
+              {cov.coverage_estimate_hours !== null && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="tabular-nums cursor-default">
+                      Full cycle: ~{cov.coverage_estimate_hours}h
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>{Math.ceil(cov.active_tradera_count / cov.batch_size)} batches × 2h schedule</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {lastRunDate && (
+                <span className={`tabular-nums ${isStale ? 'text-amber-600 font-medium' : ''}`}>
+                  Last: {Math.round(minutesSinceRun)}min ago
+                  {isStale && ' ⚠ stale'}
+                </span>
+              )}
+              {isZeroCoverage && (
+                <span className="text-destructive font-medium">
+                  ⚠ Zero coverage
+                </span>
+              )}
+              {isError && syncRun?.error_message && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-destructive font-medium cursor-default">⚠ Error</span>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p>{syncRun.error_message}</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-6 px-2 ml-auto text-xs"
+                onClick={handleRunSync}
+                disabled={isSyncingTradera}
+              >
+                {isSyncingTradera ? (
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3 h-3 mr-1" />
+                )}
+                Run sync now (25)
+              </Button>
+            </div>
+          );
+        })()}
 
         {/* Translation Status */}
         {health?.translation && (

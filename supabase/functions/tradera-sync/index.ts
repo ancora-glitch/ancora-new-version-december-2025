@@ -222,6 +222,15 @@ serve(async (req) => {
     const appKey = Deno.env.get('TRADERA_APP_KEY');
 
     if (!appId || !appKey) {
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      const finishedAt = new Date();
+      await logCronRun(supabase, {
+        job_name: 'tradera_sync', status: 'error',
+        started_at: startedAt.toISOString(), finished_at: finishedAt.toISOString(),
+        duration_ms: finishedAt.getTime() - _startTime,
+        items_processed: 0, checked_count: 0, sold_marked: 0, batch_size: MAX_CHECKS_PER_RUN,
+        error_message: 'Tradera API credentials not configured (TRADERA_APP_ID / TRADERA_APP_KEY)',
+      });
       return new Response(JSON.stringify({ error: 'Tradera API credentials not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
@@ -393,14 +402,19 @@ serve(async (req) => {
     const ended = results.filter(r => r.status === 'ended').length;
     const unchanged = results.filter(r => r.status === 'unchanged').length;
     const errors = results.filter(r => r.status === 'error').length;
+    const actuallyChecked = results.filter(r => r.status !== 'error').length;
+
+    // Zero-coverage guard: if we processed a batch but checked nothing successfully
+    const zeroCoverage = actuallyChecked === 0 && totalProducts > 0;
 
     const finishedAt = new Date();
     await logCronRun(supabase, {
-      job_name: 'tradera_sync', status: 'success',
+      job_name: 'tradera_sync', status: zeroCoverage ? 'error' : 'success',
       started_at: startedAt.toISOString(), finished_at: finishedAt.toISOString(),
       duration_ms: finishedAt.getTime() - _startTime,
       items_processed: totalProducts, checked_count: results.length, sold_marked: ended,
       batch_size: MAX_CHECKS_PER_RUN, cursor_before: cursorBefore, cursor_after: cursorAfter,
+      ...(zeroCoverage ? { error_message: `zero coverage: ${results.length} attempted, 0 successful (${errors} errors, ${totalProducts} total active)` } : {}),
     });
 
     return new Response(JSON.stringify({
