@@ -146,15 +146,13 @@ async function getAccessToken(clientId: string, clientSecret: string): Promise<{
 
 function extractEbayItemId(url: string | null): string | null {
   if (!url) return null;
-  // Handle pipe-delimited affiliate format: /itm/v1|NUMBER|0
-  const pipeMatch = url.match(/\/itm\/v1\|(\d{10,15})\|/i);
-  if (pipeMatch?.[1]) return pipeMatch[1];
-  // Standard format: /itm/slug/NUMBER or /itm/NUMBER
-  const itmMatch = url.match(/\/itm\/(?:[^/]+\/)?(\d{10,15})/i);
-  if (itmMatch?.[1]) return itmMatch[1];
-  // Query param format: ?itemId=NUMBER
-  const queryMatch = url.match(/[?&](?:item|itemId)=(\d{10,15})/i);
-  if (queryMatch?.[1]) return queryMatch[1];
+
+  const match = url.match(/\/itm\/[^0-9]*?(\d{10,15})/i);
+  if (match?.[1]) return match[1];
+
+  const fallback = url.match(/(\d{10,15})/);
+  if (fallback?.[1]) return fallback[1];
+
   return null;
 }
 
