@@ -8,6 +8,9 @@ const FORBIDDEN_PATTERNS = [
   { pattern: /\bwindow\./, label: "window.* (not available in edge runtime)" },
   { pattern: /\bdocument\./, label: "document.* (not available in edge runtime)" },
   { pattern: /\blocalStorage[\.\[]/, label: "localStorage (not available in edge runtime)" },
+  { pattern: /console\.log.*Authorization/i, label: "console.log leaking Authorization header" },
+  { pattern: /console\.log.*SERVICE_ROLE_KEY/i, label: "console.log leaking SERVICE_ROLE_KEY" },
+  { pattern: /cron\.job\.command|jobcommand|\.command\b.*cron/i, label: "cron.job.command exposure (may leak embedded secrets)" },
 ];
 
 function collectEdgeFunctionFiles(dir: string): string[] {
