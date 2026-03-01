@@ -1,3 +1,6 @@
+THIS DOCUMENT IS AUTHORITATIVE.
+All AI-generated changes must comply.
+
 # ANCORA — AI OPERATING PROTOCOL
 
 **Version:** 1.0
@@ -11,6 +14,7 @@
 You are modifying a production system.
 
 You must:
+
 - Preserve invariants
 - Preserve editorial content
 - Preserve canonical data model
@@ -26,6 +30,7 @@ If unsure:
 ## 1. SYSTEM ARCHITECTURE RULE
 
 Ancora consists of:
+
 - Import Layer (Adapters)
 - Canonical Product Layer (products table)
 - Editorial Layer (stories/products draft workflow)
@@ -41,6 +46,7 @@ All new features must map to exactly one owner layer.
 Products table is canonical.
 
 All partner imports must end in:
+
 - products (status='draft')
 
 AIS (ancora_import_items) is logging only.
@@ -54,11 +60,13 @@ Cron must never modify editorial fields.
 ### 3.1 Editorial Protection
 
 Cron and availability functions may only update:
+
 - products.status
 - products.unpublished_reason
 - products.unpublished_at
 
 They must NEVER update:
+
 - name / name_en
 - description / description_en
 - brand / material / color / condition
@@ -71,6 +79,7 @@ They must NEVER update:
 All enums must match the Naming & Enum Registry exactly.
 
 Examples:
+
 - status: draft | published | sold | archived
 - marketplace: tradera | ebay | manual
 - condition: new | very_good | good | fair | poor
@@ -102,8 +111,8 @@ No variants.
 ### 3.5 Translation Rules
 
 - Only applies to marketplace='tradera'
-- Always store *_original
-- Display uses *_en fallback
+- Always store \*\_original
+- Display uses \*\_en fallback
 - Translation must be non-blocking
 
 ---
@@ -115,6 +124,7 @@ When implementing a feature:
 ### STEP 1 — Identify Owner
 
 Which layer owns this change?
+
 - Import
 - Product
 - Editorial
@@ -128,6 +138,7 @@ Which layer owns this change?
 ### STEP 2 — Update Specification First
 
 Before generating code, update:
+
 - Feature Index
 - Glossary (if new fields)
 - Enum Registry (if new enums)
@@ -140,6 +151,7 @@ Then implement.
 ### STEP 3 — Minimal Surface Change
 
 Only modify:
+
 - Required files
 - Required DB migrations
 - Required edge functions
@@ -151,6 +163,7 @@ Never refactor unrelated logic.
 ### STEP 4 — Validate Against Invariants
 
 Explicitly confirm:
+
 - No editorial overwrite
 - Enums unchanged
 - Cron safety preserved
@@ -162,6 +175,7 @@ Explicitly confirm:
 ### STEP 5 — Logging
 
 All new logic that interacts with:
+
 - Partner APIs
 - Availability
 - Translation
@@ -170,6 +184,7 @@ All new logic that interacts with:
 Must include structured console logging.
 
 Example:
+
 ```
 [FeatureName] { key: value }
 ```
@@ -179,16 +194,19 @@ Example:
 ## 5. SECURITY RULES
 
 Admin edge functions must:
+
 - Require JWT
 - Validate admin role via user_roles
 - Allow service-role bypass for cron only
 
 Never:
+
 - Log secrets
 - Log tokens
 - Return raw API error bodies to client
 
 CORS must:
+
 - Allow .lovable.app
 - Allow .lovableproject.com
 - Set Vary: Origin
@@ -198,12 +216,14 @@ CORS must:
 ## 6. DATABASE MIGRATION RULES
 
 When adding fields:
+
 - Never rename canonical fields
 - Never change enum meaning
 - Add new fields as nullable
 - Provide backfill plan if needed
 
 When removing fields:
+
 - Only if no active code path depends on them
 - Must update spec
 
@@ -228,11 +248,13 @@ If missing information:
 ## 8. SAFE FAILURE PRINCIPLE
 
 If external API fails:
+
 - Abort import
 - Do not create partial draft
 - Do not overwrite existing data
 
 If cron fails:
+
 - Log error
 - Do not corrupt products
 - Never bulk-mark sold without verified signal
@@ -242,6 +264,7 @@ If cron fails:
 ## 9. EXTENSIBILITY RULE
 
 New partners must:
+
 - Implement adapter
 - Map to canonical Product model
 - Not alter canonical schema
@@ -255,6 +278,7 @@ All partner logic belongs in adapter or edge layer.
 ## 10. OUTPUT FORMAT REQUIREMENT (FOR AI RESPONSES)
 
 When implementing changes, always respond with:
+
 - Spec updates
 - Files modified
 - DB migrations (if any)
@@ -271,6 +295,7 @@ Never respond with "Done" only.
 Do not guess.
 
 Ask:
+
 - Which layer?
 - Is this canonical?
 - Does this change an invariant?
