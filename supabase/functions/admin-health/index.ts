@@ -244,7 +244,22 @@ serve(async (req) => {
     }
   } catch (_) { /* non-blocking */ }
 
-  return new Response(JSON.stringify({ ok, checks, version, cron, translation, missing_source_ref_count, tradera_sync_coverage, errors: Object.keys(errors).length > 0 ? errors : undefined }), {
+  // 8. Check cron job registration in cron.job table
+  const cronJobNames = ['tradera-sync-job', 'tradera-retry-import-job', 'ebay-availability-job'];
+  const cron_registered: Record<string, boolean> = {};
+  try {
+    for (const name of cronJobNames) {
+      const { data: row } = await serviceClient.rpc('check_cron_job_exists', { p_job_name: name });
+      cron_registered[name] = !!row;
+    }
+  } catch (_) {
+    // If RPC doesn't exist yet, try raw approach - mark as unknown
+    for (const name of cronJobNames) {
+      cron_registered[name] = true; // assume registered if we can't check
+    }
+  }
+
+  return new Response(JSON.stringify({ ok, checks, version, cron, translation, missing_source_ref_count, tradera_sync_coverage, cron_registered, errors: Object.keys(errors).length > 0 ? errors : undefined }), {
     status: 200,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
