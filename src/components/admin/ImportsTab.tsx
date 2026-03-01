@@ -7,7 +7,7 @@ import { TraderaSearchDrawer } from "./TraderaSearchDrawer";
 import { RetryJobsPanel } from "./RetryJobsPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, AlertTriangle, Zap, RotateCcw, RefreshCw, CheckCircle2, XCircle, Clock, Languages, Loader2, Wand2, X } from "lucide-react";
+import { Plus, Search, AlertTriangle, Zap, RotateCcw, RefreshCw, CheckCircle2, XCircle, Clock, Languages, Loader2, Wand2, X, Settings } from "lucide-react";
 import { useTraderaUsage } from "@/hooks/useTraderaUsage";
 import { usePendingRetryCount } from "@/hooks/useRetryJobs";
 import { Progress } from "@/components/ui/progress";
@@ -43,6 +43,7 @@ export function ImportsTab() {
   const [isBackfillingFields, setIsBackfillingFields] = useState(false);
   const [isBackfillingCondMat, setIsBackfillingCondMat] = useState(false);
   const [isSyncingTradera, setIsSyncingTradera] = useState(false);
+  const [isSettingUpCron, setIsSettingUpCron] = useState(false);
 
   useEffect(() => { runHealthCheck(); }, [runHealthCheck]);
 
@@ -274,6 +275,10 @@ export function ImportsTab() {
                   Retry pending: {pendingCount}
                 </span>
               )}
+              {/* Cron registration status */}
+              {health.cron_registered && Object.values(health.cron_registered).some(v => !v) && (
+                <span className="text-destructive font-medium">❌ Cron not registered</span>
+              )}
               {([
                 { key: "tradera_sync", label: "Tradera sync" },
                 { key: "tradera_retry_import", label: "Retry import" },
@@ -331,6 +336,38 @@ export function ImportsTab() {
                   </Tooltip>
                 );
               })}
+              {/* Setup cron button - shown when all cron runs are "never" */}
+              {health.cron && Object.values(health.cron).every(r => !r.lastRun) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 px-2 ml-auto text-xs"
+                  onClick={async () => {
+                    setIsSettingUpCron(true);
+                    try {
+                      const { data, error } = await supabase.functions.invoke('cron-setup');
+                      if (error) {
+                        toast.error('Cron setup failed: ' + error.message);
+                      } else {
+                        toast.success('Cron jobs re-registered with vault auth. Next scheduled run should succeed.');
+                        runHealthCheck();
+                      }
+                    } catch (e: any) {
+                      toast.error('Cron setup error: ' + e.message);
+                    } finally {
+                      setIsSettingUpCron(false);
+                    }
+                  }}
+                  disabled={isSettingUpCron}
+                >
+                  {isSettingUpCron ? (
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                  ) : (
+                    <Settings className="w-3 h-3 mr-1" />
+                  )}
+                  Fix cron auth
+                </Button>
+              )}
             </div>
           </TooltipProvider>
         )}
