@@ -115,8 +115,13 @@ async function getAccessToken(clientId: string, clientSecret: string): Promise<{
 
 function extractEbayItemId(url: string | null): string | null {
   if (!url) return null;
+  // Handle pipe-delimited affiliate format: /itm/v1|NUMBER|0
+  const pipeMatch = url.match(/\/itm\/v1\|(\d{10,15})\|/i);
+  if (pipeMatch?.[1]) return pipeMatch[1];
+  // Standard format: /itm/slug/NUMBER or /itm/NUMBER
   const itmMatch = url.match(/\/itm\/(?:[^/]+\/)?(\d{10,15})/i);
   if (itmMatch?.[1]) return itmMatch[1];
+  // Query param format: ?itemId=NUMBER
   const queryMatch = url.match(/[?&](?:item|itemId)=(\d{10,15})/i);
   if (queryMatch?.[1]) return queryMatch[1];
   return null;
@@ -241,6 +246,7 @@ serve(async (req) => {
     for (const product of batch) {
       const itemId = extractEbayItemId(product.affiliate_url);
       if (!itemId) {
+        console.warn(`[EbayAvailability:Skip] { productId: "${product.id}", reason: "item_id_extraction_failed", affiliate_url: "${product.affiliate_url}" }`);
         results.push({
           productId: product.id, productName: `${product.brand} - ${product.name}`,
           affiliateStatus: 'unknown', autoUnpublished: false,
