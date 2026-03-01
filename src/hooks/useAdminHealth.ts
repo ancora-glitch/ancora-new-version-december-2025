@@ -31,6 +31,14 @@ export interface TranslationStatus {
   budget: TranslationBudget;
 }
 
+export interface TraderaSyncCoverage {
+  active_tradera_count: number;
+  last_checked_count: number;
+  last_finished_at: string | null;
+  batch_size: number;
+  coverage_estimate_hours: number | null;
+}
+
 export interface HealthResult {
   ok: boolean;
   checks: {
@@ -41,6 +49,7 @@ export interface HealthResult {
   version?: string;
   cron?: Record<string, CronStatus>;
   translation?: TranslationStatus;
+  tradera_sync_coverage?: TraderaSyncCoverage;
   errors?: Record<string, string>;
 }
 

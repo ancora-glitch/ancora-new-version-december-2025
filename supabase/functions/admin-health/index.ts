@@ -210,7 +210,41 @@ serve(async (req) => {
     missing_source_ref_count = count ?? 0;
   } catch (_) { /* non-blocking */ }
 
-  return new Response(JSON.stringify({ ok, checks, version, cron, translation, missing_source_ref_count, errors: Object.keys(errors).length > 0 ? errors : undefined }), {
+  // 7. Tradera sync coverage metrics
+  let active_tradera_count = 0;
+  let tradera_sync_coverage: Record<string, any> | null = null;
+  try {
+    const { count } = await serviceClient
+      .from('products')
+      .select('id', { count: 'exact', head: true })
+      .ilike('marketplace', 'tradera')
+      .in('status', ['active', 'published']);
+    active_tradera_count = count ?? 0;
+
+    const syncRun = cron['tradera_sync'];
+    if (syncRun && syncRun.lastRun) {
+      const batchSize = syncRun.batch_size ?? 25;
+      const scheduleHours = 2;
+      const cyclesNeeded = active_tradera_count > 0 ? Math.ceil(active_tradera_count / batchSize) : 0;
+      tradera_sync_coverage = {
+        active_tradera_count,
+        last_checked_count: syncRun.checked_count ?? 0,
+        last_finished_at: syncRun.lastRun,
+        batch_size: batchSize,
+        coverage_estimate_hours: cyclesNeeded * scheduleHours,
+      };
+    } else {
+      tradera_sync_coverage = {
+        active_tradera_count,
+        last_checked_count: 0,
+        last_finished_at: null,
+        batch_size: 25,
+        coverage_estimate_hours: null,
+      };
+    }
+  } catch (_) { /* non-blocking */ }
+
+  return new Response(JSON.stringify({ ok, checks, version, cron, translation, missing_source_ref_count, tradera_sync_coverage, errors: Object.keys(errors).length > 0 ? errors : undefined }), {
     status: 200,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
