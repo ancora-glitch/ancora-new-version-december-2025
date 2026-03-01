@@ -792,6 +792,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      setup_cron_vault: {
+        Args: { p_service_key: string; p_supabase_url: string }
+        Returns: Json
+      }
       tradera_get_usage: { Args: never; Returns: Json }
       tradera_increment_usage: { Args: { daily_limit?: number }; Returns: Json }
     }

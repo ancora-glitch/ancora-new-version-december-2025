@@ -50,6 +50,7 @@ export interface HealthResult {
   cron?: Record<string, CronStatus>;
   translation?: TranslationStatus;
   tradera_sync_coverage?: TraderaSyncCoverage;
+  cron_registered?: Record<string, boolean>;
   errors?: Record<string, string>;
 }
 
