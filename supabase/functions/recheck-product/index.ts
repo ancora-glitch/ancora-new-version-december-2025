@@ -240,10 +240,16 @@ async function handleBatchScan(req: Request, supabase: any, corsHeaders: Record<
     });
   }
 
+  const totalProducts = (products || []).length;
   const results: any[] = [];
   let checked = 0;
-  let soldMarked = 0;
+  let rateLimitHits = 0;
+  let unknownCount = 0;
+  let errorCount = 0;
+  const pendingSoldUpdates: { id: string; updateData: Record<string, any>; result: any }[] = [];
   let reviewFlagged = 0;
+
+  const THROTTLE_MS = 500; // slower than before to avoid rate limits
 
   for (const product of (products || [])) {
     const marketplace = detectMarketplace(product);
@@ -262,12 +268,38 @@ async function handleBatchScan(req: Request, supabase: any, corsHeaders: Record<
       ? await checkTradera(itemId)
       : await checkEbay(itemId);
 
-    // HTML fallback for Tradera when API is inconclusive
-    if (marketplace === 'tradera' && (result.status === 'unknown') && product.affiliate_url) {
-      const htmlResult = await checkTraderaHtml(product.affiliate_url);
-      if (htmlResult.status !== 'unknown') {
-        result = htmlResult;
+    // Track rate limits — do NOT use HTML fallback when rate limited
+    if (result.status === 'unknown' && result.reason.includes('429')) {
+      rateLimitHits++;
+      console.warn(`[recheck-scan] Rate limited on ${marketplace} item ${itemId} (hit #${rateLimitHits})`);
+      // If we hit 3+ rate limits, abort scan entirely
+      if (rateLimitHits >= 3) {
+        console.error(`[recheck-scan] Aborting: ${rateLimitHits} rate limit hits`);
+        break;
       }
+      results.push({
+        product_id: product.id,
+        product_name: `${product.brand} - ${product.name}`,
+        affiliate_status: 'unknown',
+        reason: result.reason,
+        action: 'skipped_rate_limited',
+      });
+      await new Promise(r => setTimeout(r, THROTTLE_MS * 3)); // extra backoff
+      continue;
+    }
+
+    // HTML fallback for Tradera ONLY when API returns unknown for non-rate-limit reasons
+    if (marketplace === 'tradera' && result.status === 'unknown' && product.affiliate_url) {
+      unknownCount++;
+      // Skip HTML fallback in batch mode — too unreliable for mass operations
+      results.push({
+        product_id: product.id,
+        product_name: `${product.brand} - ${product.name}`,
+        affiliate_status: 'unknown',
+        reason: result.reason,
+        action: 'skipped_unknown',
+      });
+      continue;
     }
 
     checked++;
@@ -285,14 +317,20 @@ async function handleBatchScan(req: Request, supabase: any, corsHeaders: Record<
       updateData.status = 'review_required';
       reviewFlagged++;
       autoAction = 'flagged_review';
+      // Review flags are safe to apply immediately
+      await supabase.from('products').update(updateData).eq('id', product.id);
     } else if (result.status !== 'active' && result.status !== 'unknown' && product.affiliate_auto_handling !== false) {
-      updateData.status = 'sold';
-      updateData.unpublished_reason = 'affiliate_unavailable';
-      soldMarked++;
-      autoAction = 'marked_sold';
+      // DEFER sold updates — only apply if scan completes successfully
+      autoAction = 'pending_sold';
+      pendingSoldUpdates.push({
+        id: product.id,
+        updateData: { ...updateData, status: 'sold', unpublished_reason: 'affiliate_unavailable' },
+        result: { product_id: product.id, product_name: `${product.brand} - ${product.name}` },
+      });
+    } else {
+      // Active or unknown — safe to update status fields
+      await supabase.from('products').update(updateData).eq('id', product.id);
     }
-
-    await supabase.from('products').update(updateData).eq('id', product.id);
 
     results.push({
       product_id: product.id,
@@ -302,15 +340,46 @@ async function handleBatchScan(req: Request, supabase: any, corsHeaders: Record<
       action: autoAction,
     });
 
-    // Brief pause to avoid hammering APIs
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(r => setTimeout(r, THROTTLE_MS));
+  }
+
+  // ── Completion guard ──
+  // Only apply sold updates if the scan was healthy:
+  // - No rate limit aborts
+  // - Error rate < 50% of total
+  const scanAborted = rateLimitHits >= 3;
+  const errorRate = totalProducts > 0 ? (rateLimitHits + unknownCount) / totalProducts : 0;
+  const scanHealthy = !scanAborted && errorRate < 0.5;
+
+  let soldMarked = 0;
+
+  if (scanHealthy && pendingSoldUpdates.length > 0) {
+    console.log(`[recheck-scan] Scan healthy — applying ${pendingSoldUpdates.length} sold updates`);
+    for (const pending of pendingSoldUpdates) {
+      await supabase.from('products').update(pending.updateData).eq('id', pending.id);
+      soldMarked++;
+      // Update the action in results
+      const resultEntry = results.find(r => r.product_id === pending.id);
+      if (resultEntry) resultEntry.action = 'marked_sold';
+    }
+  } else if (pendingSoldUpdates.length > 0) {
+    console.warn(`[recheck-scan] Scan unhealthy (aborted=${scanAborted}, errorRate=${(errorRate * 100).toFixed(1)}%) — skipping ${pendingSoldUpdates.length} sold updates to prevent false deactivations`);
+    for (const pending of pendingSoldUpdates) {
+      const resultEntry = results.find(r => r.product_id === pending.id);
+      if (resultEntry) resultEntry.action = 'deferred_unhealthy_scan';
+    }
   }
 
   return new Response(JSON.stringify({
-    scan_complete: true,
+    scan_complete: !scanAborted,
+    scan_healthy: scanHealthy,
+    total_products: totalProducts,
     total_checked: checked,
     sold_marked: soldMarked,
+    sold_deferred: pendingSoldUpdates.length - soldMarked,
     review_flagged: reviewFlagged,
+    rate_limit_hits: rateLimitHits,
+    unknown_skipped: unknownCount,
     results,
   }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 }
