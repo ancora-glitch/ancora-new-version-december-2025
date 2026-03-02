@@ -58,24 +58,31 @@ export function toEbayAffiliateUrl(urlOrId: string | null | undefined): string |
 
   const s = urlOrId.trim();
 
-  // If it looks like a full eBay URL, preserve the original URL structure & params
+  // Step 1: Always extract the clean numeric item ID first
+  // This handles pipe-format (v1|123|0), raw URLs, and plain IDs
+  const itemId = extractEbayItemId(s);
+  if (!itemId) return null;
+
+  console.log("[ebay-affiliate] clean_item_id:", itemId);
+
+  // Step 2: If original is a full eBay URL, preserve market domain & extra params (e.g. ?var=abc)
   if (s.includes("ebay.") && s.includes("/itm/")) {
     try {
       const url = new URL(s);
-      // Strip any stale/partial EPN params before re-adding
+      // Replace path with clean numeric ID (never the pipe-format)
+      url.pathname = `/itm/${itemId}`;
+      // Strip any stale EPN params before re-adding
       url.searchParams.delete("campid");
       url.searchParams.delete("toolid");
       url.searchParams.set("campid", EBAY_EPN_CAMP_ID);
       url.searchParams.set("toolid", EBAY_EPN_TOOL_ID);
       return url.toString();
     } catch {
-      // URL parsing failed — fall through to ID extraction
+      // URL parsing failed — fall through to canonical build
     }
   }
 
-  // Fallback: extract numeric ID and build canonical URL
-  const itemId = extractEbayItemId(s);
-  if (!itemId) return null;
+  // Step 3: Build canonical URL from numeric ID
   return buildEbayAffiliateUrl(itemId);
 }
 
