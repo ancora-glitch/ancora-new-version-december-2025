@@ -47,10 +47,34 @@ export function buildEbayAffiliateUrl(itemId: string): string {
 
 /**
  * Given any eBay-related URL/ID, return a properly formatted EPN affiliate URL.
- * Returns null if the input doesn't contain a recognisable eBay item ID.
+ * Preserves existing query parameters (e.g. ?var=abc) and appends EPN params.
+ * Never double-appends campid. Returns null if no eBay item ID is found.
  */
 export function toEbayAffiliateUrl(urlOrId: string | null | undefined): string | null {
-  const itemId = extractEbayItemId(urlOrId);
+  if (!urlOrId) return null;
+
+  // Already a proper affiliate link — return as-is
+  if (isEbayAffiliateUrl(urlOrId)) return urlOrId;
+
+  const s = urlOrId.trim();
+
+  // If it looks like a full eBay URL, preserve the original URL structure & params
+  if (s.includes("ebay.") && s.includes("/itm/")) {
+    try {
+      const url = new URL(s);
+      // Strip any stale/partial EPN params before re-adding
+      url.searchParams.delete("campid");
+      url.searchParams.delete("toolid");
+      url.searchParams.set("campid", EBAY_EPN_CAMP_ID);
+      url.searchParams.set("toolid", EBAY_EPN_TOOL_ID);
+      return url.toString();
+    } catch {
+      // URL parsing failed — fall through to ID extraction
+    }
+  }
+
+  // Fallback: extract numeric ID and build canonical URL
+  const itemId = extractEbayItemId(s);
   if (!itemId) return null;
   return buildEbayAffiliateUrl(itemId);
 }
@@ -60,5 +84,10 @@ export function toEbayAffiliateUrl(urlOrId: string | null | undefined): string |
  */
 export function isEbayAffiliateUrl(url: string | null | undefined): boolean {
   if (!url) return false;
-  return url.includes(`campid=${EBAY_EPN_CAMP_ID}`) && url.includes(`toolid=${EBAY_EPN_TOOL_ID}`);
+  // Must have EPN params AND a clean numeric item path (no pipe-separated Browse API IDs)
+  const hasParams = url.includes(`campid=${EBAY_EPN_CAMP_ID}`) && url.includes(`toolid=${EBAY_EPN_TOOL_ID}`);
+  if (!hasParams) return false;
+  // Reject if path still contains Browse API format (v1|xxx|0)
+  if (/\/itm\/v\d+\|/.test(url)) return false;
+  return true;
 }

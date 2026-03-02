@@ -182,6 +182,18 @@ const ProductDetail = () => {
     }
   }, [product?.id]);
 
+  // Build final affiliate URL once
+  const buyNowUrl = useMemo(() => {
+    if (!product || isSoldOrUnavailable) return "#";
+    const raw = product.affiliate_url;
+    const isEbay = product.marketplace?.toLowerCase() === "ebay";
+    const final = isEbay
+      ? (toEbayAffiliateUrl(raw) || cleanUrl(raw))
+      : cleanUrl(raw);
+    console.log("[ebay-affiliate] final_url:", final, "| raw:", raw, "| marketplace:", product.marketplace);
+    return final;
+  }, [product, isSoldOrUnavailable]);
+
   // Track Buy Now click for analytics (called on link click)
   const handleBuyNowClick = () => {
     if (!product) return;
@@ -449,13 +461,9 @@ const ProductDetail = () => {
                   </div>
                 ) : (
                   <a
-                    href={
-                      product.marketplace?.toLowerCase() === "ebay"
-                        ? (toEbayAffiliateUrl(product.affiliate_url) || cleanUrl(product.affiliate_url))
-                        : cleanUrl(product.affiliate_url)
-                    }
+                    href={buyNowUrl}
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="noopener"
                     onClick={handleBuyNowClick}
                     className="inline-flex items-center justify-center px-8 py-3 min-h-[44px] min-w-[44px] bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors touch-manipulation select-none"
                   >
