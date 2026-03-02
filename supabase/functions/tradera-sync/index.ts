@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const MAX_CHECKS_PER_RUN = 25;
+const MAX_RATE_LIMIT_RETRIES = 2;
+const RATE_LIMIT_BACKOFF_MS = [5000, 10000]; // exponential backoff delays
 
 const ALLOWED_HEADERS = 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version';
 
@@ -134,14 +136,22 @@ async function fetchTraderaItem(itemId: string, appId: string, appKey: string): 
       headers: { 'Content-Type': 'text/xml; charset=utf-8', 'SOAPAction': 'http://api.tradera.com/GetItem' },
       body: soapEnvelope,
     });
-    if (response.status === 429) return { price: 0, hasEnded: false, rateLimited: true };
-    if (!response.ok) return null;
+    if (response.status === 429) {
+      console.warn(`[tradera-sync] 429 rate limited for item ${itemId}`);
+      return { price: 0, hasEnded: false, rateLimited: true };
+    }
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => '(unreadable)');
+      console.error(`[tradera-sync] HTTP ${response.status} for item ${itemId}: ${errorBody.slice(0, 500)}`);
+      return null;
+    }
     const xml = await response.text();
     const hasEnded = checkIfEnded(xml, itemId);
     const price = extractNumber(xml, 'MaxBid') || extractNumber(xml, 'NextBid') ||
                   extractNumber(xml, 'BuyItNowPrice') || extractNumber(xml, 'Price') || 0;
     return { price, hasEnded };
-  } catch (_) {
+  } catch (e) {
+    console.error(`[tradera-sync] Network error for item ${itemId}:`, e instanceof Error ? e.message : e);
     return null;
   }
 }
@@ -314,7 +324,18 @@ serve(async (req) => {
       }
 
       try {
-        const itemDetails = await fetchTraderaItem(itemId, appId, appKey);
+        let itemDetails = await fetchTraderaItem(itemId, appId, appKey);
+
+        // Retry with backoff on rate limit
+        if (itemDetails?.rateLimited) {
+          for (let retry = 0; retry < MAX_RATE_LIMIT_RETRIES; retry++) {
+            const delayMs = RATE_LIMIT_BACKOFF_MS[retry] ?? 10000;
+            console.log(`[tradera-sync] Rate limited on item ${itemId}, retry ${retry + 1}/${MAX_RATE_LIMIT_RETRIES} after ${delayMs}ms`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            itemDetails = await fetchTraderaItem(itemId, appId, appKey);
+            if (!itemDetails?.rateLimited) break;
+          }
+        }
 
         if (itemDetails === null) {
           results.push({
@@ -326,10 +347,11 @@ serve(async (req) => {
         }
 
         if (itemDetails.rateLimited) {
+          console.warn(`[tradera-sync] Still rate limited after ${MAX_RATE_LIMIT_RETRIES} retries for item ${itemId} — skipping remaining batch`);
           results.push({
             productId: product.id, productName: `${product.brand} - ${product.name}`,
             oldPrice: product.price, newPrice: product.price,
-            status: 'error', error: 'Tradera rate limited (429) - sync stopped',
+            status: 'error', error: `Tradera rate limited (429) after ${MAX_RATE_LIMIT_RETRIES} retries`,
           });
           break;
         }
