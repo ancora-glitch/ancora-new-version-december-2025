@@ -161,9 +161,14 @@ async function checkTraderaHtml(affiliateUrl: string): Promise<{ status: 'active
 
 function extractEbayItemId(url: string | null): string | null {
   if (!url) return null;
-  const itmMatch = url.match(/\/itm\/(?:[^/]+\/)?(\d{10,15})/i);
+  // Decode percent-encoded pipes so v1%7C…%7C0 becomes v1|…|0
+  const decoded = url.replace(/%7C/gi, "|");
+  // Browse API pipe-separated format: v1|123456789|0
+  const pipeMatch = decoded.match(/v\d+\|(\d+)\|/);
+  if (pipeMatch?.[1]) return pipeMatch[1];
+  const itmMatch = decoded.match(/\/itm\/(?:[^/]+\/)?(\d{10,15})/i);
   if (itmMatch?.[1]) return itmMatch[1];
-  const queryMatch = url.match(/[?&](?:item|itemId)=(\d{10,15})/i);
+  const queryMatch = decoded.match(/[?&](?:item|itemId)=(\d{10,15})/i);
   if (queryMatch?.[1]) return queryMatch[1];
   return null;
 }

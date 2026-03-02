@@ -22,10 +22,11 @@ export const EBAY_EPN_BASE_URL = "https://www.ebay.co.uk/itm";
  */
 export function extractEbayItemId(urlOrId: string | null | undefined): string | null {
   if (!urlOrId) return null;
-  const s = urlOrId.trim();
+  // Decode percent-encoded pipes so v1%7C…%7C0 becomes v1|…|0
+  const s = urlOrId.trim().replace(/%7C/gi, "|");
 
-  // Browse API pipe-separated format: "v1|123456789|0"
-  const pipeMatch = s.match(/^v\d+\|(\d+)\|/);
+  // Browse API pipe-separated format anywhere in string: "v1|123456789|0"
+  const pipeMatch = s.match(/v\d+\|(\d+)\|/);
   if (pipeMatch) return pipeMatch[1];
 
   // URL with /itm/…/123456789 or /itm/123456789
