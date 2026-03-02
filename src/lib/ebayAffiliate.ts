@@ -43,7 +43,8 @@ export function extractEbayItemId(urlOrId: string | null | undefined): string | 
  * Build an EPN affiliate URL for a given eBay item ID.
  */
 export function buildEbayAffiliateUrl(itemId: string): string {
-  return `${EBAY_EPN_BASE_URL}/${itemId}?campid=${EBAY_EPN_CAMP_ID}&toolid=${EBAY_EPN_TOOL_ID}`;
+  const numericId = extractEbayItemId(itemId) || itemId;
+  return `${EBAY_EPN_BASE_URL}/${numericId}?campid=${EBAY_EPN_CAMP_ID}&toolid=${EBAY_EPN_TOOL_ID}`;
 }
 
 /**
