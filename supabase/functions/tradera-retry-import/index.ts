@@ -166,6 +166,25 @@ serve(async (req) => {
     // Retention cleanup
     await runRetention(supabase);
 
+    // ── Quota guard: abort if manual imports need headroom ──
+    const QUOTA_RESERVE_FOR_MANUAL = 30;
+    const { data: quotaData } = await supabase.rpc('tradera_get_usage');
+    const quotaRemaining = quotaData?.remaining ?? 75;
+    if (quotaRemaining < QUOTA_RESERVE_FOR_MANUAL) {
+      const finishedAt = new Date();
+      await logCronRun(supabase, {
+        job_name: 'tradera_retry_import', status: 'skipped',
+        started_at: startedAt.toISOString(), finished_at: finishedAt.toISOString(),
+        duration_ms: finishedAt.getTime() - _startTime,
+        items_processed: 0, checked_count: 0, sold_marked: 0,
+        error_message: `Quota guard: ${quotaRemaining} remaining < ${QUOTA_RESERVE_FOR_MANUAL} reserve — skipped`,
+      });
+      return new Response(
+        JSON.stringify({ message: 'Retry skipped — quota reserved for manual imports', remaining: quotaRemaining }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { data: pendingJobs, error: fetchError } = await supabase
       .from('tradera_retry_jobs')
       .select('*')

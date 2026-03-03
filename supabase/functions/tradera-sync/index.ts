@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const MAX_CHECKS_PER_RUN = 25;
+const QUOTA_RESERVE_FOR_MANUAL = 30; // abort sync if remaining < this
 const MAX_RATE_LIMIT_RETRIES = 2;
 const RATE_LIMIT_BACKOFF_MS = [5000, 10000]; // exponential backoff delays
 
@@ -248,6 +249,25 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     await runRetention(supabase);
 
+    // ── Quota guard: abort if manual imports need headroom ──
+    const { data: quotaData } = await supabase.rpc('tradera_get_usage');
+    const remaining = quotaData?.remaining ?? 75;
+    if (remaining < QUOTA_RESERVE_FOR_MANUAL) {
+      const finishedAt = new Date();
+      await logCronRun(supabase, {
+        job_name: 'tradera_sync', status: 'skipped',
+        started_at: startedAt.toISOString(), finished_at: finishedAt.toISOString(),
+        duration_ms: finishedAt.getTime() - _startTime,
+        items_processed: 0, checked_count: 0, sold_marked: 0, batch_size: MAX_CHECKS_PER_RUN,
+        error_message: `Quota guard: ${remaining} remaining < ${QUOTA_RESERVE_FOR_MANUAL} reserve — skipped to preserve manual import budget`,
+      });
+      return new Response(JSON.stringify({
+        message: 'Sync skipped — quota reserved for manual imports',
+        remaining,
+        reserve: QUOTA_RESERVE_FOR_MANUAL,
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     // Fetch ALL eligible Tradera products (guardrails applied in query)
     const { data: allProducts, error: fetchError } = await supabase
       .from('products')
@@ -324,6 +344,18 @@ serve(async (req) => {
       }
 
       try {
+        // Increment shared quota counter for this SOAP call
+        const { data: quotaCheck } = await supabase.rpc('tradera_increment_usage');
+        if (quotaCheck && !quotaCheck.allowed) {
+          console.warn(`[tradera-sync] Quota exhausted mid-batch at item ${itemId} — stopping`);
+          results.push({
+            productId: product.id, productName: `${product.brand} - ${product.name}`,
+            oldPrice: product.price, newPrice: product.price,
+            status: 'error', error: 'Quota exhausted mid-batch',
+          });
+          break;
+        }
+
         let itemDetails = await fetchTraderaItem(itemId, appId, appKey);
 
         // Retry with backoff on rate limit
