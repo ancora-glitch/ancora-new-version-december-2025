@@ -60,9 +60,17 @@ const Stories = () => {
                     <h2 className="font-serif text-xl md:text-2xl text-foreground mb-3 leading-snug group-hover:text-primary transition-colors">
                       {guide.title}
                     </h2>
-                    <p className="text-muted-foreground text-sm md:text-base mb-5 line-clamp-2">
+                    <p className="text-muted-foreground text-sm md:text-base mb-4 line-clamp-2">
                       {guide.intro_text}
                     </p>
+                    {guide.author && (
+                      <p className="text-xs tracking-[0.1em] uppercase text-muted-foreground/80 mb-5">
+                        By {guide.author}
+                        {guide.published_at && (
+                          <> · {new Date(guide.published_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</>
+                        )}
+                      </p>
+                    )}
                     <span 
                       className="inline-block py-3 px-6 bg-primary text-primary-foreground text-xs tracking-widest uppercase group-hover:bg-primary/90 transition-colors duration-200"
                     >
