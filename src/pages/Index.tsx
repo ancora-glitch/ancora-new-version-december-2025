@@ -87,7 +87,7 @@ const Index = () => {
             <h2 className="text-2xl md:text-3xl lg:text-4xl text-primary-foreground font-normal">Stories</h2>
           </Link>
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-5 md:gap-7 lg:gap-8 max-w-7xl mx-auto">
-            {guidesLoading ? <p className="col-span-full text-center text-primary-foreground/70">Loading guides...</p> : styleGuides && styleGuides.length > 0 ? styleGuides.slice(0, 6).map(guide => <GuideCard key={guide.id} image={guide.image} title={guide.title} href={`/style-guides/${guide.slug}`} />) : <p className="col-span-full text-center text-primary-foreground/70">No style guides available</p>}
+            {guidesLoading ? <p className="col-span-full text-center text-primary-foreground/70">Loading guides...</p> : styleGuides && styleGuides.length > 0 ? styleGuides.slice(0, 6).map(guide => <GuideCard key={guide.id} image={guide.image} title={guide.title} href={`/style-guides/${guide.slug}`} focalPoint={guide.focal_point} />) : <p className="col-span-full text-center text-primary-foreground/70">No style guides available</p>}
           </div>
         </section>
       </main>
