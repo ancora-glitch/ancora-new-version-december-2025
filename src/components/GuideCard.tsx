@@ -4,6 +4,7 @@ interface GuideCardProps {
   image: string;
   title: string;
   href?: string;
+  focalPoint?: string | null;
   onGoToGuide?: () => void;
 }
 
@@ -11,9 +12,11 @@ export const GuideCard = ({
   image,
   title,
   href,
+  focalPoint,
   onGoToGuide
 }: GuideCardProps) => {
   const linkTarget = href || "#";
+  const objectPosition = focalPoint || '50% 25%';
   
   return (
     <Link 
@@ -22,15 +25,16 @@ export const GuideCard = ({
       className="group block min-h-[44px] transition-all duration-300"
       aria-label={`Read: ${title}`}
     >
-      {/* Image with Title Overlay */}
-      <div className="relative aspect-[3/4] overflow-hidden mb-4">
+      {/* Image with Title Overlay — 4:5 mobile, 3:4 desktop */}
+      <div className="relative aspect-[4/5] md:aspect-[3/4] overflow-hidden mb-4">
         <img 
           src={image} 
           alt={title} 
           loading="lazy"
           width={600}
           height={800}
-          className="w-full h-full object-cover object-[center_25%] transition-transform duration-700 ease-out group-hover:scale-[1.03]" 
+          style={{ objectPosition }}
+          className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]" 
         />
         {/* Hover Overlay */}
         <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/20 transition-colors duration-300" />

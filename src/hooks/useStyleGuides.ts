@@ -11,6 +11,7 @@ export interface StyleGuide {
   body: string;
   slug: string;
   author?: string | null;
+  focal_point?: string | null;
   status: StoryStatus;
   published_at?: string | null;
   unpublished_at?: string | null;

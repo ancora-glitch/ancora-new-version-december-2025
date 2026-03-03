@@ -1,0 +1,1 @@
+ALTER TABLE public.style_guides ADD COLUMN focal_point text DEFAULT NULL;

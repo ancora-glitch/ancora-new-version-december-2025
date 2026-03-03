@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useStyleGuides } from "@/hooks/useStyleGuides";
-import { SmartCropImage } from "@/components/SmartCropImage";
+
 
 const Stories = () => {
   const { data: styleGuides, isLoading } = useStyleGuides();
@@ -45,16 +45,15 @@ const Stories = () => {
                     className="block"
                     aria-label={`Read: ${guide.title}`}
                   >
-                    <div className="relative aspect-[4/3] overflow-hidden mb-5">
-                      <SmartCropImage
+                    <div className="relative aspect-[4/5] md:aspect-[3/4] overflow-hidden mb-5">
+                      <img
                         src={guide.image}
                         alt={guide.title}
                         loading="lazy"
-                        width={800}
-                        height={600}
-                        containerClassName="w-full h-full"
+                        width={600}
+                        height={800}
+                        style={{ objectPosition: guide.focal_point || '50% 25%' }}
                         className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-                        fallbackPosition="50% 25%"
                       />
                       <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/15 transition-colors duration-300 pointer-events-none" />
                     </div>

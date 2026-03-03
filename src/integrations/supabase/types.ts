@@ -500,6 +500,7 @@ export type Database = {
           author: string | null
           body: string
           created_at: string
+          focal_point: string | null
           id: string
           image: string
           intro_text: string
@@ -514,6 +515,7 @@ export type Database = {
           author?: string | null
           body: string
           created_at?: string
+          focal_point?: string | null
           id?: string
           image: string
           intro_text: string
@@ -528,6 +530,7 @@ export type Database = {
           author?: string | null
           body?: string
           created_at?: string
+          focal_point?: string | null
           id?: string
           image?: string
           intro_text?: string
