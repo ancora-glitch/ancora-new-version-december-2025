@@ -1,5 +1,5 @@
 ANCORA — MASTER PROJECT SPECIFICATION
-Version: 1.1
+Version: 1.1 (260303)
 Status: Production MVP — Architecture Locked
 Purpose: System blueprint for AI-assisted regeneration and extension
 
