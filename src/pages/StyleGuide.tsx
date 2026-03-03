@@ -5,7 +5,6 @@ import { Footer } from "@/components/Footer";
 import { useStyleGuide } from "@/hooks/useStyleGuides";
 import { ArrowLeft } from "lucide-react";
 import DOMPurify from "dompurify";
-import { SmartCropImage } from "@/components/SmartCropImage";
 import { supabase } from "@/integrations/supabase/client";
 
 // Convert markdown-style image syntax to HTML figure elements
@@ -169,17 +168,16 @@ const StyleGuide = () => {
       <Header />
       
       <main className="pt-20 md:pt-24">
-        {/* Mobile/Tablet: Full-width hero image with smart cropping */}
-        <div className="lg:hidden relative w-full aspect-[16/9] md:aspect-[21/9] overflow-hidden">
-          <SmartCropImage
+        {/* Mobile/Tablet: Full-width hero image with portrait crop */}
+        <div className="lg:hidden relative w-full aspect-[4/5] overflow-hidden">
+          <img
             src={guide.image}
             alt={guide.title}
-            loading="lazy"
-            width={1920}
-            height={823}
-            containerClassName="w-full h-full"
+            loading="eager"
+            width={800}
+            height={1000}
+            style={{ objectPosition: guide.focal_point || '50% 30%' }}
             className="w-full h-full object-cover"
-            fallbackPosition="50% 25%"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
         </div>
@@ -241,16 +239,17 @@ const StyleGuide = () => {
 
             {/* Right Column: Featured Image (Desktop only) */}
             <aside className="hidden lg:block pt-20">
-              <SmartCropImage
-                src={guide.image}
-                alt={guide.title}
-                loading="lazy"
-                width={600}
-                height={800}
-                containerClassName="relative overflow-hidden"
-                className="w-full h-auto object-cover"
-                fallbackPosition="50% 25%"
-              />
+              <div className="relative aspect-[3/4] overflow-hidden">
+                <img
+                  src={guide.image}
+                  alt={guide.title}
+                  loading="lazy"
+                  width={600}
+                  height={800}
+                  style={{ objectPosition: guide.focal_point || '50% 30%' }}
+                  className="w-full h-full object-cover"
+                />
+              </div>
             </aside>
           </div>
         </div>
