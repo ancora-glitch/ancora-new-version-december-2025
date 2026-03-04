@@ -186,6 +186,7 @@ Before generating code, update:
 - Glossary (if new fields)
 - Enum Registry (if new enums)
 - Code Mapping (if new modules)
+  Confirm cron schedules and quota rules match spec (nightly 03:00 UTC, guard < 30)
 
 Then implement.
 
