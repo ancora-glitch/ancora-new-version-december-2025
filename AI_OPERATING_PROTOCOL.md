@@ -1,6 +1,23 @@
 THIS DOCUMENT IS AUTHORITATIVE.
 All AI-generated changes must comply.
 
+0.0 SPEC-LOCK RULE (NEW)
+
+Master Specification is the single source of truth:
+
+ANCORA — MASTER PROJECT SPECIFICATION (v1.1) is authoritative.
+
+Before any code change:
+
+Identify affected spec sections
+
+Confirm alignment with invariants
+
+If spec needs updating, update spec excerpt first
+
+If protocol and spec conflict:
+→ Spec wins
+
 # ANCORA — AI OPERATING PROTOCOL
 
 **Version:** 1.0
