@@ -147,31 +147,33 @@ Translation must be non-blocking
 
 Must respect translation budget counter
 
-3.6 QUOTA & CRON INVARIANTS (NEW — CRITICAL)
+3.6 QUOTA & CRON INVARIANTS (CRITICAL)
 Availability and partner calls are quota-aware.
 Hard rules:
-Availability cron runs once per day
+ALL availability crons run once per day (Phase 1 — applies to Tradera AND eBay)
 
-Time: 03:00 UTC
+Tradera sync: 03:00 UTC | eBay availability: 03:15 UTC
 
 Batch size: 25
 
-All external API calls increment the shared global quota counter
+All Tradera API calls increment the shared global quota counter
 
-Abort background jobs if remaining quota < 30
+Abort Tradera background jobs if remaining quota < 30
 
 Manual search/import always has priority
 
 No job may bypass quota tracking
 
+eBay uses independent OAuth (no shared counter), but schedule is nightly-only in Phase 1
+
 Forbidden:
-Cron every 2 hours
+Sub-daily availability cron schedules (e.g. every 2 hours) — reserved for Phase 2+
 
 Blind full inventory polling
 
 Auto-retry on HTTP 429 without backoff
 
-“Internal-only” quota counters
+"Internal-only" quota counters
 
 Quota is infrastructure.
 
@@ -352,7 +354,7 @@ Invariants validation
 
 Regression risk assessment
 
-Never respond with “Done” only.
+Never respond with "Done" only.
 
 11. IF UNSURE
     Do not guess.
