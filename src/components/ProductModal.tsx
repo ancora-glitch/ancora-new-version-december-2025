@@ -180,7 +180,7 @@ export const ProductModal = ({
           <a
             href={redirectUrl}
             target="_blank"
-            rel="noopener noreferrer"
+            rel="noopener"
             onClick={handleBuyNowClick}
             className="block w-full py-3 min-h-[44px] text-center bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors touch-manipulation select-none"
           >
