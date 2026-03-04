@@ -8,7 +8,7 @@
 // ── EPN Configuration ──────────────────────────────────────────────
 export const EBAY_EPN_CAMP_ID = "5339143507";
 export const EBAY_EPN_TOOL_ID = "10001";
-export const EBAY_EPN_ROVER_BASE = "https://rover.ebay.com/rover/1/710-53481-19255-0/1";
+export const EBAY_EPN_ROVER_BASE = "https://rover.ebay.com/rover/1/711-53200-19255-0/1";
 export const EBAY_DESTINATION_BASE = "https://www.ebay.co.uk/itm";
 
 // ── Helpers ─────────────────────────────────────────────────────────
