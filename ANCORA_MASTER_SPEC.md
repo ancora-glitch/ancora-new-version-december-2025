@@ -317,11 +317,13 @@ quantity === 0
 endDate < now
 
 Sync Strategy
-Cron: Once per day (aligned with Tradera schedule)
+Cron: Once per day at 03:15 UTC (staggered 15 min after Tradera sync)
 
 Batch size: 25
 
-Must follow same quota guard principles if API quota exists.
+eBay uses independent OAuth quota (not shared with Tradera), but follows the same nightly-only schedule in Phase 1.
+
+Must follow same graceful error handling principles (no aggressive retries on rate limits).
 
 6.3 Future Optimization (Phase 2)
 Not yet implemented.
