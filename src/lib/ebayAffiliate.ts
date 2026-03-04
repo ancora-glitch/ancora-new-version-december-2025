@@ -8,7 +8,8 @@
 // ── EPN Configuration ──────────────────────────────────────────────
 export const EBAY_EPN_CAMP_ID = "5339143507";
 export const EBAY_EPN_TOOL_ID = "10001";
-export const EBAY_EPN_BASE_URL = "https://www.ebay.co.uk/itm";
+export const EBAY_EPN_ROVER_BASE = "https://rover.ebay.com/rover/1/710-53481-19255-0/1";
+export const EBAY_DESTINATION_BASE = "https://www.ebay.co.uk/itm";
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
@@ -40,63 +41,49 @@ export function extractEbayItemId(urlOrId: string | null | undefined): string | 
 }
 
 /**
- * Build an EPN affiliate URL for a given eBay item ID.
+ * Build an EPN rover affiliate URL for a given eBay item ID.
+ * Uses the rover redirect format required for proper EPN click tracking.
  */
-export function buildEbayAffiliateUrl(itemId: string): string {
+export function buildEbayAffiliateUrl(itemId: string, customId?: string): string {
   const numericId = extractEbayItemId(itemId) || itemId;
-  return `${EBAY_EPN_BASE_URL}/${numericId}?campid=${EBAY_EPN_CAMP_ID}&toolid=${EBAY_EPN_TOOL_ID}`;
+  const destinationUrl = `${EBAY_DESTINATION_BASE}/${numericId}`;
+  const params = new URLSearchParams({
+    campid: EBAY_EPN_CAMP_ID,
+    toolid: EBAY_EPN_TOOL_ID,
+    mpre: destinationUrl,
+  });
+  if (customId) params.set("customid", customId);
+  return `${EBAY_EPN_ROVER_BASE}?${params.toString()}`;
 }
 
 /**
- * Given any eBay-related URL/ID, return a properly formatted EPN affiliate URL.
- * Preserves existing query parameters (e.g. ?var=abc) and appends EPN params.
- * Never double-appends campid. Returns null if no eBay item ID is found.
+ * Given any eBay-related URL/ID, return a properly formatted EPN rover affiliate URL.
+ * Always uses rover.ebay.com redirect format for correct click tracking.
+ * Returns null if no eBay item ID is found.
  */
 export function toEbayAffiliateUrl(urlOrId: string | null | undefined): string | null {
   if (!urlOrId) return null;
 
-  // Already a proper affiliate link — return as-is
+  // Already a proper rover affiliate link — return as-is
   if (isEbayAffiliateUrl(urlOrId)) return urlOrId;
 
   const s = urlOrId.trim();
 
-  // Step 1: Always extract the clean numeric item ID first
-  // This handles pipe-format (v1|123|0), raw URLs, and plain IDs
   const itemId = extractEbayItemId(s);
   if (!itemId) return null;
 
   console.log("[ebay-affiliate] clean_item_id:", itemId);
 
-  // Step 2: If original is a full eBay URL, preserve market domain & extra params (e.g. ?var=abc)
-  if (s.includes("ebay.") && s.includes("/itm/")) {
-    try {
-      const url = new URL(s);
-      // Replace path with clean numeric ID (never the pipe-format)
-      url.pathname = `/itm/${itemId}`;
-      // Strip any stale EPN params before re-adding
-      url.searchParams.delete("campid");
-      url.searchParams.delete("toolid");
-      url.searchParams.set("campid", EBAY_EPN_CAMP_ID);
-      url.searchParams.set("toolid", EBAY_EPN_TOOL_ID);
-      return url.toString();
-    } catch {
-      // URL parsing failed — fall through to canonical build
-    }
-  }
-
-  // Step 3: Build canonical URL from numeric ID
+  // Build rover URL — always wraps destination in mpre param
   return buildEbayAffiliateUrl(itemId);
 }
 
 /**
- * Check whether a URL is already a properly formatted EPN affiliate link.
+ * Check whether a URL is already a properly formatted EPN rover affiliate link.
  */
 export function isEbayAffiliateUrl(url: string | null | undefined): boolean {
   if (!url) return false;
-  // Must have EPN params AND a clean numeric item path (no pipe-separated Browse API IDs)
-  const hasParams = url.includes(`campid=${EBAY_EPN_CAMP_ID}`) && url.includes(`toolid=${EBAY_EPN_TOOL_ID}`);
-  if (!hasParams) return false;
-  // Reject if path still contains Browse API format (v1|xxx|0)
-  if (/\/itm\/v\d+\|/.test(url)) return false;
-  return true;
+  return url.includes("rover.ebay.com/rover") &&
+    url.includes(`campid=${EBAY_EPN_CAMP_ID}`) &&
+    url.includes(`toolid=${EBAY_EPN_TOOL_ID}`);
 }
