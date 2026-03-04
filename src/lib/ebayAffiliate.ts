@@ -8,8 +8,7 @@
 // ── EPN Configuration ──────────────────────────────────────────────
 export const EBAY_EPN_CAMP_ID = "5339143507";
 export const EBAY_EPN_TOOL_ID = "10001";
-export const EBAY_EPN_ROVER_BASE = "https://rover.ebay.com/rover/1/711-53200-19255-0/1";
-export const EBAY_DESTINATION_BASE = "https://www.ebay.co.uk/itm";
+export const EBAY_ITEM_BASE = "https://www.ebay.co.uk/itm";
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
@@ -41,15 +40,14 @@ export function extractEbayItemId(urlOrId: string | null | undefined): string | 
 }
 
 /**
- * Build an EPN rover affiliate URL for a given eBay item ID.
- * Uses the rover redirect format required for proper EPN click tracking.
+ * Build a direct EPN affiliate URL for a given eBay item ID.
+ * Uses direct item links with EPN query parameters (no rover redirect).
  */
 export function buildEbayAffiliateUrl(itemId: string, customId?: string): string {
   const numericId = extractEbayItemId(itemId) || itemId;
-  const destinationUrl = `${EBAY_DESTINATION_BASE}/${numericId}`;
-  let qs = `mpre=${destinationUrl}&campid=${EBAY_EPN_CAMP_ID}&toolid=${EBAY_EPN_TOOL_ID}`;
+  let qs = `campid=${EBAY_EPN_CAMP_ID}&toolid=${EBAY_EPN_TOOL_ID}`;
   if (customId) qs += `&customid=${encodeURIComponent(customId)}`;
-  return `${EBAY_EPN_ROVER_BASE}?${qs}`;
+  return `${EBAY_ITEM_BASE}/${numericId}?${qs}`;
 }
 
 /**
@@ -75,11 +73,11 @@ export function toEbayAffiliateUrl(urlOrId: string | null | undefined): string |
 }
 
 /**
- * Check whether a URL is already a properly formatted EPN rover affiliate link.
+ * Check whether a URL is already a properly formatted EPN direct affiliate link.
  */
 export function isEbayAffiliateUrl(url: string | null | undefined): boolean {
   if (!url) return false;
-  return url.includes("rover.ebay.com/rover") &&
+  return url.includes("ebay.co.uk/itm/") &&
     url.includes(`campid=${EBAY_EPN_CAMP_ID}`) &&
     url.includes(`toolid=${EBAY_EPN_TOOL_ID}`);
 }
