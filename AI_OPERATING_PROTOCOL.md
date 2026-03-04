@@ -1,346 +1,382 @@
+ANCORA — AI OPERATING PROTOCOL
+Version: 1.1
+Status: Mandatory
+Purpose: Guardrails for AI-driven code modification
+
 THIS DOCUMENT IS AUTHORITATIVE.
 All AI-generated changes must comply.
 
-0.0 SPEC-LOCK RULE (NEW)
+0. CORE PRINCIPLE
+   You are modifying a production system.
+   You must:
+   Preserve invariants
 
-Master Specification is the single source of truth:
+Preserve editorial content
 
-ANCORA — MASTER PROJECT SPECIFICATION (v1.1) is authoritative.
+Preserve canonical data model
 
-Before any code change:
-
-Identify affected spec sections
-
-Confirm alignment with invariants
-
-If spec needs updating, update spec excerpt first
-
-If protocol and spec conflict:
-→ Spec wins
-
-# ANCORA — AI OPERATING PROTOCOL
-
-**Version:** 1.0
-**Status:** Mandatory
-**Purpose:** Guardrails for AI-driven code modification
-
----
-
-## 0. CORE PRINCIPLE
-
-You are modifying a production system.
-
-You must:
-
-- Preserve invariants
-- Preserve editorial content
-- Preserve canonical data model
-- Avoid silent regressions
+Avoid silent regressions
 
 If unsure:
 → Ask for clarification
 → Never guess enum values
 → Never rename canonical fields
 
----
+0.0 SPEC-LOCK RULE (NEW)
+ANCORA — MASTER PROJECT SPECIFICATION (v1.1) is the single source of truth.
+Before any code change:
+Identify affected spec section(s)
 
-## 1. SYSTEM ARCHITECTURE RULE
+Confirm alignment with invariants
 
-Ancora consists of:
+Confirm no conflict with enum registry
 
-- Import Layer (Adapters)
-- Canonical Product Layer (products table)
-- Editorial Layer (stories/products draft workflow)
-- Availability Layer (cron + partner checks)
-- Analytics Layer
+Confirm no cron/quota drift
+
+If spec update is required:
+→ Update spec excerpt first
+→ Then implement
+If protocol and spec conflict:
+→ Spec wins
+
+1. SYSTEM ARCHITECTURE RULE
+   Ancora consists of:
+   Import Layer (Adapters)
+
+Canonical Product Layer (products table)
+
+Editorial Layer (stories/products draft workflow)
+
+Availability Layer (cron + partner checks)
+
+Analytics Layer
 
 All new features must map to exactly one owner layer.
+No cross-layer logic leakage.
 
----
-
-## 2. CANONICAL SOURCE OF TRUTH
-
-Products table is canonical.
-
-All partner imports must end in:
-
-- products (status='draft')
+2. CANONICAL SOURCE OF TRUTH
+   Products table is canonical.
+   All partner imports must end in:
+   products (status='draft')
 
 AIS (ancora_import_items) is logging only.
-
 Cron must never modify editorial fields.
+Frontend must never call partner APIs directly.
 
----
+3. HARD INVARIANTS (NON-NEGOTIABLE)
 
-## 3. HARD INVARIANTS (NON-NEGOTIABLE)
-
-### 3.1 Editorial Protection
-
+3.1 Editorial Protection
 Cron and availability functions may only update:
+products.status
 
-- products.status
-- products.unpublished_reason
-- products.unpublished_at
+products.unpublished_reason
+
+products.unpublished_at
+
+affiliate/ended metadata fields (if defined in spec)
 
 They must NEVER update:
+name / name_en
 
-- name / name_en
-- description / description_en
-- brand / material / color / condition
-- image / additional_images
+description / description_en
 
----
+brand
 
-### 3.2 Enum Enforcement
+material
 
+color
+
+condition
+
+image
+
+additional_images
+
+Editorial content is human-owned.
+
+3.2 Enum Enforcement
 All enums must match the Naming & Enum Registry exactly.
-
 Examples:
+status: draft | published | sold | archived
 
-- status: draft | published | sold | archived
-- marketplace: tradera | ebay | manual
-- condition: new | very_good | good | fair | poor
+marketplace: tradera | ebay | manual
 
-No mixed case.
-No variants.
+condition: new | very_good | good | fair | poor
 
----
+Rules:
+Lowercase only
 
-### 3.3 Marketplace Rules
+snake_case only
 
-- marketplace values are lowercase
-- Tradera availability requires tradera_item_id
-- eBay availability requires affiliate_url
-- Do not invent marketplace identifiers
+No mixed case
 
----
+No invented variants
 
-### 3.4 Import Rules
+Never guess enum values.
 
-- Imports create Products as draft
-- Never auto-publish
-- API values override parser fallback
-- Hero image must be included in images[]
-- Never create partial draft if external API call fails
+3.3 Marketplace Rules
+marketplace values are lowercase
 
----
+Tradera availability requires tradera_item_id
 
-### 3.5 Translation Rules
+eBay availability requires affiliate_url
 
-- Only applies to marketplace='tradera'
-- Always store \*\_original
-- Display uses \*\_en fallback
-- Translation must be non-blocking
+Do not invent marketplace identifiers
 
-  3.6 QUOTA & CRON INVARIANTS (NEW)
+New partners require explicit enum registration
 
-Tradera/eBay availability must be quota-aware.
+3.4 Import Rules
+Imports create Products as draft
 
+Never auto-publish
+
+API values override parser fallback
+
+Hero image must be included in images[]
+
+Never create partial draft if external API call fails
+
+3.5 Translation Rules
+Only applies to marketplace='tradera'
+
+Always store \*\_original
+
+Display uses \*\_en fallback
+
+Translation must be non-blocking
+
+Must respect translation budget counter
+
+3.6 QUOTA & CRON INVARIANTS (NEW — CRITICAL)
+Availability and partner calls are quota-aware.
 Hard rules:
+Availability cron runs once per day
 
-Availability cron runs once per day at 03:00 UTC
+Time: 03:00 UTC
 
 Batch size: 25
 
-All external API calls must increment the shared global quota counter
+All external API calls increment the shared global quota counter
 
-Abort any background job if remaining quota < 30
+Abort background jobs if remaining quota < 30
 
-Manual search/import has priority over background jobs
+Manual search/import always has priority
 
-No job may bypass quota tracking (no “internal-only” counters)
+No job may bypass quota tracking
 
 Forbidden:
-
 Cron every 2 hours
 
 Blind full inventory polling
 
 Auto-retry on HTTP 429 without backoff
 
----
+“Internal-only” quota counters
 
-## 4. AI CHANGE WORKFLOW (MANDATORY)
+Quota is infrastructure.
 
-When implementing a feature:
+4. AI CHANGE WORKFLOW (MANDATORY)
+   When implementing a feature:
 
-### STEP 1 — Identify Owner
-
+STEP 1 — Identify Owner
 Which layer owns this change?
+Import
 
-- Import
-- Product
-- Editorial
-- Availability
-- Analytics
-- Admin UI
-- Edge function
+Product
 
----
+Editorial
 
-### STEP 2 — Update Specification First
+Availability
 
+Analytics
+
+Admin UI
+
+Edge function
+
+If unclear → Ask.
+
+STEP 2 — Update Specification First
 Before generating code, update:
+Feature Index
 
-- Feature Index
-- Glossary (if new fields)
-- Enum Registry (if new enums)
-- Code Mapping (if new modules)
-  Confirm cron schedules and quota rules match spec (nightly 03:00 UTC, guard < 30)
+Enum Registry (if needed)
+
+Code Mapping (if needed)
+
+Invariants (if changed)
+
+Cron/quota references (must match nightly 03:00 UTC + guard < 30)
 
 Then implement.
+Spec alignment must be explicitly confirmed.
 
----
-
-### STEP 3 — Minimal Surface Change
-
+STEP 3 — Minimal Surface Change
 Only modify:
+Required files
 
-- Required files
-- Required DB migrations
-- Required edge functions
+Required DB migrations
+
+Required edge functions
 
 Never refactor unrelated logic.
+No speculative improvements.
 
----
-
-### STEP 4 — Validate Against Invariants
-
+STEP 4 — Validate Against Invariants
 Explicitly confirm:
+No editorial overwrite
 
-- No editorial overwrite
-- Enums unchanged
-- Cron safety preserved
-- Availability detection preserved
-- No security regression
+Enums unchanged
 
----
+Cron safety preserved
 
-### STEP 5 — Logging
+Nightly sync preserved
 
+Quota guard preserved
+
+Availability detection preserved
+
+No security regression
+
+STEP 5 — Logging
 All new logic that interacts with:
+Partner APIs
 
-- Partner APIs
-- Availability
-- Translation
-- Cron
+Availability
 
-Must include structured console logging.
+Translation
 
+Cron
+
+Must include structured logging.
 Example:
-
-```
 [FeatureName] { key: value }
-```
+No secrets in logs.
 
----
+5. SECURITY RULES
+   Admin edge functions must:
+   Require JWT
 
-## 5. SECURITY RULES
+Validate admin role via user_roles
 
-Admin edge functions must:
-
-- Require JWT
-- Validate admin role via user_roles
-- Allow service-role bypass for cron only
+Allow service-role bypass for cron only
 
 Never:
+Log secrets
 
-- Log secrets
-- Log tokens
-- Return raw API error bodies to client
+Log tokens
+
+Return raw API error bodies to client
 
 CORS must:
+Allow .lovable.app
 
-- Allow .lovable.app
-- Allow .lovableproject.com
-- Set Vary: Origin
+Allow .lovableproject.com
 
----
+Set Vary: Origin
 
-## 6. DATABASE MIGRATION RULES
+6. DATABASE MIGRATION RULES
+   When adding fields:
+   Never rename canonical fields
 
-When adding fields:
+Never change enum meaning
 
-- Never rename canonical fields
-- Never change enum meaning
-- Add new fields as nullable
-- Provide backfill plan if needed
+Add new fields as nullable
+
+Provide backfill plan if needed
+
+Update Master Spec
 
 When removing fields:
+Only if no active code path depends on them
 
-- Only if no active code path depends on them
-- Must update spec
+Must update spec first
 
----
+7. FEATURE REQUEST FORMAT (AI INPUT PROTOCOL)
+   All feature requests should include:
+   Feature ID:
 
-## 7. FEATURE REQUEST FORMAT (AI INPUT PROTOCOL)
+Owner Layer:
 
-All future feature requests should follow:
+Change Type: (UI / DB / Edge / Cron / Parser / Import)
 
-- **Feature ID:** (existing or new)
-- **Owner Layer:**
-- **Change Type:** (UI / DB / Edge / Cron / Parser / Import)
-- **Desired Behavior:**
-- **Constraints:**
-- **Acceptance Criteria:**
+Desired Behavior:
+
+Constraints:
+
+Acceptance Criteria:
 
 If missing information:
-→ Ask clarifying questions before coding.
+→ Ask before coding.
 
----
+8. SAFE FAILURE PRINCIPLE
+   If external API fails:
+   Abort import
 
-## 8. SAFE FAILURE PRINCIPLE
+Do not create partial draft
 
-If external API fails:
-
-- Abort import
-- Do not create partial draft
-- Do not overwrite existing data
+Do not overwrite existing data
 
 If cron fails:
+Log error
 
-- Log error
-- Do not corrupt products
-- Never bulk-mark sold without verified signal
+Do not corrupt products
 
----
+Never bulk-mark sold without verified signal
 
-## 9. EXTENSIBILITY RULE
+9. EXTENSIBILITY RULE
+   New partners must:
+   Implement adapter
 
-New partners must:
+Map to canonical Product model
 
-- Implement adapter
-- Map to canonical Product model
-- Not alter canonical schema
-- Register new marketplace enum
-- Never special-case logic inside frontend.
+Not alter canonical schema
 
-All partner logic belongs in adapter or edge layer.
+Register new marketplace enum
 
----
+Never special-case logic inside frontend
 
-## 10. OUTPUT FORMAT REQUIREMENT (FOR AI RESPONSES)
+Partner logic belongs in adapter or edge layer.
 
-When implementing changes, always respond with:
+10. OUTPUT FORMAT REQUIREMENT (FOR AI RESPONSES)
+    When implementing changes, always respond with:
+    Spec updates
 
-- Spec updates
-- Files modified
-- DB migrations (if any)
-- Edge functions changed
-- Invariants validation
-- Regression risk assessment
+Files modified
 
-Never respond with "Done" only.
+DB migrations (if any)
 
----
+Edge functions changed
 
-## 11. IF UNSURE
+Invariants validation
 
-Do not guess.
+Regression risk assessment
 
-Ask:
+Never respond with “Done” only.
 
-- Which layer?
-- Is this canonical?
-- Does this change an invariant?
-- Is this an enum change?
+11. IF UNSURE
+    Do not guess.
+    Ask:
+    Which layer owns this?
+
+Is this canonical?
+
+Does this change an invariant?
+
+Is this an enum change?
+
+Does this affect cron or quota behavior?
+
+Final Status
+Your system is now:
+Spec-locked
+
+Quota-aware
+
+Invariant-protected
+
+AI-guarded
+
+Drift-resistant
+
+This is now CTO-level governance for a small team.
