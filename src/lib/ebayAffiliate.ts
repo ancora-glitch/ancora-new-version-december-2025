@@ -51,24 +51,19 @@ export function buildEbayAffiliateUrl(itemId: string, customId?: string): string
 }
 
 /**
- * Given any eBay-related URL/ID, return a properly formatted EPN rover affiliate URL.
- * Always uses rover.ebay.com redirect format for correct click tracking.
+ * Given any eBay-related URL/ID, return a properly formatted EPN direct affiliate URL.
  * Returns null if no eBay item ID is found.
  */
 export function toEbayAffiliateUrl(urlOrId: string | null | undefined): string | null {
   if (!urlOrId) return null;
 
-  // Already a proper rover affiliate link — return as-is
   if (isEbayAffiliateUrl(urlOrId)) return urlOrId;
 
   const s = urlOrId.trim();
-
   const itemId = extractEbayItemId(s);
   if (!itemId) return null;
 
   console.log("[ebay-affiliate] clean_item_id:", itemId);
-
-  // Build rover URL — always wraps destination in mpre param
   return buildEbayAffiliateUrl(itemId);
 }
 
