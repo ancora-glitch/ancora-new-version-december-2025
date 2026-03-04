@@ -407,9 +407,11 @@ System must fail gracefully — not aggressively.
 
 7.4 Phase-Based API Strategy
 Phase 1 — Editorial Build Phase (Current)
-Daily quota: 75 calls
+Daily quota: 75 calls (Tradera shared counter)
 
-Nightly sync only
+ALL availability crons (Tradera + eBay) run nightly only, even though eBay has independent OAuth quota
+
+Tradera sync: 03:00 UTC | eBay availability: 03:15 UTC
 
 Accept 24–72h removal delay
 
