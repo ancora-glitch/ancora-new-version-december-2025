@@ -132,6 +132,32 @@ No variants.
 - Display uses \*\_en fallback
 - Translation must be non-blocking
 
+  3.6 QUOTA & CRON INVARIANTS (NEW)
+
+Tradera/eBay availability must be quota-aware.
+
+Hard rules:
+
+Availability cron runs once per day at 03:00 UTC
+
+Batch size: 25
+
+All external API calls must increment the shared global quota counter
+
+Abort any background job if remaining quota < 30
+
+Manual search/import has priority over background jobs
+
+No job may bypass quota tracking (no “internal-only” counters)
+
+Forbidden:
+
+Cron every 2 hours
+
+Blind full inventory polling
+
+Auto-retry on HTTP 429 without backoff
+
 ---
 
 ## 4. AI CHANGE WORKFLOW (MANDATORY)
