@@ -47,7 +47,7 @@ export function extractEbayItemId(urlOrId: string | null | undefined): string | 
 export function buildEbayAffiliateUrl(itemId: string, customId?: string): string {
   const numericId = extractEbayItemId(itemId) || itemId;
   const destinationUrl = `${EBAY_DESTINATION_BASE}/${numericId}`;
-  let qs = `campid=${EBAY_EPN_CAMP_ID}&toolid=${EBAY_EPN_TOOL_ID}&mpre=${destinationUrl}`;
+  let qs = `mpre=${destinationUrl}&campid=${EBAY_EPN_CAMP_ID}&toolid=${EBAY_EPN_TOOL_ID}`;
   if (customId) qs += `&customid=${encodeURIComponent(customId)}`;
   return `${EBAY_EPN_ROVER_BASE}?${qs}`;
 }
