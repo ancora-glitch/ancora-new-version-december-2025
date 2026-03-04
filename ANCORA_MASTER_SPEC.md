@@ -317,11 +317,13 @@ quantity === 0
 endDate < now
 
 Sync Strategy
-Cron: Once per day (aligned with Tradera schedule)
+Cron: Once per day at 03:15 UTC (staggered 15 min after Tradera sync)
 
 Batch size: 25
 
-Must follow same quota guard principles if API quota exists.
+eBay uses independent OAuth quota (not shared with Tradera), but follows the same nightly-only schedule in Phase 1.
+
+Must follow same graceful error handling principles (no aggressive retries on rate limits).
 
 6.3 Future Optimization (Phase 2)
 Not yet implemented.
@@ -405,9 +407,11 @@ System must fail gracefully — not aggressively.
 
 7.4 Phase-Based API Strategy
 Phase 1 — Editorial Build Phase (Current)
-Daily quota: 75 calls
+Daily quota: 75 calls (Tradera shared counter)
 
-Nightly sync only
+ALL availability crons (Tradera + eBay) run nightly only, even though eBay has independent OAuth quota
+
+Tradera sync: 03:00 UTC | eBay availability: 03:15 UTC
 
 Accept 24–72h removal delay
 
