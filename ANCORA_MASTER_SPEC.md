@@ -405,6 +405,14 @@ No automatic retry on HTTP 429 without delay.
 Admin-triggered backfills must also respect quota guard unless explicitly marked ‘force’.
 System must fail gracefully — not aggressively.
 
+Exception — Sub-daily retry-import:
+tradera-retry-import may run every 30 minutes (sub-daily) because it processes only queued retry jobs, not full inventory scans.
+It must always be:
+- Quota-guarded (abort if remaining < 30)
+- Hard-capped per run (max 3 jobs/run)
+- Backoff-controlled (exponential, max 8 attempts, base 30 min)
+This exception does not apply to availability crons, which remain nightly-only in Phase 1.
+
 7.4 Phase-Based API Strategy
 Phase 1 — Editorial Build Phase (Current)
 Daily quota: 75 calls (Tradera shared counter)
