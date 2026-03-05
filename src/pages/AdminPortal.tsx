@@ -13,7 +13,7 @@ import { useAllCategories, type Category, type CategoryStatus } from "@/hooks/us
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Trash2, Pencil, X, GripVertical, Bold, Italic, RefreshCw, Loader2, Image as ImageIcon, Eye, EyeOff, Filter, Star, Search } from "lucide-react";
+import { Trash2, Pencil, X, GripVertical, Bold, Italic, RefreshCw, Loader2, Image as ImageIcon, Eye, EyeOff, Star, Search } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StorageImagePicker } from "@/components/StorageImagePicker";
@@ -282,6 +282,10 @@ const AdminPortal = () => {
   const [productAffiliateAutoHandling, setProductAffiliateAutoHandling] = useState(true);
   const [savingProduct, setSavingProduct] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "active" | "sold" | "review_required">("all");
+  const [productSearchQuery, setProductSearchQuery] = useState("");
+  const [brandFilter, setBrandFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [productSortBy, setProductSortBy] = useState<"default" | "newest" | "oldest" | "brand" | "price">("default");
 
   // Category form state
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
@@ -710,12 +714,41 @@ const AdminPortal = () => {
     }
   };
 
-  // Filter products based on status
+   // Filter products based on status, search, brand, category
   const filteredProducts = products?.filter((p) => {
-    if (statusFilter === "all") return true;
-    if (statusFilter === "active") return isPublishedStatus(p.status);
-    return p.status === statusFilter;
+    // Status filter
+    if (statusFilter !== "all") {
+      if (statusFilter === "active" ? !isPublishedStatus(p.status) : p.status !== statusFilter) return false;
+    }
+    // Brand filter
+    if (brandFilter !== "all" && p.brand !== brandFilter) return false;
+    // Category filter
+    if (categoryFilter !== "all") {
+      if (categoryFilter === "none" ? p.category_id != null : p.category_id !== categoryFilter) return false;
+    }
+    // Search query
+    if (productSearchQuery.trim()) {
+      const q = productSearchQuery.toLowerCase();
+      const searchable = `${p.brand} ${p.name} ${p.name_en || ""}`.toLowerCase();
+      if (!searchable.includes(q)) return false;
+    }
+    return true;
+  })?.sort((a, b) => {
+    switch (productSortBy) {
+      case "newest": return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      case "oldest": return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      case "brand": return a.brand.localeCompare(b.brand);
+      case "price": {
+        const pa = parseFloat(String(a.price).replace(/[^0-9.]/g, "")) || 0;
+        const pb = parseFloat(String(b.price).replace(/[^0-9.]/g, "")) || 0;
+        return pa - pb;
+      }
+      default: return 0; // keep existing sort_order from useAllProducts
+    }
   });
+
+  // Unique brands for filter dropdown
+  const uniqueBrands = Array.from(new Set(products?.map((p) => p.brand) || [])).sort();
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -1238,56 +1271,91 @@ const AdminPortal = () => {
                   <h2 className="font-display text-lg text-primary">
                     Existing Products ({filteredProducts?.length || 0}{statusFilter !== "all" ? ` ${statusFilter}` : ""})
                   </h2>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={isRunningScan}
-                      onClick={async () => {
-                        setIsRunningScan(true);
-                        try {
-                          const { data, error } = await supabase.functions.invoke('recheck-product', {
-                            body: { scan_all: true },
-                          });
-                          if (error) {
-                            toast.error('Scan failed: ' + error.message);
-                            return;
-                          }
-                          if (data.error) {
-                            toast.error(data.error);
-                            return;
-                          }
-                          toast.success(`Scan complete: ${data.total_checked} checked, ${data.sold_marked} marked sold, ${data.review_flagged} flagged for review`);
-                          queryClient.invalidateQueries({ queryKey: ["products"] });
-                          queryClient.invalidateQueries({ queryKey: ["products-all"] });
-                          queryClient.invalidateQueries({ queryKey: ["products-sold"] });
-                        } catch {
-                          toast.error('Scan failed');
-                        } finally {
-                          setIsRunningScan(false);
-                        }
-                      }}
-                    >
-                      {isRunningScan ? (
-                        <><Loader2 className="w-4 h-4 mr-1 animate-spin" />Scanning…</>
-                      ) : (
-                        <><RefreshCw className="w-4 h-4 mr-1" />Scan All</>
-                      )}
-                    </Button>
-                    <Filter className="w-4 h-4 text-muted-foreground" />
-                    <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "all" | "draft" | "active" | "sold" | "review_required")}>
-                      <SelectTrigger className="w-[160px] bg-background border-border">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
-                        <SelectItem value="draft">Drafts</SelectItem>
-                        <SelectItem value="active">Published</SelectItem>
-                        <SelectItem value="review_required">Review Required</SelectItem>
-                        <SelectItem value="sold">Sold</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isRunningScan}
+                    onClick={async () => {
+                      setIsRunningScan(true);
+                      try {
+                        const { data, error } = await supabase.functions.invoke('recheck-product', {
+                          body: { scan_all: true },
+                        });
+                        if (error) { toast.error('Scan failed: ' + error.message); return; }
+                        if (data.error) { toast.error(data.error); return; }
+                        toast.success(`Scan complete: ${data.total_checked} checked, ${data.sold_marked} marked sold, ${data.review_flagged} flagged for review`);
+                        queryClient.invalidateQueries({ queryKey: ["products"] });
+                        queryClient.invalidateQueries({ queryKey: ["products-all"] });
+                        queryClient.invalidateQueries({ queryKey: ["products-sold"] });
+                      } catch { toast.error('Scan failed'); } finally { setIsRunningScan(false); }
+                    }}
+                  >
+                    {isRunningScan ? (
+                      <><Loader2 className="w-4 h-4 mr-1 animate-spin" />Scanning…</>
+                    ) : (
+                      <><RefreshCw className="w-4 h-4 mr-1" />Scan All</>
+                    )}
+                  </Button>
+                </div>
+
+                {/* Search & Filters Bar */}
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  <div className="relative flex-1 min-w-[200px]">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search brand or title…"
+                      value={productSearchQuery}
+                      onChange={(e) => setProductSearchQuery(e.target.value)}
+                      className="pl-8 bg-background border-border"
+                    />
                   </div>
+                  <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+                    <SelectTrigger className="w-[140px] bg-background border-border">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All statuses</SelectItem>
+                      <SelectItem value="draft">Drafts</SelectItem>
+                      <SelectItem value="active">Published</SelectItem>
+                      <SelectItem value="review_required">Review</SelectItem>
+                      <SelectItem value="sold">Sold</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={brandFilter} onValueChange={setBrandFilter}>
+                    <SelectTrigger className="w-[160px] bg-background border-border">
+                      <SelectValue placeholder="Brand" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All brands</SelectItem>
+                      {uniqueBrands.map((b) => (
+                        <SelectItem key={b} value={b}>{b}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="w-[160px] bg-background border-border">
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All categories</SelectItem>
+                      <SelectItem value="none">Uncategorized</SelectItem>
+                      {categories?.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={productSortBy} onValueChange={(v) => setProductSortBy(v as any)}>
+                    <SelectTrigger className="w-[130px] bg-background border-border">
+                      <SelectValue placeholder="Sort" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="default">Default</SelectItem>
+                      <SelectItem value="newest">Newest</SelectItem>
+                      <SelectItem value="oldest">Oldest</SelectItem>
+                      <SelectItem value="brand">Brand A–Z</SelectItem>
+                      <SelectItem value="price">Price ↑</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <p className="text-muted-foreground text-sm mb-6">Drag products to reorder. Order is saved automatically.</p>
                 {productsLoading ? (
@@ -1339,7 +1407,9 @@ const AdminPortal = () => {
                   </DndContext>
                 ) : (
                   <p className="text-muted-foreground text-center py-8 border border-border rounded-sm">
-                    {statusFilter === "all" ? "No products yet." : `No ${statusFilter} products.`}
+                    {productSearchQuery || brandFilter !== "all" || categoryFilter !== "all" || statusFilter !== "all"
+                      ? "No products match your search."
+                      : "No products yet."}
                   </p>
                 )}
               </div>
