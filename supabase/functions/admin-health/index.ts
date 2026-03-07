@@ -224,7 +224,7 @@ serve(async (req) => {
     const syncRun = cron['tradera_sync'];
     if (syncRun && syncRun.lastRun) {
       const batchSize = syncRun.batch_size ?? 25;
-      const scheduleHours = 2;
+      const scheduleHours = 24;
       const cyclesNeeded = active_tradera_count > 0 ? Math.ceil(active_tradera_count / batchSize) : 0;
       tradera_sync_coverage = {
         active_tradera_count,
