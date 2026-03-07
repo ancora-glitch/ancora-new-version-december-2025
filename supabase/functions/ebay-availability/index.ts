@@ -159,7 +159,7 @@ function extractEbayItemId(url: string | null): string | null {
 async function checkEbayItemAvailability(
   itemId: string,
   accessToken: string,
-): Promise<{ status: AffiliateStatus; error?: string }> {
+): Promise<{ status: AffiliateStatus; rateLimited?: boolean; error?: string }> {
   const itemUrl = `${getEbayBaseUrl()}/buy/browse/v1/item/v1|${itemId}|0`;
   try {
     const response = await fetch(itemUrl, {
@@ -169,6 +169,10 @@ async function checkEbayItemAvailability(
         "Content-Type": "application/json",
       },
     });
+    if (response.status === 429) {
+      console.warn(`[EbayAvailability:RateLimit] { itemId: "${itemId}", status: 429 }`);
+      return { status: "unknown", rateLimited: true, error: "Rate limited by eBay API" };
+    }
     if (response.status === 404) return { status: "unavailable" };
     if (!response.ok) return { status: "unknown", error: `API error: ${response.status}` };
     const item = await response.json();
