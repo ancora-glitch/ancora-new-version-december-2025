@@ -1,5 +1,9 @@
 ANCORA — MASTER PROJECT SPECIFICATION
-Version: 1.1
+Version 1.2
+
+- Admin health coverage window corrected to 24h
+- eBay availability checks hardened with rate-limit handling (429 abort + request pacing)
+
 Status: Production MVP — Architecture Locked
 Purpose: System blueprint for AI-assisted regeneration and extension
 
@@ -309,24 +313,27 @@ This delay is acceptable in current editorial phase.
 6.2 eBay Sold Detection
 Mark product as sold if:
 HTTP 404
-
 OUT_OF_STOCK
-
 quantity === 0
-
 endDate < now
 
 Sync Strategy
 Cron: Once per day (aligned with Tradera schedule)
-
 Batch size: 25
+eBay availability checks must follow the same defensive rate-protection principles as other background jobs.
 
-Must follow same quota guard principles if API quota exists.
+Current guardrails:
 
-6.3 Future Optimization (Phase 2)
-Not yet implemented.
-Future prioritization model:
-Featured / Frontpage products → highest sync priority
+- Maximum batch size: 25 products per run
+- Small delay between requests
+- Graceful handling of rate-limit responses
+- Logging of request volume per run
+  eBay does not rely on the Tradera shared quota counter unless a marketplace-specific quota model is explicitly introduced.
+
+  6.3 Future Optimization (Phase 2)
+  Not yet implemented.
+  Future prioritization model:
+  Featured / Frontpage products → highest sync priority
 
 Story-embedded products → medium priority
 
@@ -392,16 +399,18 @@ Must abort automatically if:
 Remaining quota < 30
 
 7.3 Background Job Rules
-No cron job may consume more than 35% of daily quota.
+No cron job may consume more than 35% of daily quota, where such a quota model exists.
+All cron jobs must include protective execution guards.
+For quota-based integrations (such as Tradera), this means explicit quota guards against the shared counter.
+For non-quota-based integrations (such as eBay), this means defensive rate protection, including:
 
-All cron jobs must include quota guards.
-
-Retry loops must include exponential backoff.
-
-No automatic retry on HTTP 429 without delay.
-
-Admin-triggered backfills must also respect quota guard unless explicitly marked ‘force’.
-System must fail gracefully — not aggressively.
+- capped batch size
+- request pacing / small delay between calls
+- graceful handling of rate-limit responses
+  Retry loops must include exponential backoff.
+  No automatic retry on HTTP 429 without delay.
+  Admin-triggered backfills must also respect quota guard unless explicitly marked ‘force’.
+  System must fail gracefully — not aggressively.
 
 Retry Job Exception (Phase 1 Clarification)
 The tradera-retry-import cron job may run sub-daily (e.g. every 30 minutes), as it is not an availability sync job.
@@ -694,16 +703,11 @@ Translation budget
 
 11. SECURITY MODEL
     All admin functions require JWT + admin role
-
-Service role for cron
-
-CORS dynamic origin validation
-
-Input validation on all API params
-
-Rate limiting on eBay
-
-Tradera daily quota enforcement
+    Service role for cron
+    CORS dynamic origin validation
+    Input validation on all API params
+    Defensive rate protection on eBay background availability checks
+    Tradera daily quota enforcement
 
 12. COST OPTIMIZATION (Updated — Quota-Aware Model)
     12.1 Sync Strategy
@@ -736,13 +740,10 @@ Retry queue respects exponential backoff
 
 12.3 Defensive Cost Controls
 No cron job runs every 2h
-
 No blind full inventory polling
-
 No auto-retry on HTTP 429 without delay
-
-All external calls must increment shared quota counter
-
+All external calls for quota-based integrations must increment the shared quota counter
+Non-quota-based integrations must still use defensive request pacing and bounded batch execution
 Cost stability is prioritized over theoretical real-time accuracy.
 
 13. DESIGN PRINCIPLES
@@ -1361,14 +1362,12 @@ Edge: ais-backfill-parsed-fields (if present)
 
 F-15 Admin health checks (system visibility)
 Owner: admin-health edge function + Imports header UI
-
 Touches: cron_runs, retry queue, secrets presence
-
 Key paths:
-
 Edge: admin-health
-
 UI: Imports header health row
+Invariant:
+Coverage calculations for nightly sync jobs must assume a 24-hour schedule window, not a sub-daily interval.
 
 F-16 Cron telemetry + batching/cursor state
 Owner: Cron edge functions + DB
