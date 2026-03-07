@@ -332,6 +332,20 @@ serve(async (req) => {
       }
 
       const availability = await checkEbayItemAvailability(itemId, accessToken);
+
+      // Rate-limit guard: stop processing remaining batch on 429
+      if (availability.rateLimited) {
+        console.warn(`[EbayAvailability:Abort] { reason: "rate_limited", checked: ${results.length}, remaining: ${batch.length - results.length} }`);
+        results.push({
+          productId: product.id,
+          productName: `${product.brand} - ${product.name}`,
+          affiliateStatus: "unknown",
+          autoUnpublished: false,
+          error: availability.error,
+        });
+        break;
+      }
+
       const affiliateAutoHandling = product.affiliate_auto_handling !== false;
       // INVARIANT: Only update availability/status fields. Never overwrite editorial content
       // (name, description, name_en, description_en, images, brand, etc.)
@@ -356,6 +370,8 @@ serve(async (req) => {
         error: availability.error,
       });
     }
+
+    console.log(`[EbayAvailability:Summary] { totalProducts: ${totalProducts}, checked: ${results.length}, batchSize: ${MAX_CHECKS_PER_RUN} }`);
 
     // Update cursor
     await setCursor(supabase, "ebay_availability", cursorAfter);
