@@ -651,7 +651,7 @@ Product tagging
 
 Weekly edits
 
-Category structure
+Category structure (see 9.6 Category & Subcategory Model)
 
 Featured prioritization
 
