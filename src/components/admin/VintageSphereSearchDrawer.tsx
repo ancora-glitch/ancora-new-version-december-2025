@@ -266,7 +266,7 @@ export function VintageSphereSearchDrawer({
           title_en: detail.title,
           description,
           description_en: description,
-          language: "en" as const,
+          language: "en",
           brand: parsed.brand_text || (detail.vendor !== "Vintage Sphere" ? detail.vendor : "Unknown"),
           size: detail.size || parsed.size_text || null,
           color: detail.color || parsed.color_text || null,
