@@ -220,6 +220,8 @@ Prevent silent schema drift in AI-assisted development.
 
 eBay
 
+VintageSphere
+
 4.2 Tradera Import
 Data Source:
 SOAP GetItem
