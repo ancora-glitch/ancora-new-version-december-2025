@@ -79,6 +79,23 @@ const chartConfig: ChartConfig = {
 
 export const AnalyticsDashboard = () => {
   const [dateRange, setDateRange] = useState<DateRange>("7days");
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
+
+  // Fetch product marketplace map for source filtering
+  const { data: productMarketplaceMap } = useQuery({
+    queryKey: ["product-marketplace-map"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("products")
+        .select("id, marketplace");
+      const map: Record<string, string> = {};
+      data?.forEach((p) => {
+        if (p.marketplace) map[p.id] = p.marketplace.toLowerCase();
+      });
+      return map;
+    },
+    staleTime: 60000,
+  });
 
   const { data: analytics, isLoading } = useQuery<AnalyticsSummary>({
     queryKey: ["site-analytics", dateRange],
