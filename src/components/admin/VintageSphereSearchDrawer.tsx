@@ -209,16 +209,32 @@ export function VintageSphereSearchDrawer({
     );
 
     setIsImporting(true);
-    setImportProgress({ current: 0, total: itemsToImport.length });
+    setRunLimitReached(false);
+    const runStartTime = Date.now();
+    const effectiveTotal = Math.min(itemsToImport.length, MAX_IMPORT_PER_RUN);
+    setImportProgress({ current: 0, total: effectiveTotal });
     let imported = 0;
     let skipped = 0;
     let failed = 0;
     let soldOut = 0;
+    let errorCount = 0;
 
     try {
       for (let i = 0; i < itemsToImport.length; i++) {
+        // Run limit guard
+        if (imported >= MAX_IMPORT_PER_RUN) {
+          setRunLimitReached(true);
+          console.info(
+            `[VintageSphere Import] Run limit reached (${MAX_IMPORT_PER_RUN}). Stopping.`
+          );
+          toast.warning(
+            `Run limit reached (${MAX_IMPORT_PER_RUN} imports). Start a new run to continue.`
+          );
+          break;
+        }
+
         const handle = itemsToImport[i];
-        setImportProgress({ current: i + 1, total: itemsToImport.length });
+        setImportProgress({ current: Math.min(i + 1, effectiveTotal), total: effectiveTotal });
 
         const searchItem = searchResults.find((r) => r.handle === handle);
         if (!searchItem) continue;
@@ -241,6 +257,7 @@ export function VintageSphereSearchDrawer({
             `[VintageSphere Import] Could not fetch details for ${handle} — skipping`
           );
           failed++;
+          errorCount++;
           continue;
         }
 
@@ -293,13 +310,19 @@ export function VintageSphereSearchDrawer({
           },
         };
 
-        await importMutation.mutateAsync(importInput);
-        imported++;
+        try {
+          await importMutation.mutateAsync(importInput);
+          imported++;
+        } catch (importErr: any) {
+          console.error(`[VintageSphere Import] Failed to import ${handle}:`, importErr);
+          failed++;
+          errorCount++;
+          continue;
+        }
 
         // If sold out, immediately mark as unavailable
         if (!detail.available) {
           soldOut++;
-          // The product was just created as draft; mark reason for curator
           console.info(
             `[VintageSphere Import] ${handle} is sold out — created as draft with note`
           );
@@ -310,6 +333,22 @@ export function VintageSphereSearchDrawer({
           await new Promise((r) => setTimeout(r, 300));
         }
       }
+
+      // Health log
+      const durationMs = Date.now() - runStartTime;
+      console.info("[VintageSphere Import Run]", JSON.stringify({
+        importer_name: "vintagesphere",
+        endpoint_status: "ok",
+        pages_fetched: searchMeta?.pagesScanned ?? 0,
+        products_returned: searchResults.length,
+        products_imported: imported,
+        products_skipped: skipped,
+        products_sold_out: soldOut,
+        duration_ms: durationMs,
+        error_count: errorCount,
+        run_limit: MAX_IMPORT_PER_RUN,
+        run_limit_reached: imported >= MAX_IMPORT_PER_RUN,
+      }));
 
       const parts: string[] = [];
       if (imported > 0)
@@ -343,7 +382,15 @@ export function VintageSphereSearchDrawer({
       onOpenChange(false);
       onImported?.();
     } catch (error: any) {
-      console.error("Import error:", error);
+      const durationMs = Date.now() - runStartTime;
+      console.error("[VintageSphere Import Run] Fatal error:", JSON.stringify({
+        importer_name: "vintagesphere",
+        endpoint_status: "error",
+        products_imported: imported,
+        duration_ms: durationMs,
+        error_count: errorCount + 1,
+        error_message: error.message,
+      }));
       toast.error("Import failed: " + error.message);
     } finally {
       setIsImporting(false);
