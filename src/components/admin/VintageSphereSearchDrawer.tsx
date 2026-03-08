@@ -75,6 +75,8 @@ interface VintageSphereSearchDrawerProps {
   onImported?: () => void;
 }
 
+const MAX_IMPORT_PER_RUN = 10;
+
 export function VintageSphereSearchDrawer({
   open,
   onOpenChange,
@@ -101,6 +103,7 @@ export function VintageSphereSearchDrawer({
     total: number;
   } | null>(null);
   const [existingRefs, setExistingRefs] = useState<Set<string>>(new Set());
+  const [runLimitReached, setRunLimitReached] = useState(false);
 
   // Reset on close
   useEffect(() => {
