@@ -4,6 +4,7 @@ import { ImportItemDetail } from "./ImportItemDetail";
 import { NewImportDialog } from "./NewImportDialog";
 import { EbaySearchDrawer } from "./EbaySearchDrawer";
 import { TraderaSearchDrawer } from "./TraderaSearchDrawer";
+import { VintageSphereSearchDrawer } from "./VintageSphereSearchDrawer";
 import { RetryJobsPanel } from "./RetryJobsPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
