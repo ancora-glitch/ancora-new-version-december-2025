@@ -14,6 +14,7 @@ import {
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 
 type DateRange = "7days" | "30days" | "all";
+type SourceFilter = "all" | "tradera" | "ebay" | "vintagesphere";
 
 interface TopProduct {
   product_id: string;
