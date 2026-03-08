@@ -170,6 +170,15 @@ export function VintageSphereSearchDrawer({
         toast.info("No items found");
       }
     } catch (error: any) {
+      // Failure alert: endpoint error
+      console.warn("[VintageSphereImportWarning]", JSON.stringify({
+        event: "VintageSphereImportWarning",
+        endpoint_status: "error",
+        pages_fetched: 0,
+        products_returned: 0,
+        error_count: 1,
+        duration_ms: 0,
+      }));
       console.error("VintageSphere search error:", error);
       setSearchError(error.message || "Search failed");
       toast.error("Search failed: " + error.message);
