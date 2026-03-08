@@ -166,6 +166,10 @@ export function ImportsTab() {
               <Search className="w-4 h-4 mr-2" />
               Search eBay
             </Button>
+            <Button variant="outline" onClick={() => setShowVintageSphereDrawer(true)}>
+              <Search className="w-4 h-4 mr-2" />
+              Search VintageSphere
+            </Button>
             <Button
               variant="outline"
               onClick={handleBackfillFields}
