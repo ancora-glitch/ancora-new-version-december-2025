@@ -613,21 +613,38 @@ export function VintageSphereSearchDrawer({
             </div>
           )}
 
+          {/* Run limit warning */}
+          {runLimitReached && (
+            <div className="flex items-center gap-2 p-3 bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-md">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span className="text-sm">
+                Run limit reached ({MAX_IMPORT_PER_RUN} imports per run). Close and re-open to start a new run.
+              </span>
+            </div>
+          )}
+
           {/* Import button */}
           {selectedItems.size > 0 && (
-            <Button
-              onClick={handleImport}
-              disabled={isImporting}
-              className="w-full"
-            >
-              {isImporting ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Package className="w-4 h-4 mr-2" />
+            <div className="space-y-2">
+              {selectedItems.size > MAX_IMPORT_PER_RUN && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  ⚠ Only the first {MAX_IMPORT_PER_RUN} items will be imported in this run.
+                </p>
               )}
-              Import {selectedItems.size} item
-              {selectedItems.size > 1 ? "s" : ""} as Draft
-            </Button>
+              <Button
+                onClick={handleImport}
+                disabled={isImporting || runLimitReached}
+                className="w-full"
+              >
+                {isImporting ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Package className="w-4 h-4 mr-2" />
+                )}
+                Import {Math.min(selectedItems.size, MAX_IMPORT_PER_RUN)} item
+                {Math.min(selectedItems.size, MAX_IMPORT_PER_RUN) > 1 ? "s" : ""} as Draft
+              </Button>
+            </div>
           )}
         </div>
       </SheetContent>

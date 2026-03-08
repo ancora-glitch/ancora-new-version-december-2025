@@ -276,6 +276,71 @@ Create Product draft
 
 Fallback description built from structured fields if missing.
 
+4.4 VintageSphere Import (Partner Importer)
+Data Source:
+Shopify JSON endpoint (/products.json and /products/{handle}.json)
+
+Import Method:
+Admin-driven curated search + select (Admin → Imports → Search VintageSphere)
+Not automated — all imports are manually initiated by the editorial team.
+
+External Identifier:
+Shopify product handle (used as source_ref and slug)
+
+Availability Source:
+variants[].available from Shopify JSON response.
+HTML sold-out parsing is not used.
+
+Currency: SEK
+
+Field Mapping:
+- title → products.name / name_en
+- body_html (stripped) → products.description / description_en
+- vendor → products.brand (unless "Vintage Sphere", then parsed from listing)
+- options[Size] → products.size
+- options[Color] → products.color
+- options[Material] → products.material
+- Condition → parsed from body_html star ratings (⭑⭑⭑⭑ = Excellent, ⭑⭑⭑ = Very good, ⭑⭑ = Good, ⭑ = Fair)
+- Era → parsed from body_html (e.g. "Era: 2000's")
+- images[] → products.image + additional_images
+- product URL → products.affiliate_url
+
+Sold-Out Behavior:
+Products where variants[].available is false are imported as draft (not published).
+The curator decides whether to publish or discard.
+
+Run Limit:
+max_import_per_run = 10
+The importer stops automatically after 10 successful imports in a single run.
+If more products are selected, the UI notifies the curator that the limit was reached.
+Additional imports require a new run.
+Rationale: Ancora uses curated selection — batch size limits prevent accidental bulk imports.
+
+Isolation Rule:
+The VintageSphere importer is fully isolated from Tradera and eBay import flows.
+It does not share quota counters, retry queues, or cron jobs with other importers.
+Edge functions: vintagesphere-search, vintagesphere-item (separate from tradera-* and ebay-*).
+
+Deduplication:
+Products are deduplicated by handle (source_ref) and affiliate_url against the products table.
+Items already imported show "Already imported" in the search UI.
+
+Logging Requirement:
+Every import run produces a structured health log with:
+- importer_name: vintagesphere
+- endpoint_status
+- pages_fetched
+- products_returned
+- products_imported
+- duration_ms
+- error_count
+- run_limit_reached
+
+Rate Limiting:
+- 500ms delay between search pagination pages
+- 300ms delay between individual product imports
+- 15s timeout per API request
+
 5. EDITORIAL WORKFLOW
    5.1 Products
    States:
