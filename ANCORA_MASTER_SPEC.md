@@ -1,6 +1,12 @@
 ANCORA — MASTER PROJECT SPECIFICATION
-Version 1.4
+Version 1.5
 
+Changelog v1.5:
+- Bulk subcategory reclassification: 35 products → knitwear, 10 → blazers, 25 → shirts
+- Reclassification rules documented (Section 9.7)
+- Header mobile logo z-index fix (logo now clickable on mobile)
+
+Changelog v1.4:
 - Admin health coverage window corrected to 24h
 - eBay availability checks hardened with rate-limit handling (429 abort + request pacing)
 - Clothing subcategories defined (knitwear, shirts, blazers, skirts, jeans, trousers, shorts)
