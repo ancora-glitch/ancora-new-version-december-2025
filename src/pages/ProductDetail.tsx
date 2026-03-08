@@ -368,17 +368,10 @@ const ProductDetail = () => {
                 </h1>
 
                 {/* Price */}
-                <div className="flex items-center gap-3">
+                <div>
                   <p className="text-2xl md:text-3xl font-semibold text-foreground">
                     {formatPrice(product.price)}
                   </p>
-                  {/* Show "Updated" badge if price was updated in the last hour */}
-                  {product.updated_at && 
-                    new Date(product.updated_at).getTime() > Date.now() - 60 * 60 * 1000 && (
-                    <span className="inline-flex items-center px-2 py-0.5 text-[10px] uppercase tracking-wider font-medium text-primary bg-primary/10 rounded-full animate-pulse">
-                      Updated
-                    </span>
-                  )}
                 </div>
 
                 {/* Divider */}
