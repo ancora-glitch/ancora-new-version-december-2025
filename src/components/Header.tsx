@@ -7,8 +7,14 @@ import { useIsMobile } from "@/hooks/use-mobile";
 const clothingSubcategories = [
   { label: "Outerwear", href: "/category/clothing?sub=outerwear" },
   { label: "Tops", href: "/category/clothing?sub=tops" },
-  { label: "Bottoms", href: "/category/clothing?sub=bottoms" },
+  { label: "Knitwear", href: "/category/clothing?sub=knitwear" },
+  { label: "Shirts", href: "/category/clothing?sub=shirts" },
+  { label: "Blazers", href: "/category/clothing?sub=blazers" },
   { label: "Dresses", href: "/category/clothing?sub=dresses" },
+  { label: "Skirts", href: "/category/clothing?sub=skirts" },
+  { label: "Jeans", href: "/category/clothing?sub=jeans" },
+  { label: "Trousers", href: "/category/clothing?sub=trousers" },
+  { label: "Shorts", href: "/category/clothing?sub=shorts" },
 ];
 
 const shopCategories = [

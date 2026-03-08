@@ -45,8 +45,14 @@ type AncoraSelectSource = "tradera" | null;
 const CLOTHING_SUBCATEGORIES = [
   { value: "outerwear", label: "Outerwear" },
   { value: "tops", label: "Tops" },
-  { value: "bottoms", label: "Bottoms" },
+  { value: "knitwear", label: "Knitwear" },
+  { value: "shirts", label: "Shirts" },
+  { value: "blazers", label: "Blazers" },
   { value: "dresses", label: "Dresses" },
+  { value: "skirts", label: "Skirts" },
+  { value: "jeans", label: "Jeans" },
+  { value: "trousers", label: "Trousers" },
+  { value: "shorts", label: "Shorts" },
 ];
 
 interface Product {
