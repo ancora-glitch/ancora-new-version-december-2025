@@ -124,26 +124,36 @@ export const AnalyticsDashboard = () => {
       // Build base query for product clicks
       let clicksQuery = supabase
         .from("site_analytics")
-        .select("*", { count: "exact", head: true })
+        .select("metadata")
         .eq("event_type", "product_click");
       
       if (rangeStart) {
         clicksQuery = clicksQuery.gte("created_at", rangeStart.toISOString());
       }
       
-      const { count: totalClicks } = await clicksQuery;
+      const { data: clicksData } = await clicksQuery;
+      const filteredClicks = clicksData?.filter((e) => {
+        const meta = e.metadata as { product_id?: string } | null;
+        return matchesSource(meta?.product_id);
+      }) || [];
+      const totalClicks = filteredClicks.length;
 
       // Build query for Buy Now clicks
       let buyNowQuery = supabase
         .from("site_analytics")
-        .select("*", { count: "exact", head: true })
+        .select("metadata")
         .eq("event_type", "buy_now_click");
       
       if (rangeStart) {
         buyNowQuery = buyNowQuery.gte("created_at", rangeStart.toISOString());
       }
       
-      const { count: buyNowClicks } = await buyNowQuery;
+      const { data: buyNowData } = await buyNowQuery;
+      const filteredBuyNow = buyNowData?.filter((e) => {
+        const meta = e.metadata as { product_id?: string } | null;
+        return matchesSource(meta?.product_id);
+      }) || [];
+      const buyNowClicks = filteredBuyNow.length;
 
       // Get unique visitors count
       let visitorsQuery = supabase
