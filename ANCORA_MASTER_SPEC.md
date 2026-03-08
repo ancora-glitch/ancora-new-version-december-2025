@@ -1,5 +1,12 @@
 ANCORA — MASTER PROJECT SPECIFICATION
-Version 1.6
+Version 1.7
+
+Changelog v1.7:
+- VintageSphere partner importer added (Section 4.4)
+- Import run limit: max_import_per_run = 10 (VintageSphere only)
+- Structured health logging for VintageSphere import runs
+- marketplace enum extended: vintagesphere added
+- Adapters list updated: Tradera, eBay, VintageSphere
 
 Changelog v1.6:
 - F-05: Source label redesigned from badge/button to plain bold text
