@@ -157,10 +157,28 @@ export function VintageSphereSearchDrawer({
         durationMs: data.durationMs,
       });
 
-      if (data.items?.length === 0) {
+      // Failure alert: zero results
+      if (!data.items || data.items.length === 0) {
+        console.warn("[VintageSphereImportWarning]", JSON.stringify({
+          event: "VintageSphereImportWarning",
+          endpoint_status: "ok",
+          pages_fetched: data.pagesScanned ?? 0,
+          products_returned: 0,
+          error_count: 0,
+          duration_ms: data.durationMs ?? 0,
+        }));
         toast.info("No items found");
       }
     } catch (error: any) {
+      // Failure alert: endpoint error
+      console.warn("[VintageSphereImportWarning]", JSON.stringify({
+        event: "VintageSphereImportWarning",
+        endpoint_status: "error",
+        pages_fetched: 0,
+        products_returned: 0,
+        error_count: 1,
+        duration_ms: 0,
+      }));
       console.error("VintageSphere search error:", error);
       setSearchError(error.message || "Search failed");
       toast.error("Search failed: " + error.message);
@@ -383,6 +401,14 @@ export function VintageSphereSearchDrawer({
       onImported?.();
     } catch (error: any) {
       const durationMs = Date.now() - runStartTime;
+      console.warn("[VintageSphereImportWarning]", JSON.stringify({
+        event: "VintageSphereImportWarning",
+        endpoint_status: "error",
+        pages_fetched: searchMeta?.pagesScanned ?? 0,
+        products_returned: searchResults.length,
+        error_count: errorCount + 1,
+        duration_ms: durationMs,
+      }));
       console.error("[VintageSphere Import Run] Fatal error:", JSON.stringify({
         importer_name: "vintagesphere",
         endpoint_status: "error",
