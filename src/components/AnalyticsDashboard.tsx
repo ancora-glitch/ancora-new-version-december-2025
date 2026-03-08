@@ -387,24 +387,49 @@ export const AnalyticsDashboard = () => {
           Statistics
         </h2>
         
-        <div className="flex items-center gap-2">
-          <Calendar size={16} className="text-muted-foreground" />
-          <div className="flex rounded-md border border-border overflow-hidden">
-            {(["7days", "30days", "all"] as DateRange[]).map((range) => (
-              <Button
-                key={range}
-                variant="ghost"
-                size="sm"
-                onClick={() => setDateRange(range)}
-                className={`rounded-none px-3 py-1.5 text-xs font-medium transition-colors ${
-                  dateRange === range
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "hover:bg-secondary"
-                }`}
-              >
-                {range === "7days" ? "7 days" : range === "30days" ? "30 days" : "All time"}
-              </Button>
-            ))}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Source Filter */}
+          <div className="flex items-center gap-2">
+            <Store size={16} className="text-muted-foreground" />
+            <div className="flex rounded-md border border-border overflow-hidden">
+              {(["all", "tradera", "ebay", "vintagesphere"] as SourceFilter[]).map((source) => (
+                <Button
+                  key={source}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSourceFilter(source)}
+                  className={`rounded-none px-3 py-1.5 text-xs font-medium transition-colors ${
+                    sourceFilter === source
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "hover:bg-secondary"
+                  }`}
+                >
+                  {source === "all" ? "All Sources" : source === "tradera" ? "Tradera" : source === "ebay" ? "eBay" : "VintageSphere"}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Date Range Filter */}
+          <div className="flex items-center gap-2">
+            <Calendar size={16} className="text-muted-foreground" />
+            <div className="flex rounded-md border border-border overflow-hidden">
+              {(["7days", "30days", "all"] as DateRange[]).map((range) => (
+                <Button
+                  key={range}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDateRange(range)}
+                  className={`rounded-none px-3 py-1.5 text-xs font-medium transition-colors ${
+                    dateRange === range
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "hover:bg-secondary"
+                  }`}
+                >
+                  {range === "7days" ? "7 days" : range === "30days" ? "30 days" : "All time"}
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
