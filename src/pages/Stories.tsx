@@ -39,10 +39,10 @@ const Stories = () => {
               <p className="col-span-full text-center text-muted-foreground">Loading stories...</p>
             ) : styleGuides && styleGuides.length > 0 ? (
               styleGuides.map((guide) => (
-                <article key={guide.id} className="group">
+                <article key={guide.id} className="group flex flex-col">
                   <Link 
                     to={`/style-guides/${guide.slug}`} 
-                    className="block"
+                    className="flex flex-col flex-1"
                     aria-label={`Read: ${guide.title}`}
                   >
                     <div className="relative aspect-[4/5] md:aspect-[3/4] overflow-hidden mb-5">
@@ -57,19 +57,21 @@ const Stories = () => {
                       />
                       <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/15 transition-colors duration-300 pointer-events-none" />
                     </div>
-                    <h2 className="font-serif text-base md:text-xl text-foreground mb-2 leading-snug group-hover:text-primary transition-colors">
-                      {guide.title}
-                    </h2>
-                    {guide.author && (
-                      <p className="text-[10px] md:text-xs tracking-[0.1em] uppercase text-muted-foreground/80">
-                        By {guide.author}
-                        {guide.published_at && (
-                          <> · {new Date(guide.published_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</>
-                        )}
-                      </p>
-                    )}
+                    <div className="flex-1">
+                      <h2 className="font-serif text-base md:text-xl text-foreground mb-2 leading-snug group-hover:text-primary transition-colors">
+                        {guide.title}
+                      </h2>
+                      {guide.author && (
+                        <p className="text-[10px] md:text-xs tracking-[0.1em] uppercase text-muted-foreground/80">
+                          By {guide.author}
+                          {guide.published_at && (
+                            <> · {new Date(guide.published_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</>
+                          )}
+                        </p>
+                      )}
+                    </div>
                     <span 
-                      className="inline-block mt-3 py-2 px-4 md:py-3 md:px-6 bg-primary text-primary-foreground text-[10px] md:text-xs tracking-widest uppercase group-hover:bg-primary/90 transition-colors duration-200"
+                      className="inline-block mt-3 py-2 px-4 md:py-3 md:px-6 bg-primary text-primary-foreground text-[10px] md:text-xs tracking-widest uppercase group-hover:bg-primary/90 transition-colors duration-200 self-start"
                     >
                       Read story
                     </span>
