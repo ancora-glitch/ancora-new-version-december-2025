@@ -247,8 +247,7 @@ const CategoryPage = () => {
             </div>
           ) : (
             <div className="text-center py-20">
-              <p className="text-muted-foreground mb-4">No products available at the moment.</p>
-              <p className="text-sm text-muted-foreground">Check back soon for our next edit.</p>
+              <p className="text-muted-foreground mb-4">All gone. Check back in another day — we're out looking for great stuff for you.</p>
             </div>
           )}
         </div>
