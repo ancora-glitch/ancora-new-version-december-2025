@@ -1,6 +1,12 @@
 ANCORA — MASTER PROJECT SPECIFICATION
-Version 1.4
+Version 1.5
 
+Changelog v1.5:
+- Bulk subcategory reclassification: 35 products → knitwear, 10 → blazers, 25 → shirts
+- Reclassification rules documented (Section 9.7)
+- Header mobile logo z-index fix (logo now clickable on mobile)
+
+Changelog v1.4:
 - Admin health coverage window corrected to 24h
 - eBay availability checks hardened with rate-limit handling (429 abort + request pacing)
 - Clothing subcategories defined (knitwear, shirts, blazers, skirts, jeans, trousers, shorts)
@@ -742,6 +748,40 @@ Rules:
 - New subcategories must be added to this list before implementation.
 - Subcategories are currently hardcoded in Shop, CategoryPage, AdminPortal, and Header navigation.
 - A DB trigger (`validate_product_subcategory`) enforces the canonical list above. Any new subcategory must be added to both this spec and the trigger.
+
+9.7 Subcategory Reclassification Log
+Purpose: Document bulk data operations that reassign products between subcategories.
+These operations are performed via SQL UPDATE on products table, scoped to a specific category_id.
+
+Completed reclassifications (Clothing category):
+
+1. Knitwear (35 products)
+   Keywords matched: sweater, cardigan, pullover, knit
+   Excluded: dress, skirt, vest, shirt, blouse
+   Source subcategories: tops, NULL → knitwear
+
+2. Blazers (10 products)
+   Keywords matched: blazer
+   Excluded: jacket, leather, parka (kept as outerwear)
+   Source subcategories: tops, NULL → blazers
+
+3. Shirts (25 products)
+   Keywords matched: shirt, blouse, blus
+   Excluded: sweatshirt, t-shirt (kept as tops)
+   Source subcategories: tops, NULL → shirts
+
+Rules for future reclassifications:
+- Always scope to category_id to avoid cross-category pollution
+- Use exclusion keywords to prevent misclassification
+- Only reclassify from NULL or generic subcategories (e.g. tops), never override specific assignments
+- Document each operation in this section
+
+9.8 Header / Navigation
+The site header uses a fixed top bar with centered ANCORA logo.
+- Desktop: left-aligned nav with hover-triggered Shop dropdown
+- Mobile: hamburger menu with slide-in panel, accordion Shop submenu
+- Logo link requires z-10 to remain clickable above mobile menu elements
+- Navigation items: Shop (with category dropdown), This Week's Edit, Stories, About
 
 10. ADMIN UI
     Tabs:
