@@ -1,8 +1,11 @@
 ANCORA — MASTER PROJECT SPECIFICATION
-Version 1.3
+Version 1.4
 
 - Admin health coverage window corrected to 24h
 - eBay availability checks hardened with rate-limit handling (429 abort + request pacing)
+- Clothing subcategories defined (knitwear, shirts, blazers, skirts, jeans, trousers, shorts)
+- Removed legacy "Bottoms" category
+- Enum registry updated: products.status now includes active, pending_import, review_required
 
 Status: Production MVP — Architecture Locked
 Purpose: System blueprint for AI-assisted regeneration and extension
