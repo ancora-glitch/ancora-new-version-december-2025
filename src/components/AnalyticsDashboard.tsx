@@ -200,7 +200,7 @@ export const AnalyticsDashboard = () => {
 
       const { data: recentEvents } = await supabase
         .from("site_analytics")
-        .select("event_type, page_path, created_at, visitor_id")
+        .select("event_type, page_path, created_at, visitor_id, metadata")
         .gte("created_at", chartStart.toISOString());
 
       // Group by date
