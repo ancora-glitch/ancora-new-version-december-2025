@@ -278,7 +278,7 @@ export const AnalyticsDashboard = () => {
       
       productClicks?.forEach((event) => {
         const meta = event.metadata as { product_id?: string; product_name?: string; brand?: string } | null;
-        if (meta?.product_id) {
+        if (meta?.product_id && matchesSource(meta.product_id)) {
           if (!productStats[meta.product_id]) {
             productStats[meta.product_id] = {
               product_id: meta.product_id,
