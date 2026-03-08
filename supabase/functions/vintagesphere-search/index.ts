@@ -83,7 +83,7 @@ function normalizeProduct(product: ShopifyProduct): NormalizedItem {
     handle: product.handle,
     title: product.title,
     price: price && !isNaN(price) ? price : null,
-    currency: "EUR",
+    currency: "SEK",
     primaryImage: product.images[0]?.src || null,
     imageCount: product.images.length,
     vendor: product.vendor,
