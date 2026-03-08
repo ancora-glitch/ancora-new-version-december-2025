@@ -343,6 +343,21 @@ Every import run produces a structured health log with:
 - error_count
 - run_limit_reached
 
+Failure Alerts:
+If endpoint_status != 200 or products_returned = 0, an additional structured warning is emitted:
+- event: VintageSphereImportWarning
+- Fields: endpoint_status, pages_fetched, products_returned, error_count, duration_ms
+This is observability-only and does not modify import behavior.
+
+Source Badge:
+Products with marketplace = "vintagesphere" display "Source VintageSphere" on the product detail page,
+using the same styling and logic as Tradera and eBay source badges.
+
+Analytics:
+The admin Statistics dashboard supports filtering by source/partner (All Sources, Tradera, eBay, VintageSphere).
+The filter applies to Product Clicks, Purchase Intent, Intent Rate, trend chart, and Top Products.
+Page Views and Unique Visitors remain unfiltered (not source-specific).
+
 Rate Limiting:
 - 500ms delay between search pagination pages
 - 300ms delay between individual product imports
