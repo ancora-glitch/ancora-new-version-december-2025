@@ -71,7 +71,7 @@ function extractOption(product: ShopifyProductFull, optionName: string): string 
 function extractConditionFromHtml(bodyHtml: string | null): string | null {
   if (!bodyHtml) return null;
   // VintageSphere uses star ratings: ⭑⭑⭑⭑ = excellent, ⭑⭑⭑ = very good, ⭑⭑ = good, ⭑ = fair
-  const starMatch = bodyHtml.match(/Condition:[\s\S]*?<span[^>]*>\s*(⭑+)/i);
+  const starMatch = bodyHtml.match(/Condition:[\s\S]*?<span[^>]*>\s*(⭑+)/i+)/i);
   if (starMatch) {
     const starCount = starMatch[1].length;
     if (starCount >= 4) return "Excellent";
@@ -84,7 +84,7 @@ function extractConditionFromHtml(bodyHtml: string | null): string | null {
 
 function extractEraFromHtml(bodyHtml: string | null): string | null {
   if (!bodyHtml) return null;
-  const eraMatch = bodyHtml.match(/Era:\s*(\d{4}'?s?)/i);
+  const eraMatch = bodyHtml.match(/[\s\S]*?:\s*(\d{4}'?s?)/i);
   return eraMatch ? eraMatch[1] : null;
 }
 
