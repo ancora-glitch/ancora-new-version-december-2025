@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Eye, MousePointer, TrendingUp, BarChart3, Calendar, ShoppingBag, Users, BookOpen } from "lucide-react";
+import { Eye, MousePointer, TrendingUp, BarChart3, Calendar, ShoppingBag, Users, BookOpen, Store } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
