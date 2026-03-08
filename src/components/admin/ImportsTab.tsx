@@ -154,7 +154,7 @@ export function ImportsTab() {
             </div>
           )}
           <p className="text-sm text-muted-foreground leading-relaxed whitespace-normal break-words">
-            Search and import items from Tradera/eBay — they become draft Products directly.
+            Search and import items from Tradera/eBay/VintageSphere — they become draft Products directly.
             This log tracks import provenance and deduplication.
           </p>
           <div className="flex gap-2 flex-wrap">
