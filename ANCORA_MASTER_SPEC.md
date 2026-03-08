@@ -1,5 +1,11 @@
 ANCORA — MASTER PROJECT SPECIFICATION
-Version 1.5
+Version 1.6
+
+Changelog v1.6:
+- F-05: Source label redesigned from badge/button to plain bold text
+- F-05: Copy changed from "Ancora selects from X" to "Source Tradera" / "Source eBay"
+- F-05: File path corrected to src/pages/ProductDetail.tsx
+- Empty category copy updated to "All gone. Check back in another day — we're out looking for great stuff for you."
 
 Changelog v1.5:
 - Bulk subcategory reclassification: 35 products → knitwear, 10 → blazers, 25 → shirts
@@ -17,7 +23,7 @@ Status: Production MVP — Architecture Locked
 Purpose: System blueprint for AI-assisted regeneration and extension
 
 SPEC GOVERNANCE
-This document is the single source of truth for Ancora’s system architecture.
+This document is the single source of truth for Ancora's system architecture.
 If code and specification conflict:
 → The specification prevails.
 All architectural or structural changes must:
@@ -195,7 +201,7 @@ site_analytics
 Rules:
 
 1. No AI or developer may introduce new columns, enums, or tables without updating this specification first.
-2. If a migration modifies the schema, the following must be updated in the same change:
+2. When creating tables:
    - Section 3 (Data Model)
    - Section 16.5 (Database Map)
    - Section 17.3 (Enum Registry), if applicable.
@@ -455,7 +461,7 @@ For non-quota-based integrations (such as eBay), this means defensive rate prote
 - graceful handling of rate-limit responses
   Retry loops must include exponential backoff.
   No automatic retry on HTTP 429 without delay.
-  Admin-triggered backfills must also respect quota guard unless explicitly marked ‘force’.
+  Admin-triggered backfills must also respect quota guard unless explicitly marked 'force'.
   System must fail gracefully — not aggressively.
 
 Retry Job Exception (Phase 1 Clarification)
@@ -783,6 +789,11 @@ The site header uses a fixed top bar with centered ANCORA logo.
 - Logo link requires z-10 to remain clickable above mobile menu elements
 - Navigation items: Shop (with category dropdown), This Week's Edit, Stories, About
 
+9.9 Empty State Copy
+When a category or shop view has no products to display:
+- Text: "All gone. Check back in another day — we're out looking for great stuff for you."
+- Files: src/pages/Shop.tsx, src/pages/CategoryPage.tsx
+
 10. ADMIN UI
     Tabs:
     Products
@@ -1009,7 +1020,7 @@ dedupe: Tradera by tradera_item_id, eBay by affiliate_url
 
 writes canonical fields to products
 
-creates AIS “log record” linked by product_id (if enabled)
+creates AIS "log record" linked by product_id (if enabled)
 
 B) Parsing / Normalization (Shared libs)
 Listing parser
@@ -1019,7 +1030,7 @@ Responsibilities:
 
 parse brand/size/color/material/condition from raw title+description
 
-used as fallback if API doesn’t provide structured values
+used as fallback if API doesn't provide structured values
 
 Invariants:
 
@@ -1073,7 +1084,7 @@ Cron must never overwrite editorial fields
 
 D) Public Site Rendering
 Product detail
-src/components/ProductDetail.tsx
+src/pages/ProductDetail.tsx
 
 Responsibilities:
 
@@ -1081,7 +1092,7 @@ render product fields
 
 render image carousel from image + additional_images
 
-render badge logic (marketplace / editorial override)
+render source label (marketplace / editorial override)
 
 show English fields first: name_en || name, description_en || description
 
@@ -1240,7 +1251,7 @@ Service role bypass allowed only for cron
 
 CORS allows preview origins (.lovable.app, .lovableproject.com)
 
-16.7 “AI Sync Protocol” (how to update code safely)
+16.7 "AI Sync Protocol" (how to update code safely)
 When asked to add a feature, the AI must:
 Identify which layer owns it (Admin UI, Edge, DB, Frontend, Cron)
 
@@ -1325,7 +1336,7 @@ Batch size:
 25 products
 
 Rate protection:
-Request pacing between calls  
+Request pacing between calls
 Abort remaining batch on HTTP 429
 
 Quota:
@@ -1375,10 +1386,12 @@ Guards:
 Translation budget tracking
 
 Ownership:
-Edge Function → translate-backfill 17. FEATURE INDEX
+Edge Function → translate-backfill
+
+17. FEATURE INDEX
 Syfte: En AI ska kunna slå upp en feature → se var den bor i kodbas/DB/edge functions → ändra utan att bryta invariants.
 Legend
-Owner: Primär “source of truth” (var ändring ska börja)
+Owner: Primär "source of truth" (var ändring ska börja)
 
 Touches: Vanliga sekundära beröringsytor
 
@@ -1442,16 +1455,23 @@ Hook: src/hooks/useImportToProduct.ts
 
 Logic: Tradera by tradera_item_id, eBay by affiliate_url
 
-F-05 Marketplace badge (“Tradera”, “eBay”, “Ancora selects from …”)
+F-05 Source label ("Source Tradera", "Source eBay")
 Owner: Frontend ProductDetail
 
 Touches: Product fields mapping
 
 Key paths:
 
-FE: src/components/ProductDetail.tsx
+FE: src/pages/ProductDetail.tsx
 
-DB fields: products.marketplace, products.ancora_select_source (if used)
+DB fields: products.marketplace, products.ancora_select_source
+
+Display rules:
+- Rendered as plain bold text (p with font-bold text-muted-foreground), NOT as a badge or button
+- Text: "Source Tradera" when source is tradera, "Source eBay" when source is ebay
+- Priority: ancora_select_source, then marketplace (lowercase fallback)
+- Only shown for active/published products (hidden when sold)
+- Positioned between description and Buy Now CTA
 
 F-06 Image pipeline (HD + carousel + hero selection)
 Owner: Import adapters + ProductDetail rendering
@@ -1484,7 +1504,7 @@ UI: Imports header/queue panel
 F-08 Availability checks: Auto-unpublish sold/ended listings
 Owner: Cron edge functions
 
-Touches: Product status logic, admin “Recheck now”
+Touches: Product status logic, admin "Recheck now"
 
 Key paths:
 
@@ -1494,7 +1514,7 @@ Edge manual: recheck-product
 
 DB: products.status, unpublished_reason, marketplace, tradera_item_id, affiliate_url
 
-F-09 Tradera ended-detection logic (the “ended but still visible” bug class)
+F-09 Tradera ended-detection logic (the "ended but still visible" bug class)
 Owner: tradera-sync + Tradera parsing
 
 Touches: tradera-item GetItem parsing
@@ -1568,7 +1588,7 @@ Key paths:
 
 DB: ancora_import_items
 
-UI: Imports tab (“Import log”)
+UI: Imports tab ("Import log")
 
 Edge: ais-backfill-parsed-fields (if present)
 
@@ -1636,7 +1656,7 @@ Edge: register-story-view
 
 DB: story_views (ip_hash + dedup window)
 
-Admin: Statistics “Story Views” table
+Admin: Statistics "Story Views" table
 
 F-21 Statistics: product clicks / intent rate / unique visitors
 Owner: Analytics pipeline
@@ -1662,11 +1682,11 @@ Acceptance criteria
 Files to touch (if known)
 
 Example:
-“Update F-08 Availability checks: Tradera ended detection must also treat BuyNowAvailable=false as ended even if ItemStatus is blank. Keep invariant: cron never overwrites editorial fields.”
+"Update F-08 Availability checks: Tradera ended detection must also treat BuyNowAvailable=false as ended even if ItemStatus is blank. Keep invariant: cron never overwrites editorial fields."
 
 Perfekt. Här kommer en Naming & Enum Registry som du kan lägga direkt efter Glossary (t.ex. som 15.3 i ANCORA_MASTER_SPEC.md).
 Den är skriven för att:
-Eliminera “nästan-rätt”-värden
+Eliminera "nästan-rätt"-värden
 
 Förhindra Tradera vs tradera
 
@@ -1710,7 +1730,7 @@ Behöver manuell granskning innan publicering.
 
 Invariants
 Cron får endast ändra: status (→ sold) + unpublished_reason + affiliate/ended metadata
-Cron får aldrig ändra: name/description/brand/color/material/condition (något språk)”
+Cron får aldrig ändra: name/description/brand/color/material/condition (något språk)"
 Import sätter alltid draft
 Public site visar endast published
 
@@ -1729,7 +1749,7 @@ shopify:vintagesphere
 Invariants
 Alltid lowercase
 
-Aldrig “Tradera” eller “Ebay”
+Aldrig "Tradera" eller "Ebay"
 
 Används i availability cron
 
