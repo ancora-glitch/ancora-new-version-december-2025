@@ -75,6 +75,8 @@ interface VintageSphereSearchDrawerProps {
   onImported?: () => void;
 }
 
+const MAX_IMPORT_PER_RUN = 10;
+
 export function VintageSphereSearchDrawer({
   open,
   onOpenChange,
@@ -101,11 +103,13 @@ export function VintageSphereSearchDrawer({
     total: number;
   } | null>(null);
   const [existingRefs, setExistingRefs] = useState<Set<string>>(new Set());
+  const [runLimitReached, setRunLimitReached] = useState(false);
 
   // Reset on close
   useEffect(() => {
     if (!open) {
       setSearchError(null);
+      setRunLimitReached(false);
     }
   }, [open]);
 
@@ -205,16 +209,32 @@ export function VintageSphereSearchDrawer({
     );
 
     setIsImporting(true);
-    setImportProgress({ current: 0, total: itemsToImport.length });
+    setRunLimitReached(false);
+    const runStartTime = Date.now();
+    const effectiveTotal = Math.min(itemsToImport.length, MAX_IMPORT_PER_RUN);
+    setImportProgress({ current: 0, total: effectiveTotal });
     let imported = 0;
     let skipped = 0;
     let failed = 0;
     let soldOut = 0;
+    let errorCount = 0;
 
     try {
       for (let i = 0; i < itemsToImport.length; i++) {
+        // Run limit guard
+        if (imported >= MAX_IMPORT_PER_RUN) {
+          setRunLimitReached(true);
+          console.info(
+            `[VintageSphere Import] Run limit reached (${MAX_IMPORT_PER_RUN}). Stopping.`
+          );
+          toast.warning(
+            `Run limit reached (${MAX_IMPORT_PER_RUN} imports). Start a new run to continue.`
+          );
+          break;
+        }
+
         const handle = itemsToImport[i];
-        setImportProgress({ current: i + 1, total: itemsToImport.length });
+        setImportProgress({ current: Math.min(i + 1, effectiveTotal), total: effectiveTotal });
 
         const searchItem = searchResults.find((r) => r.handle === handle);
         if (!searchItem) continue;
@@ -237,6 +257,7 @@ export function VintageSphereSearchDrawer({
             `[VintageSphere Import] Could not fetch details for ${handle} — skipping`
           );
           failed++;
+          errorCount++;
           continue;
         }
 
@@ -289,13 +310,19 @@ export function VintageSphereSearchDrawer({
           },
         };
 
-        await importMutation.mutateAsync(importInput);
-        imported++;
+        try {
+          await importMutation.mutateAsync(importInput);
+          imported++;
+        } catch (importErr: any) {
+          console.error(`[VintageSphere Import] Failed to import ${handle}:`, importErr);
+          failed++;
+          errorCount++;
+          continue;
+        }
 
         // If sold out, immediately mark as unavailable
         if (!detail.available) {
           soldOut++;
-          // The product was just created as draft; mark reason for curator
           console.info(
             `[VintageSphere Import] ${handle} is sold out — created as draft with note`
           );
@@ -306,6 +333,22 @@ export function VintageSphereSearchDrawer({
           await new Promise((r) => setTimeout(r, 300));
         }
       }
+
+      // Health log
+      const durationMs = Date.now() - runStartTime;
+      console.info("[VintageSphere Import Run]", JSON.stringify({
+        importer_name: "vintagesphere",
+        endpoint_status: "ok",
+        pages_fetched: searchMeta?.pagesScanned ?? 0,
+        products_returned: searchResults.length,
+        products_imported: imported,
+        products_skipped: skipped,
+        products_sold_out: soldOut,
+        duration_ms: durationMs,
+        error_count: errorCount,
+        run_limit: MAX_IMPORT_PER_RUN,
+        run_limit_reached: imported >= MAX_IMPORT_PER_RUN,
+      }));
 
       const parts: string[] = [];
       if (imported > 0)
@@ -339,7 +382,15 @@ export function VintageSphereSearchDrawer({
       onOpenChange(false);
       onImported?.();
     } catch (error: any) {
-      console.error("Import error:", error);
+      const durationMs = Date.now() - runStartTime;
+      console.error("[VintageSphere Import Run] Fatal error:", JSON.stringify({
+        importer_name: "vintagesphere",
+        endpoint_status: "error",
+        products_imported: imported,
+        duration_ms: durationMs,
+        error_count: errorCount + 1,
+        error_message: error.message,
+      }));
       toast.error("Import failed: " + error.message);
     } finally {
       setIsImporting(false);
@@ -562,21 +613,38 @@ export function VintageSphereSearchDrawer({
             </div>
           )}
 
+          {/* Run limit warning */}
+          {runLimitReached && (
+            <div className="flex items-center gap-2 p-3 bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-md">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span className="text-sm">
+                Run limit reached ({MAX_IMPORT_PER_RUN} imports per run). Close and re-open to start a new run.
+              </span>
+            </div>
+          )}
+
           {/* Import button */}
           {selectedItems.size > 0 && (
-            <Button
-              onClick={handleImport}
-              disabled={isImporting}
-              className="w-full"
-            >
-              {isImporting ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Package className="w-4 h-4 mr-2" />
+            <div className="space-y-2">
+              {selectedItems.size > MAX_IMPORT_PER_RUN && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  ⚠ Only the first {MAX_IMPORT_PER_RUN} items will be imported in this run.
+                </p>
               )}
-              Import {selectedItems.size} item
-              {selectedItems.size > 1 ? "s" : ""} as Draft
-            </Button>
+              <Button
+                onClick={handleImport}
+                disabled={isImporting || runLimitReached}
+                className="w-full"
+              >
+                {isImporting ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Package className="w-4 h-4 mr-2" />
+                )}
+                Import {Math.min(selectedItems.size, MAX_IMPORT_PER_RUN)} item
+                {Math.min(selectedItems.size, MAX_IMPORT_PER_RUN) > 1 ? "s" : ""} as Draft
+              </Button>
+            </div>
           )}
         </div>
       </SheetContent>
