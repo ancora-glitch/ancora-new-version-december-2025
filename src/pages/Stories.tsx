@@ -57,25 +57,17 @@ const Stories = () => {
                       />
                       <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/15 transition-colors duration-300 pointer-events-none" />
                     </div>
-                    <h2 className="font-serif text-xl md:text-2xl text-foreground mb-3 leading-snug group-hover:text-primary transition-colors">
+                    <h2 className="font-serif text-base md:text-xl text-foreground mb-2 leading-snug group-hover:text-primary transition-colors">
                       {guide.title}
                     </h2>
-                    <p className="text-muted-foreground text-sm md:text-base mb-4 line-clamp-2">
-                      {guide.intro_text}
-                    </p>
                     {guide.author && (
-                      <p className="text-xs tracking-[0.1em] uppercase text-muted-foreground/80 mb-5">
+                      <p className="text-[10px] md:text-xs tracking-[0.1em] uppercase text-muted-foreground/80">
                         By {guide.author}
                         {guide.published_at && (
                           <> · {new Date(guide.published_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</>
                         )}
                       </p>
                     )}
-                    <span 
-                      className="inline-block py-3 px-6 bg-primary text-primary-foreground text-xs tracking-widest uppercase group-hover:bg-primary/90 transition-colors duration-200"
-                    >
-                      Read story
-                    </span>
                   </Link>
                 </article>
               ))
