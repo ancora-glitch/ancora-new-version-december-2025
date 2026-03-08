@@ -36,6 +36,7 @@ export function ImportsTab() {
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [showEbayDrawer, setShowEbayDrawer] = useState(false);
   const [showTraderaDrawer, setShowTraderaDrawer] = useState(false);
+  const [showVintageSphereDrawer, setShowVintageSphereDrawer] = useState(false);
   
   const { data: usage, isLoading: usageLoading } = useTraderaUsage();
   const { data: pendingCount } = usePendingRetryCount();
