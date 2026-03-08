@@ -401,6 +401,14 @@ export function VintageSphereSearchDrawer({
       onImported?.();
     } catch (error: any) {
       const durationMs = Date.now() - runStartTime;
+      console.warn("[VintageSphereImportWarning]", JSON.stringify({
+        event: "VintageSphereImportWarning",
+        endpoint_status: "error",
+        pages_fetched: searchMeta?.pagesScanned ?? 0,
+        products_returned: searchResults.length,
+        error_count: errorCount + 1,
+        duration_ms: durationMs,
+      }));
       console.error("[VintageSphere Import Run] Fatal error:", JSON.stringify({
         importer_name: "vintagesphere",
         endpoint_status: "error",
