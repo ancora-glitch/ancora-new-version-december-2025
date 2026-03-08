@@ -68,6 +68,11 @@ const Stories = () => {
                         )}
                       </p>
                     )}
+                    <span 
+                      className="inline-block mt-3 py-2 px-4 md:py-3 md:px-6 bg-primary text-primary-foreground text-[10px] md:text-xs tracking-widest uppercase group-hover:bg-primary/90 transition-colors duration-200"
+                    >
+                      Read story
+                    </span>
                   </Link>
                 </article>
               ))
