@@ -222,6 +222,13 @@ export const AnalyticsDashboard = () => {
         if (!activityByDate[date]) {
           activityByDate[date] = { views: 0, clicks: 0, buyNow: 0, visitors: new Set() };
         }
+        
+        // For product-related events, apply source filter
+        if (event.event_type === "product_click" || event.event_type === "buy_now_click") {
+          const meta = (event as any).metadata as { product_id?: string } | null;
+          if (!matchesSource(meta?.product_id)) return;
+        }
+        
         if (event.event_type === "page_view") {
           activityByDate[date].views++;
         } else if (event.event_type === "buy_now_click") {
