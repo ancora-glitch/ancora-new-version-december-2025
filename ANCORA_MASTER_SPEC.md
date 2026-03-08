@@ -725,9 +725,12 @@ Categories are managed in the categories table (DB).
 Products reference a category via products.category_id and may have a products.subcategory string.
 
 Clothing subcategories (canonical list):
+- outerwear
+- tops
 - knitwear
 - shirts
 - blazers
+- dresses
 - skirts
 - jeans
 - trousers
@@ -738,6 +741,7 @@ Rules:
 - The legacy category "Bottoms" has been removed. Products previously tagged "bottoms" should be reassigned to the appropriate subcategory (jeans, trousers, shorts, or skirts).
 - New subcategories must be added to this list before implementation.
 - Subcategories are currently hardcoded in Shop, CategoryPage, AdminPortal, and Header navigation.
+- A DB trigger (`validate_product_subcategory`) enforces the canonical list above. Any new subcategory must be added to both this spec and the trigger.
 
 10. ADMIN UI
     Tabs:
