@@ -34,7 +34,7 @@ const Stories = () => {
 
         {/* Articles Grid */}
         <section className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 max-w-5xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 max-w-6xl mx-auto">
             {isLoading ? (
               <p className="col-span-full text-center text-muted-foreground">Loading stories...</p>
             ) : styleGuides && styleGuides.length > 0 ? (
