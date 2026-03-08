@@ -1,5 +1,10 @@
 ANCORA — MASTER PROJECT SPECIFICATION
-Version 1.5
+Version 1.6
+
+Changelog v1.6:
+- F-05: Source label redesigned from badge/button to plain bold text
+- F-05: Copy changed from "Ancora selects from X" to "Source Tradera" / "Source eBay"
+- F-05: File path corrected to src/pages/ProductDetail.tsx
 
 Changelog v1.5:
 - Bulk subcategory reclassification: 35 products → knitwear, 10 → blazers, 25 → shirts
