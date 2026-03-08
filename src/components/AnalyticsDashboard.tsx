@@ -98,9 +98,16 @@ export const AnalyticsDashboard = () => {
   });
 
   const { data: analytics, isLoading } = useQuery<AnalyticsSummary>({
-    queryKey: ["site-analytics", dateRange],
+    queryKey: ["site-analytics", dateRange, sourceFilter, productMarketplaceMap],
     queryFn: async () => {
       const rangeStart = getDateRangeStart(dateRange);
+      const mpMap = productMarketplaceMap || {};
+
+      // Helper: check if a product_id matches the source filter
+      const matchesSource = (productId: string | undefined): boolean => {
+        if (sourceFilter === "all" || !productId) return true;
+        return mpMap[productId] === sourceFilter;
+      };
 
       // Build base query for page views
       let viewsQuery = supabase
