@@ -50,3 +50,9 @@ verify_jwt = false
 
 [functions.cron-setup]
 verify_jwt = false
+
+[functions.vintagesphere-search]
+verify_jwt = false
+
+[functions.vintagesphere-item]
+verify_jwt = false

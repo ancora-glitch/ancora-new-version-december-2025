@@ -805,7 +805,13 @@ export type Database = {
     }
     Enums: {
       ais_condition: "new" | "excellent" | "good" | "fair" | "unknown"
-      ais_source_type: "tradera" | "ebay" | "manual" | "csv" | "other"
+      ais_source_type:
+        | "tradera"
+        | "ebay"
+        | "manual"
+        | "csv"
+        | "other"
+        | "vintagesphere"
       ais_status: "draft" | "reviewed" | "promoted" | "discarded"
       ancora_select_source: "tradera"
       app_role: "admin" | "moderator" | "user"
@@ -947,7 +953,14 @@ export const Constants = {
   public: {
     Enums: {
       ais_condition: ["new", "excellent", "good", "fair", "unknown"],
-      ais_source_type: ["tradera", "ebay", "manual", "csv", "other"],
+      ais_source_type: [
+        "tradera",
+        "ebay",
+        "manual",
+        "csv",
+        "other",
+        "vintagesphere",
+      ],
       ais_status: ["draft", "reviewed", "promoted", "discarded"],
       ancora_select_source: ["tradera"],
       app_role: ["admin", "moderator", "user"],

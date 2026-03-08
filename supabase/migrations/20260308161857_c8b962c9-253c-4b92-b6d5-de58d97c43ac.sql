@@ -1,0 +1,1 @@
+ALTER TYPE public.ais_source_type ADD VALUE IF NOT EXISTS 'vintagesphere';
