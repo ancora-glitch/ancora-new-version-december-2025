@@ -70,21 +70,25 @@ function extractOption(product: ShopifyProductFull, optionName: string): string 
 
 function extractConditionFromHtml(bodyHtml: string | null): string | null {
   if (!bodyHtml) return null;
-  // VintageSphere uses star ratings: ⭑⭑⭑⭑ = excellent, ⭑⭑⭑ = very good, ⭑⭑ = good, ⭑ = fair
-  const starMatch = bodyHtml.match(/Condition:<\/strong>\s*<span>(⭑+)/);
-  if (starMatch) {
-    const starCount = starMatch[1].length;
+  // VintageSphere uses star ratings in body_html: ⭑⭑⭑⭑ = excellent, ⭑⭑⭑ = very good, ⭑⭑ = good, ⭑ = fair
+  // Match "Condition:" followed by any HTML, then a <span> containing star chars
+  const conditionBlock = bodyHtml.match(/Condition:[\s\S]{0,100}?<span[^>]*>([\s\S]*?)<\/span>/i);
+  if (conditionBlock) {
+    // Count star-like characters (⭑ U+2B51, ⭐ U+2B50, ★ U+2605, or similar)
+    const content = conditionBlock[1].trim();
+    const starCount = (content.match(/[⭑⭐★☆✦✧⭒]/g) || []).length;
+    console.info("[VintageSphereItem] Condition block:", JSON.stringify({ raw: content, starCount }));
     if (starCount >= 4) return "Excellent";
     if (starCount === 3) return "Very good";
     if (starCount === 2) return "Good";
-    return "Fair";
+    if (starCount === 1) return "Fair";
   }
   return null;
 }
 
 function extractEraFromHtml(bodyHtml: string | null): string | null {
   if (!bodyHtml) return null;
-  const eraMatch = bodyHtml.match(/Era:\s*(\d{4}'?s?)/i);
+  const eraMatch = bodyHtml.match(/Era:[\s\S]{0,30}?(\d{4}'?s?)/i);
   return eraMatch ? eraMatch[1] : null;
 }
 
