@@ -427,23 +427,20 @@ const ProductDetail = () => {
                 {!isSoldOrUnavailable && (() => {
                   const source = product.ancora_select_source || product.marketplace?.toLowerCase();
                   
-                  if (source === "tradera") {
-                    return (
-                      <p className="text-sm font-bold text-muted-foreground">
-                        Source Tradera
-                      </p>
-                    );
-                  }
+                  const sourceLabels: Record<string, string> = {
+                    tradera: "Tradera",
+                    ebay: "eBay",
+                    vintagesphere: "VintageSphere",
+                  };
                   
-                  if (source === "ebay") {
-                    return (
-                      <p className="text-sm font-bold text-muted-foreground">
-                        Source eBay
-                      </p>
-                    );
-                  }
+                  const label = sourceLabels[source ?? ""];
+                  if (!label) return null;
                   
-                  return null;
+                  return (
+                    <p className="text-sm font-bold text-muted-foreground">
+                      Source {label}
+                    </p>
+                  );
                 })()}
 
                 {/* Divider */}
