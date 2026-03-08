@@ -1623,7 +1623,9 @@ Allowed values:
 draft
 published
 sold
-archived
+active
+pending_import
+review_required
 Meaning
 draft
 Ej synlig publikt. Skapad via import eller manuellt.
@@ -1634,8 +1636,14 @@ Synlig publikt.
 sold
 Automatiskt eller manuellt avpublicerad pga affiliate otillgänglig.
 
-archived
-Manuellt borttagen från publikt flöde (ej sold).
+active
+Aktiv produkt (legacy/operational status).
+
+pending_import
+Import pågår, väntar på att bli klar.
+
+review_required
+Behöver manuell granskning innan publicering.
 
 Invariants
 Cron får endast ändra: status (→ sold) + unpublished_reason + affiliate/ended metadata
