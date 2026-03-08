@@ -157,7 +157,16 @@ export function VintageSphereSearchDrawer({
         durationMs: data.durationMs,
       });
 
-      if (data.items?.length === 0) {
+      // Failure alert: zero results
+      if (!data.items || data.items.length === 0) {
+        console.warn("[VintageSphereImportWarning]", JSON.stringify({
+          event: "VintageSphereImportWarning",
+          endpoint_status: "ok",
+          pages_fetched: data.pagesScanned ?? 0,
+          products_returned: 0,
+          error_count: 0,
+          duration_ms: data.durationMs ?? 0,
+        }));
         toast.info("No items found");
       }
     } catch (error: any) {
