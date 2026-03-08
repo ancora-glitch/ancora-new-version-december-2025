@@ -1,8 +1,11 @@
 ANCORA — MASTER PROJECT SPECIFICATION
-Version 1.3
+Version 1.4
 
 - Admin health coverage window corrected to 24h
 - eBay availability checks hardened with rate-limit handling (429 abort + request pacing)
+- Clothing subcategories defined (knitwear, shirts, blazers, skirts, jeans, trousers, shorts)
+- Removed legacy "Bottoms" category
+- Enum registry updated: products.status now includes active, pending_import, review_required
 
 Status: Production MVP — Architecture Locked
 Purpose: System blueprint for AI-assisted regeneration and extension
@@ -648,7 +651,7 @@ Product tagging
 
 Weekly edits
 
-Category structure
+Category structure (see 9.6 Category & Subcategory Model)
 
 Featured prioritization
 
@@ -716,6 +719,25 @@ Consider webhook-based updates
 Reduce polling footprint
 
 Architecture designed to scale deliberately — not accidentally.
+
+9.6 Category & Subcategory Model
+Categories are managed in the categories table (DB).
+Products reference a category via products.category_id and may have a products.subcategory string.
+
+Clothing subcategories (canonical list):
+- knitwear
+- shirts
+- blazers
+- skirts
+- jeans
+- trousers
+- shorts
+
+Rules:
+- Subcategory values are lowercase.
+- The legacy category "Bottoms" has been removed. Products previously tagged "bottoms" should be reassigned to the appropriate subcategory (jeans, trousers, shorts, or skirts).
+- New subcategories must be added to this list before implementation.
+- Subcategories are currently hardcoded in Shop, CategoryPage, AdminPortal, and Header navigation.
 
 10. ADMIN UI
     Tabs:
@@ -1620,7 +1642,9 @@ Allowed values:
 draft
 published
 sold
-archived
+active
+pending_import
+review_required
 Meaning
 draft
 Ej synlig publikt. Skapad via import eller manuellt.
@@ -1631,8 +1655,14 @@ Synlig publikt.
 sold
 Automatiskt eller manuellt avpublicerad pga affiliate otillgänglig.
 
-archived
-Manuellt borttagen från publikt flöde (ej sold).
+active
+Aktiv produkt (legacy/operational status).
+
+pending_import
+Import pågår, väntar på att bli klar.
+
+review_required
+Behöver manuell granskning innan publicering.
 
 Invariants
 Cron får endast ändra: status (→ sold) + unpublished_reason + affiliate/ended metadata
