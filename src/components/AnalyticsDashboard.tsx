@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Eye, MousePointer, TrendingUp, BarChart3, Calendar, ShoppingBag, Users, BookOpen } from "lucide-react";
+import { Eye, MousePointer, TrendingUp, BarChart3, Calendar, ShoppingBag, Users, BookOpen, Store } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,6 +14,7 @@ import {
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 
 type DateRange = "7days" | "30days" | "all";
+type SourceFilter = "all" | "tradera" | "ebay" | "vintagesphere";
 
 interface TopProduct {
   product_id: string;
@@ -78,11 +79,35 @@ const chartConfig: ChartConfig = {
 
 export const AnalyticsDashboard = () => {
   const [dateRange, setDateRange] = useState<DateRange>("7days");
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
+
+  // Fetch product marketplace map for source filtering
+  const { data: productMarketplaceMap } = useQuery({
+    queryKey: ["product-marketplace-map"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("products")
+        .select("id, marketplace");
+      const map: Record<string, string> = {};
+      data?.forEach((p) => {
+        if (p.marketplace) map[p.id] = p.marketplace.toLowerCase();
+      });
+      return map;
+    },
+    staleTime: 60000,
+  });
 
   const { data: analytics, isLoading } = useQuery<AnalyticsSummary>({
-    queryKey: ["site-analytics", dateRange],
+    queryKey: ["site-analytics", dateRange, sourceFilter, productMarketplaceMap],
     queryFn: async () => {
       const rangeStart = getDateRangeStart(dateRange);
+      const mpMap = productMarketplaceMap || {};
+
+      // Helper: check if a product_id matches the source filter
+      const matchesSource = (productId: string | undefined): boolean => {
+        if (sourceFilter === "all" || !productId) return true;
+        return mpMap[productId] === sourceFilter;
+      };
 
       // Build base query for page views
       let viewsQuery = supabase
@@ -99,26 +124,36 @@ export const AnalyticsDashboard = () => {
       // Build base query for product clicks
       let clicksQuery = supabase
         .from("site_analytics")
-        .select("*", { count: "exact", head: true })
+        .select("metadata")
         .eq("event_type", "product_click");
       
       if (rangeStart) {
         clicksQuery = clicksQuery.gte("created_at", rangeStart.toISOString());
       }
       
-      const { count: totalClicks } = await clicksQuery;
+      const { data: clicksData } = await clicksQuery;
+      const filteredClicks = clicksData?.filter((e) => {
+        const meta = e.metadata as { product_id?: string } | null;
+        return matchesSource(meta?.product_id);
+      }) || [];
+      const totalClicks = filteredClicks.length;
 
       // Build query for Buy Now clicks
       let buyNowQuery = supabase
         .from("site_analytics")
-        .select("*", { count: "exact", head: true })
+        .select("metadata")
         .eq("event_type", "buy_now_click");
       
       if (rangeStart) {
         buyNowQuery = buyNowQuery.gte("created_at", rangeStart.toISOString());
       }
       
-      const { count: buyNowClicks } = await buyNowQuery;
+      const { data: buyNowData } = await buyNowQuery;
+      const filteredBuyNow = buyNowData?.filter((e) => {
+        const meta = e.metadata as { product_id?: string } | null;
+        return matchesSource(meta?.product_id);
+      }) || [];
+      const buyNowClicks = filteredBuyNow.length;
 
       // Get unique visitors count
       let visitorsQuery = supabase
@@ -165,7 +200,7 @@ export const AnalyticsDashboard = () => {
 
       const { data: recentEvents } = await supabase
         .from("site_analytics")
-        .select("event_type, page_path, created_at, visitor_id")
+        .select("event_type, page_path, created_at, visitor_id, metadata")
         .gte("created_at", chartStart.toISOString());
 
       // Group by date
@@ -187,6 +222,13 @@ export const AnalyticsDashboard = () => {
         if (!activityByDate[date]) {
           activityByDate[date] = { views: 0, clicks: 0, buyNow: 0, visitors: new Set() };
         }
+        
+        // For product-related events, apply source filter
+        if (event.event_type === "product_click" || event.event_type === "buy_now_click") {
+          const meta = (event as any).metadata as { product_id?: string } | null;
+          if (!matchesSource(meta?.product_id)) return;
+        }
+        
         if (event.event_type === "page_view") {
           activityByDate[date].views++;
         } else if (event.event_type === "buy_now_click") {
@@ -236,7 +278,7 @@ export const AnalyticsDashboard = () => {
       
       productClicks?.forEach((event) => {
         const meta = event.metadata as { product_id?: string; product_name?: string; brand?: string } | null;
-        if (meta?.product_id) {
+        if (meta?.product_id && matchesSource(meta.product_id)) {
           if (!productStats[meta.product_id]) {
             productStats[meta.product_id] = {
               product_id: meta.product_id,
@@ -257,7 +299,7 @@ export const AnalyticsDashboard = () => {
 
       purchaseClicks?.forEach((event) => {
         const meta = event.metadata as { product_id?: string; product_name?: string; brand?: string } | null;
-        if (meta?.product_id) {
+        if (meta?.product_id && matchesSource(meta.product_id)) {
           if (!productStats[meta.product_id]) {
             productStats[meta.product_id] = {
               product_id: meta.product_id,
@@ -345,24 +387,49 @@ export const AnalyticsDashboard = () => {
           Statistics
         </h2>
         
-        <div className="flex items-center gap-2">
-          <Calendar size={16} className="text-muted-foreground" />
-          <div className="flex rounded-md border border-border overflow-hidden">
-            {(["7days", "30days", "all"] as DateRange[]).map((range) => (
-              <Button
-                key={range}
-                variant="ghost"
-                size="sm"
-                onClick={() => setDateRange(range)}
-                className={`rounded-none px-3 py-1.5 text-xs font-medium transition-colors ${
-                  dateRange === range
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "hover:bg-secondary"
-                }`}
-              >
-                {range === "7days" ? "7 days" : range === "30days" ? "30 days" : "All time"}
-              </Button>
-            ))}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Source Filter */}
+          <div className="flex items-center gap-2">
+            <Store size={16} className="text-muted-foreground" />
+            <div className="flex rounded-md border border-border overflow-hidden">
+              {(["all", "tradera", "ebay", "vintagesphere"] as SourceFilter[]).map((source) => (
+                <Button
+                  key={source}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSourceFilter(source)}
+                  className={`rounded-none px-3 py-1.5 text-xs font-medium transition-colors ${
+                    sourceFilter === source
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "hover:bg-secondary"
+                  }`}
+                >
+                  {source === "all" ? "All Sources" : source === "tradera" ? "Tradera" : source === "ebay" ? "eBay" : "VintageSphere"}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Date Range Filter */}
+          <div className="flex items-center gap-2">
+            <Calendar size={16} className="text-muted-foreground" />
+            <div className="flex rounded-md border border-border overflow-hidden">
+              {(["7days", "30days", "all"] as DateRange[]).map((range) => (
+                <Button
+                  key={range}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDateRange(range)}
+                  className={`rounded-none px-3 py-1.5 text-xs font-medium transition-colors ${
+                    dateRange === range
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "hover:bg-secondary"
+                  }`}
+                >
+                  {range === "7days" ? "7 days" : range === "30days" ? "30 days" : "All time"}
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
