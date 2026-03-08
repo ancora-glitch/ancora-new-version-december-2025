@@ -720,6 +720,25 @@ Reduce polling footprint
 
 Architecture designed to scale deliberately — not accidentally.
 
+9.6 Category & Subcategory Model
+Categories are managed in the categories table (DB).
+Products reference a category via products.category_id and may have a products.subcategory string.
+
+Clothing subcategories (canonical list):
+- knitwear
+- shirts
+- blazers
+- skirts
+- jeans
+- trousers
+- shorts
+
+Rules:
+- Subcategory values are lowercase.
+- The legacy category "Bottoms" has been removed. Products previously tagged "bottoms" should be reassigned to the appropriate subcategory (jeans, trousers, shorts, or skirts).
+- New subcategories must be added to this list before implementation.
+- Subcategories are currently hardcoded in Shop, CategoryPage, AdminPortal, and Header navigation.
+
 10. ADMIN UI
     Tabs:
     Products
