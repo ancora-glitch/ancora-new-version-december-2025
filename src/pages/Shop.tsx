@@ -252,9 +252,7 @@ const Shop = () => {
           ) : (
             <div className="text-center py-20">
               <p className="text-muted-foreground mb-4">
-                {selectedCategory
-                  ? "No products found in this category."
-                  : "No products available at the moment."}
+                All gone. Check back in another day — we're out looking for great stuff for you.
               </p>
               {selectedCategory && (
                 <Button
