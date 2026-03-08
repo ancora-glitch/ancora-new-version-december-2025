@@ -109,6 +109,7 @@ export function VintageSphereSearchDrawer({
   useEffect(() => {
     if (!open) {
       setSearchError(null);
+      setRunLimitReached(false);
     }
   }, [open]);
 
