@@ -429,17 +429,17 @@ const ProductDetail = () => {
                   
                   if (source === "tradera") {
                     return (
-                      <span className="inline-flex items-center px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-foreground bg-accent border border-border rounded-full">
-                        Ancora selects from Tradera
-                      </span>
+                      <p className="text-sm font-bold text-muted-foreground">
+                        Source Tradera
+                      </p>
                     );
                   }
                   
                   if (source === "ebay") {
                     return (
-                      <span className="inline-flex items-center px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-foreground bg-accent border border-border rounded-full">
-                        Ancora selects from eBay
-                      </span>
+                      <p className="text-sm font-bold text-muted-foreground">
+                        Source eBay
+                      </p>
                     );
                   }
                   
