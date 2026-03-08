@@ -642,6 +642,11 @@ export function ImportsTab() {
         onOpenChange={setShowTraderaDrawer}
         onImported={() => setSelectedItemId(null)}
       />
+      <VintageSphereSearchDrawer
+        open={showVintageSphereDrawer}
+        onOpenChange={setShowVintageSphereDrawer}
+        onImported={() => setSelectedItemId(null)}
+      />
       <RetryJobsPanel />
     </div>
   );
