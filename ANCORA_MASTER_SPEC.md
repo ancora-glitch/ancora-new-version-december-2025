@@ -64,7 +64,7 @@ Inte ett checkout-system
 Det är:
 → Ett kuraterat gränssnitt
 → En trafikmotor
-→ Ett redaktionell shopping-upplevelse
+→ En redaktionell shopping-upplevelse
 → Ett API-agnostiskt importlager
 
 1.2 Problem
@@ -201,7 +201,7 @@ site_analytics
 Rules:
 
 1. No AI or developer may introduce new columns, enums, or tables without updating this specification first.
-2. If a migration modifies the schema, the following must be updated in the same change:
+2. When creating tables:
    - Section 3 (Data Model)
    - Section 16.5 (Database Map)
    - Section 17.3 (Enum Registry), if applicable.
@@ -789,6 +789,11 @@ The site header uses a fixed top bar with centered ANCORA logo.
 - Logo link requires z-10 to remain clickable above mobile menu elements
 - Navigation items: Shop (with category dropdown), This Week's Edit, Stories, About
 
+9.9 Empty State Copy
+When a category or shop view has no products to display:
+- Text: "All gone. Check back in another day — we're out looking for great stuff for you."
+- Files: src/pages/Shop.tsx, src/pages/CategoryPage.tsx
+
 10. ADMIN UI
     Tabs:
     Products
@@ -1079,7 +1084,7 @@ Cron must never overwrite editorial fields
 
 D) Public Site Rendering
 Product detail
-src/components/ProductDetail.tsx
+src/pages/ProductDetail.tsx
 
 Responsibilities:
 
@@ -1087,7 +1092,7 @@ render product fields
 
 render image carousel from image + additional_images
 
-render badge logic (marketplace / editorial override)
+render source label (marketplace / editorial override)
 
 show English fields first: name_en || name, description_en || description
 
@@ -1331,7 +1336,7 @@ Batch size:
 25 products
 
 Rate protection:
-Request pacing between calls  
+Request pacing between calls
 Abort remaining batch on HTTP 429
 
 Quota:
@@ -1381,7 +1386,9 @@ Guards:
 Translation budget tracking
 
 Ownership:
-Edge Function → translate-backfill 17. FEATURE INDEX
+Edge Function → translate-backfill
+
+17. FEATURE INDEX
 Syfte: En AI ska kunna slå upp en feature → se var den bor i kodbas/DB/edge functions → ändra utan att bryta invariants.
 Legend
 Owner: Primär "source of truth" (var ändring ska börja)
@@ -1723,7 +1730,7 @@ Behöver manuell granskning innan publicering.
 
 Invariants
 Cron får endast ändra: status (→ sold) + unpublished_reason + affiliate/ended metadata
-Cron får aldrig ändra: name/description/brand/color/material/condition (något språk)”
+Cron får aldrig ändra: name/description/brand/color/material/condition (något språk)"
 Import sätter alltid draft
 Public site visar endast published
 
