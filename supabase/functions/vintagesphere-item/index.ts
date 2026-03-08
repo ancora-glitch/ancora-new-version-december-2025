@@ -71,7 +71,7 @@ function extractOption(product: ShopifyProductFull, optionName: string): string 
 function extractConditionFromHtml(bodyHtml: string | null): string | null {
   if (!bodyHtml) return null;
   // VintageSphere uses star ratings: ⭑⭑⭑⭑ = excellent, ⭑⭑⭑ = very good, ⭑⭑ = good, ⭑ = fair
-  const starMatch = bodyHtml.match(/Condition:<\/strong>\s*<span>(⭑+)/);
+  const starMatch = bodyHtml.match(/Condition:[\s\S]*?<span[^>]*>\s*(⭑+)/i);
   if (starMatch) {
     const starCount = starMatch[1].length;
     if (starCount >= 4) return "Excellent";
