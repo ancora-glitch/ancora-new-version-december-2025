@@ -6,18 +6,18 @@ import { Footer } from "@/components/Footer";
 import { PullQuote } from "@/components/PullQuote";
 import teamAncoraImage from "@/assets/team-ancora.png";
 
-const SubstackIcon = ({ className, strokeWidth = 1.5 }: { className?: string; strokeWidth?: number }) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+const SubstackIcon = ({ className, strokeWidth = 1.5 }: {className?: string;strokeWidth?: number;}) =>
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
     <path d="M4 4h16" />
     <path d="M4 8h16" />
     <path d="M4 12l8 6 8-6" />
-  </svg>
-);
+  </svg>;
+
 const About = () => {
   const sectionsRef = useRef<(HTMLElement | null)[]>([]);
   useEffect(() => {
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
         if (entry.isIntersecting) {
           entry.target.classList.add("animate-in");
         }
@@ -26,7 +26,7 @@ const About = () => {
       threshold: 0.1,
       rootMargin: "0px 0px -50px 0px"
     });
-    sectionsRef.current.forEach(section => {
+    sectionsRef.current.forEach((section) => {
       if (section) observer.observe(section);
     });
     return () => observer.disconnect();
@@ -36,7 +36,7 @@ const About = () => {
       
       <main className="flex-1 pt-24 md:pt-32">
         {/* Hero Section */}
-        <section ref={el => sectionsRef.current[0] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-16 py-[32px]">
+        <section ref={(el) => sectionsRef.current[0] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-16 py-[32px]">
           <div className="max-w-[700px] mx-auto">
             <h1 className="font-serif text-primary text-4xl md:text-5xl lg:text-6xl leading-tight mb-8">
               About Ancora
@@ -45,16 +45,16 @@ const About = () => {
         </section>
 
         {/* Intro/Ingress Section */}
-        <section ref={el => sectionsRef.current[1] = el} className="fade-section md:px-12 lg:px-24 md:py-4 px-[60px] py-[8px]">
+        <section ref={(el) => sectionsRef.current[1] = el} className="fade-section md:px-12 lg:px-24 md:py-4 px-[60px] py-[8px]">
           <div className="max-w-[700px] mx-auto">
-            <p className="article-intro">
-              <em>Ancora exists for the everyday style seekers and the hardcore fashion hunters</em> — for anyone who believes that great style isn't bought, it's found.
+            <p className="article-intro">Ancora exists for the everyday style seekers and the hardcore fashion hunters — for anyone who wants to create a circular wardrobe. 
+            <em>Ancora exists for the everyday style seekers and the hardcore fashion hunters</em> — for anyone who believes that great style isn't bought, it's found.
             </p>
           </div>
         </section>
 
         {/* Our Story Section */}
-        <section ref={el => sectionsRef.current[2] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-6 py-0">
+        <section ref={(el) => sectionsRef.current[2] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-6 py-0">
           <div className="max-w-[700px] mx-auto article-body">
             <h2 className="article-subheader">Our Story</h2>
             <p className="drop-cap">
@@ -64,7 +64,7 @@ const About = () => {
         </section>
 
         {/* Pull Quote */}
-        <section ref={el => sectionsRef.current[3] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-8 py-0">
+        <section ref={(el) => sectionsRef.current[3] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-8 py-0">
           <div className="max-w-[700px] mx-auto">
             <PullQuote>
               Style isn't something you manufacture. And good style has nothing to do with producing more.
@@ -73,7 +73,7 @@ const About = () => {
         </section>
 
         {/* Philosophy Section */}
-        <section ref={el => sectionsRef.current[4] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-8 py-[4px]">
+        <section ref={(el) => sectionsRef.current[4] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-8 py-[4px]">
           <div className="max-w-[700px] mx-auto article-body">
             <h2 className="article-subheader">Our Philosophy</h2>
             <p>
@@ -86,7 +86,7 @@ const About = () => {
         </section>
 
         {/* Origin Section */}
-        <section ref={el => sectionsRef.current[5] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-12 py-[16px]">
+        <section ref={(el) => sectionsRef.current[5] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-12 py-[16px]">
           <div className="max-w-[700px] mx-auto article-body">
             <h2 className="article-subheader">Where We Started</h2>
             <p>
@@ -96,23 +96,23 @@ const About = () => {
         </section>
 
         {/* Team Image */}
-        <section ref={el => sectionsRef.current[6] = el} className="fade-section px-6 md:px-12 lg:px-24 py-12">
+        <section ref={(el) => sectionsRef.current[6] = el} className="fade-section px-6 md:px-12 lg:px-24 py-12">
           <div className="max-w-[700px] mx-auto">
             <img src={teamAncoraImage} alt="Team Ancora" className="w-full h-auto" loading="lazy" />
           </div>
         </section>
 
         {/* Follow Ancora */}
-        <section ref={el => sectionsRef.current[7] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-8 py-[4px]">
+        <section ref={(el) => sectionsRef.current[7] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-8 py-[4px]">
           <div className="max-w-[700px] mx-auto article-body">
             <h2 className="article-subheader">Follow Ancora</h2>
             <div className="flex flex-col gap-4 pt-2">
               <a
-                href="https://www.instagram.com/ancora_edit/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-3 text-foreground hover:text-primary transition-colors duration-200 group"
-              >
+              href="https://www.instagram.com/ancora_edit/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-3 text-foreground hover:text-primary transition-colors duration-200 group">
+              
                 <span className="p-2.5 rounded-full border border-border group-hover:border-primary transition-colors duration-200">
                   <Instagram className="w-5 h-5" strokeWidth={1.5} />
                 </span>
@@ -121,11 +121,11 @@ const About = () => {
                 </span>
               </a>
               <a
-                href="https://substack.com/@theancoraedit"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-3 text-foreground hover:text-primary transition-colors duration-200 group"
-              >
+              href="https://substack.com/@theancoraedit"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-3 text-foreground hover:text-primary transition-colors duration-200 group">
+              
                 <span className="p-2.5 rounded-full border border-border group-hover:border-primary transition-colors duration-200">
                   <SubstackIcon className="w-5 h-5" strokeWidth={1.5} />
                 </span>
@@ -138,7 +138,7 @@ const About = () => {
         </section>
 
         {/* Partner link */}
-        <section ref={el => sectionsRef.current[8] = el} className="fade-section px-6 md:px-12 lg:px-24 pb-24 pt-0">
+        <section ref={(el) => sectionsRef.current[8] = el} className="fade-section px-6 md:px-12 lg:px-24 pb-24 pt-0">
           <div className="max-w-[700px] mx-auto">
             <p className="text-sm text-muted-foreground">
               Interested in partnering with us?{" "}
