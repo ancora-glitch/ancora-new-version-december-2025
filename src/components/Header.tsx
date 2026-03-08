@@ -177,7 +177,7 @@ export function Header() {
         {/* Logo — centered */}
         <Link
           to="/"
-          className="absolute left-1/2 -translate-x-1/2"
+          className="absolute left-1/2 -translate-x-1/2 z-10"
         >
           <h1 className="tracking-[0.16em] text-primary/95 font-bold font-logo text-2xl md:text-3xl uppercase">
             ANCORA
