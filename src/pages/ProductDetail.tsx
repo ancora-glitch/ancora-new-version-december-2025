@@ -91,9 +91,11 @@ const ProductDetail = () => {
       return { label: "Back to edit", to: "/this-weeks-edit" };
     }
     if (sourcePath?.startsWith("/category/")) {
-      // Extract category name from path slug
+      const url = new URL(sourcePath, window.location.origin);
+      const sub = url.searchParams.get("sub");
       const catSlug = sourcePath.split("/category/")[1]?.split("?")[0]?.split("/")[0];
-      const name = catSlug ? catSlug.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()) : "Shop";
+      const rawLabel = sub || catSlug || "shop";
+      const name = rawLabel.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
       return { label: `Back to ${name}`, to: sourcePath };
     }
     if (sourcePath?.startsWith("/shop")) {
