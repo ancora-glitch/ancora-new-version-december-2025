@@ -78,7 +78,7 @@ const ProductDetail = () => {
       try {
         if (document.referrer) {
           const url = new URL(document.referrer);
-          if (url.origin === window.location.origin) return url.pathname;
+          if (url.origin === window.location.origin) return url.pathname + url.search;
         }
       } catch { /* ignore */ }
       return null;
