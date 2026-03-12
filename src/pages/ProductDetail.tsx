@@ -85,6 +85,7 @@ const ProductDetail = () => {
     })();
 
     const sourcePath = fromState || referrerPath;
+    console.log('[BackNav] fromState:', fromState, 'referrerPath:', referrerPath, 'sourcePath:', sourcePath);
 
     if (sourcePath?.startsWith("/this-weeks-edit")) {
       return { label: "Back to edit", to: "/this-weeks-edit" };
