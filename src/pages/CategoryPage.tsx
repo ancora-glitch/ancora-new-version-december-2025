@@ -217,7 +217,7 @@ const CategoryPage = () => {
                 <Link
                   key={product.id}
                   to={`/product/${product.slug || product.id}`}
-                  state={{ from: `/category/${slug}` }}
+                  state={{ from: `/category/${slug}${searchParams.toString() ? `?${searchParams.toString()}` : ''}` }}
                   className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 hover:bg-secondary/10 transition-all duration-300 min-h-[44px]"
                   aria-label={`View ${product.brand} ${product.name}`}
                 >
