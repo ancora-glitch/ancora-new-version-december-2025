@@ -66,6 +66,7 @@ const useCategoryProducts = (categoryId: string | undefined) => {
 
 const CategoryPage = () => {
   const { slug } = useParams<{ slug: string }>();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const subFromUrl = searchParams.get("sub");
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(subFromUrl);
@@ -217,7 +218,7 @@ const CategoryPage = () => {
                 <Link
                   key={product.id}
                   to={`/product/${product.slug || product.id}`}
-                  state={{ from: `/category/${slug}${searchParams.toString() ? `?${searchParams.toString()}` : ''}` }}
+                  state={{ from: location.pathname + location.search }}
                   className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 hover:bg-secondary/10 transition-all duration-300 min-h-[44px]"
                   aria-label={`View ${product.brand} ${product.name}`}
                 >
