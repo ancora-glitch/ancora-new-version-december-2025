@@ -66,6 +66,7 @@ const useCategoryProducts = (categoryId: string | undefined) => {
 
 const CategoryPage = () => {
   const { slug } = useParams<{ slug: string }>();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const subFromUrl = searchParams.get("sub");
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(subFromUrl);
