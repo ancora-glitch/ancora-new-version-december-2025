@@ -1,5 +1,5 @@
 import { useMemo, useEffect, useRef } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
@@ -64,9 +64,43 @@ const cleanUrl = (url: string | undefined): string => {
 
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
+  const location = useLocation();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const analyticsTrackedRef = useRef(false);
   const hasTrackedPageView = useRef(false);
+
+  // Determine back navigation based on where user came from
+  const backNav = useMemo(() => {
+    // Priority 1: React Router state
+    const fromState = (location.state as { from?: string })?.from;
+    // Priority 2: document.referrer
+    const referrerPath = (() => {
+      try {
+        if (document.referrer) {
+          const url = new URL(document.referrer);
+          if (url.origin === window.location.origin) return url.pathname;
+        }
+      } catch { /* ignore */ }
+      return null;
+    })();
+
+    const sourcePath = fromState || referrerPath;
+
+    if (sourcePath?.startsWith("/this-weeks-edit")) {
+      return { label: "Back to edit", to: "/this-weeks-edit" };
+    }
+    if (sourcePath?.startsWith("/category/")) {
+      // Extract category name from path slug
+      const catSlug = sourcePath.split("/category/")[1]?.split("?")[0]?.split("/")[0];
+      const name = catSlug ? catSlug.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()) : "Shop";
+      return { label: `Back to ${name}`, to: sourcePath };
+    }
+    if (sourcePath?.startsWith("/shop")) {
+      return { label: "Back to shop", to: "/shop" };
+    }
+    // Fallback
+    return { label: "Back to shop", to: "/shop" };
+  }, [location.state]);
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", slug],
@@ -264,11 +298,11 @@ const ProductDetail = () => {
         {/* Back Link */}
         <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto mb-6 md:mb-8">
           <Link 
-            to="/edits" 
+            to={backNav.to} 
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm"
           >
             <ArrowLeft size={16} />
-            Back to edit
+            {backNav.label}
           </Link>
         </div>
 

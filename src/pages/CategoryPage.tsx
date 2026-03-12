@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Navigate, Link, useSearchParams } from "react-router-dom";
+import { useParams, Navigate, Link, useSearchParams, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
@@ -217,6 +217,7 @@ const CategoryPage = () => {
                 <Link
                   key={product.id}
                   to={`/product/${product.slug || product.id}`}
+                  state={{ from: `/category/${slug}` }}
                   className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 hover:bg-secondary/10 transition-all duration-300 min-h-[44px]"
                   aria-label={`View ${product.brand} ${product.name}`}
                 >

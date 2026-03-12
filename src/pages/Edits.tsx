@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useActiveWeeklyEdit } from "@/hooks/useWeeklyEdits";
@@ -64,6 +64,7 @@ const Edits = () => {
                     <Link
                       key={product.id}
                       to={`/product/${product.slug || product.id}`}
+                      state={{ from: "/this-weeks-edit" }}
                       className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 hover:bg-secondary/10 transition-all duration-300 min-h-[44px]"
                       aria-label={`View ${product.brand} ${product.name}`}
                     >
