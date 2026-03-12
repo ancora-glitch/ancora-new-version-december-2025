@@ -64,9 +64,43 @@ const cleanUrl = (url: string | undefined): string => {
 
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
+  const location = useLocation();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const analyticsTrackedRef = useRef(false);
   const hasTrackedPageView = useRef(false);
+
+  // Determine back navigation based on where user came from
+  const backNav = useMemo(() => {
+    // Priority 1: React Router state
+    const fromState = (location.state as { from?: string })?.from;
+    // Priority 2: document.referrer
+    const referrerPath = (() => {
+      try {
+        if (document.referrer) {
+          const url = new URL(document.referrer);
+          if (url.origin === window.location.origin) return url.pathname;
+        }
+      } catch { /* ignore */ }
+      return null;
+    })();
+
+    const sourcePath = fromState || referrerPath;
+
+    if (sourcePath?.startsWith("/this-weeks-edit")) {
+      return { label: "Back to edit", to: "/this-weeks-edit" };
+    }
+    if (sourcePath?.startsWith("/category/")) {
+      // Extract category name from path slug
+      const catSlug = sourcePath.split("/category/")[1]?.split("?")[0]?.split("/")[0];
+      const name = catSlug ? catSlug.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()) : "Shop";
+      return { label: `Back to ${name}`, to: sourcePath };
+    }
+    if (sourcePath?.startsWith("/shop")) {
+      return { label: "Back to shop", to: "/shop" };
+    }
+    // Fallback
+    return { label: "Back to shop", to: "/shop" };
+  }, [location.state]);
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", slug],
