@@ -78,13 +78,14 @@ const ProductDetail = () => {
       try {
         if (document.referrer) {
           const url = new URL(document.referrer);
-          if (url.origin === window.location.origin) return url.pathname;
+          if (url.origin === window.location.origin) return url.pathname + url.search;
         }
       } catch { /* ignore */ }
       return null;
     })();
 
     const sourcePath = fromState || referrerPath;
+    console.log('[BackNav] fromState:', fromState, 'referrerPath:', referrerPath, 'sourcePath:', sourcePath);
 
     if (sourcePath?.startsWith("/this-weeks-edit")) {
       return { label: "Back to edit", to: "/this-weeks-edit" };
