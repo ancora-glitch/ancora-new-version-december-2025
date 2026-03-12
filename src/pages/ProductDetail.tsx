@@ -298,11 +298,11 @@ const ProductDetail = () => {
         {/* Back Link */}
         <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto mb-6 md:mb-8">
           <Link 
-            to="/edits" 
+            to={backNav.to} 
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm"
           >
             <ArrowLeft size={16} />
-            Back to edit
+            {backNav.label}
           </Link>
         </div>
 

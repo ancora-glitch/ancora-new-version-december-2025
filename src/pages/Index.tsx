@@ -56,7 +56,7 @@ const Index = () => {
             {activeEdit?.short_intro || "Curated second hand pieces, selected exclusively."}
           </p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 lg:gap-8 max-w-7xl mx-auto">
-            {isLoading ? <p className="col-span-full text-center text-muted-foreground">Loading products...</p> : activeEdit?.products && activeEdit.products.length > 0 ? activeEdit.products.slice(0, 4).map((product: any) => <Link key={product.id} to={`/product/${product.slug || product.id}`} className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 hover:bg-secondary/10 transition-all duration-300 min-h-[44px]" aria-label={`View ${product.brand} ${product.name}`}>
+            {isLoading ? <p className="col-span-full text-center text-muted-foreground">Loading products...</p> : activeEdit?.products && activeEdit.products.length > 0 ? activeEdit.products.slice(0, 4).map((product: any) => <Link key={product.id} to={`/product/${product.slug || product.id}`} state={{ from: "/" }} className="group block bg-card overflow-hidden border border-border/20 hover:border-border/40 hover:bg-secondary/10 transition-all duration-300 min-h-[44px]" aria-label={`View ${product.brand} ${product.name}`}>
                   <div className="relative aspect-[4/5] overflow-hidden bg-secondary/30">
                     <img src={product.image} alt={product.name} loading="lazy" width={400} height={500} className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" />
                     <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/10 transition-colors duration-300" />
