@@ -1550,6 +1550,38 @@ Translation budget tracking
 Ownership:
 Edge Function → translate-backfill
 
+Job: intake-fetch-test (v1 shadow mode)
+Purpose: Fetch capped source batches into test intake pipeline.
+Schedule: Manual trigger or low-frequency test schedule (not aligned
+with production cron). Frequency increases only after
+stability is confirmed.
+Batch size: Configurable via INTAKE_MAX_ITEMS_PER_RUN (default: 10)
+Guards:
+
+- INTAKE_V1_ENABLED must be true
+- INTAKE_FETCH_ENABLED must be true
+- INTAKE_KILL_SWITCH must be false
+- Source must be in INTAKE_ALLOWED_SOURCES
+- Abort immediately on HTTP 429
+- Does NOT consume Tradera shared quota counter
+- Does NOT share quota guards with tradera-sync or tradera-retry-import
+  Ownership: Edge Function → intake-fetch-test
+  Updates allowed: intake_raw_listings · intake_run_logs only
+  Forbidden: products · ancora_import_items · tradera_usage · any
+  production table
+
+---
+
+Job: intake-score-test (v1 shadow mode)
+Purpose: Run enrichment and scoring on normalized intake items.
+Schedule: Manual trigger or low-frequency test schedule.
+Batch size: Configurable via INTAKE_MAX_ITEMS_PER_RUN
+Guards: Same flag stack as intake-fetch-test.
+Ownership: Edge Function → intake-score-test
+Updates allowed: intake_normalized_products · intake_evaluations ·
+intake_run_logs only
+Forbidden: products · any production table
+
 17. FEATURE INDEX
     Syfte: En AI ska kunna slå upp en feature → se var den bor i kodbas/DB/edge functions → ändra utan att bryta invariants.
     Legend
