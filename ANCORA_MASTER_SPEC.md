@@ -2,6 +2,7 @@ ANCORA — MASTER PROJECT SPECIFICATION
 Version 1.7
 
 Changelog v1.7:
+
 - VintageSphere partner importer added (Section 4.4)
 - Import run limit: max_import_per_run = 10 (VintageSphere only)
 - Structured health logging for VintageSphere import runs
@@ -9,17 +10,20 @@ Changelog v1.7:
 - Adapters list updated: Tradera, eBay, VintageSphere
 
 Changelog v1.6:
+
 - F-05: Source label redesigned from badge/button to plain bold text
 - F-05: Copy changed from "Ancora selects from X" to "Source Tradera" / "Source eBay"
 - F-05: File path corrected to src/pages/ProductDetail.tsx
 - Empty category copy updated to "All gone. Check back in another day — we're out looking for great stuff for you."
 
 Changelog v1.5:
+
 - Bulk subcategory reclassification: 35 products → knitwear, 10 → blazers, 25 → shirts
 - Reclassification rules documented (Section 9.7)
 - Header mobile logo z-index fix (logo now clickable on mobile)
 
 Changelog v1.4:
+
 - Admin health coverage window corrected to 24h
 - eBay availability checks hardened with rate-limit handling (429 abort + request pacing)
 - Clothing subcategories defined (knitwear, shirts, blazers, skirts, jeans, trousers, shorts)
@@ -301,6 +305,7 @@ HTML sold-out parsing is not used.
 Currency: SEK
 
 Field Mapping:
+
 - title → products.name / name_en
 - body_html (stripped) → products.description / description_en
 - vendor → products.brand (unless "Vintage Sphere", then parsed from listing)
@@ -326,7 +331,7 @@ Rationale: Ancora uses curated selection — batch size limits prevent accidenta
 Isolation Rule:
 The VintageSphere importer is fully isolated from Tradera and eBay import flows.
 It does not share quota counters, retry queues, or cron jobs with other importers.
-Edge functions: vintagesphere-search, vintagesphere-item (separate from tradera-* and ebay-*).
+Edge functions: vintagesphere-search, vintagesphere-item (separate from tradera-_ and ebay-_).
 
 Deduplication:
 Products are deduplicated by handle (source_ref) and affiliate_url against the products table.
@@ -334,6 +339,7 @@ Items already imported show "Already imported" in the search UI.
 
 Logging Requirement:
 Every import run produces a structured health log with:
+
 - importer_name: vintagesphere
 - endpoint_status
 - pages_fetched
@@ -345,9 +351,10 @@ Every import run produces a structured health log with:
 
 Failure Alerts:
 If endpoint_status != 200 or products_returned = 0, an additional structured warning is emitted:
+
 - event: VintageSphereImportWarning
 - Fields: endpoint_status, pages_fetched, products_returned, error_count, duration_ms
-This is observability-only and does not modify import behavior.
+  This is observability-only and does not modify import behavior.
 
 Source Badge:
 Products with marketplace = "vintagesphere" display "Source VintageSphere" on the product detail page,
@@ -359,6 +366,7 @@ The filter applies to Product Clicks, Purchase Intent, Intent Rate, trend chart,
 Page Views and Unique Visitors remain unfiltered (not source-specific).
 
 Rate Limiting:
+
 - 500ms delay between search pagination pages
 - 300ms delay between individual product imports
 - 15s timeout per API request
@@ -826,6 +834,7 @@ Categories are managed in the categories table (DB).
 Products reference a category via products.category_id and may have a products.subcategory string.
 
 Clothing subcategories (canonical list):
+
 - outerwear
 - tops
 - knitwear
@@ -838,15 +847,16 @@ Clothing subcategories (canonical list):
 - shorts
 
 Rules:
+
 - Subcategory values are lowercase.
 - The legacy category "Bottoms" has been removed. Products previously tagged "bottoms" should be reassigned to the appropriate subcategory (jeans, trousers, shorts, or skirts).
 - New subcategories must be added to this list before implementation.
 - Subcategories are currently hardcoded in Shop, CategoryPage, AdminPortal, and Header navigation.
 - A DB trigger (`validate_product_subcategory`) enforces the canonical list above. Any new subcategory must be added to both this spec and the trigger.
 
-9.7 Subcategory Reclassification Log
-Purpose: Document bulk data operations that reassign products between subcategories.
-These operations are performed via SQL UPDATE on products table, scoped to a specific category_id.
+  9.7 Subcategory Reclassification Log
+  Purpose: Document bulk data operations that reassign products between subcategories.
+  These operations are performed via SQL UPDATE on products table, scoped to a specific category_id.
 
 Completed reclassifications (Clothing category):
 
@@ -866,20 +876,23 @@ Completed reclassifications (Clothing category):
    Source subcategories: tops, NULL → shirts
 
 Rules for future reclassifications:
+
 - Always scope to category_id to avoid cross-category pollution
 - Use exclusion keywords to prevent misclassification
 - Only reclassify from NULL or generic subcategories (e.g. tops), never override specific assignments
 - Document each operation in this section
 
-9.8 Header / Navigation
-The site header uses a fixed top bar with centered ANCORA logo.
+  9.8 Header / Navigation
+  The site header uses a fixed top bar with centered ANCORA logo.
+
 - Desktop: left-aligned nav with hover-triggered Shop dropdown
 - Mobile: hamburger menu with slide-in panel, accordion Shop submenu
 - Logo link requires z-10 to remain clickable above mobile menu elements
 - Navigation items: Shop (with category dropdown), This Week's Edit, Stories, About
 
-9.9 Empty State Copy
-When a category or shop view has no products to display:
+  9.9 Empty State Copy
+  When a category or shop view has no products to display:
+
 - Text: "All gone. Check back in another day — we're out looking for great stuff for you."
 - Files: src/pages/Shop.tsx, src/pages/CategoryPage.tsx
 
@@ -1270,6 +1283,51 @@ tradera-item (if left public by design)
 
 NOTE: if used by admin only, consider making it admin-protected too
 
+Intake v1 — Test Only (feature-flagged, isolated)
+
+intake-fetch-test
+Purpose: Fetch a capped batch from one source in test mode.
+Saves raw payloads to intake_raw_listings only.
+Guards: INTAKE_V1_ENABLED check · INTAKE_FETCH_ENABLED check ·
+INTAKE_KILL_SWITCH check · max items cap · source throttling.
+Forbidden: Any write to products or production tables.
+
+intake-normalize-test
+Purpose: Map raw payloads to canonical intake schema.
+Run deterministic rules engine. Write to intake_normalized_products.
+Guards: Same flag stack as above · idempotent · logs rule rejections.
+Forbidden: Any write to products or production tables.
+
+intake-enrich-test
+Purpose: Run AI enrichment prompts (brand, category, color, title rewrite).
+Store enriched fields and confidence scores in intake_normalized_products.
+Guards: Prompt version tracked · JSON validation · safe fallback on
+malformed AI output · skips hard-rejected items.
+Forbidden: Any write to products or production tables.
+
+intake-score-test
+Purpose: Run AI scoring prompt. Write results to intake_evaluations.
+Update intake_normalized_products.current_queue_state.
+Guards: Score threshold config · hard override flags respected.
+Forbidden: Any write to products or production tables.
+
+intake-detect-duplicates-test
+Purpose: Exact and probable duplicate detection.
+Compares read-only against products table (affiliate_url, external_id).
+Writes candidates to intake_duplicate_candidates.
+Forbidden: Any mutation of products or production tables.
+
+intake-availability-test
+Purpose: Re-check availability within the intake test system only.
+Updates intake_normalized_products.availability_status.
+Forbidden: Any mutation of products.status or production availability fields.
+Note: Does NOT consume Tradera shared quota counter.
+Must use separate rate controls from production availability jobs.
+
+intake-run-log
+Purpose: Write structured health log per run to intake_run_logs.
+Called by all other intake functions at start and completion.
+
 16.5 Database Map (Tables + ownership)
 Canonical
 products — canonical inventory and editorial state
@@ -1478,9 +1536,9 @@ Ownership:
 Edge Function → translate-backfill
 
 17. FEATURE INDEX
-Syfte: En AI ska kunna slå upp en feature → se var den bor i kodbas/DB/edge functions → ändra utan att bryta invariants.
-Legend
-Owner: Primär "source of truth" (var ändring ska börja)
+    Syfte: En AI ska kunna slå upp en feature → se var den bor i kodbas/DB/edge functions → ändra utan att bryta invariants.
+    Legend
+    Owner: Primär "source of truth" (var ändring ska börja)
 
 Touches: Vanliga sekundära beröringsytor
 
@@ -1556,6 +1614,7 @@ FE: src/pages/ProductDetail.tsx
 DB fields: products.marketplace, products.ancora_select_source
 
 Display rules:
+
 - Rendered as plain bold text (p with font-bold text-muted-foreground), NOT as a badge or button
 - Text: "Source Tradera" when source is tradera, "Source eBay" when source is ebay
 - Priority: ancora_select_source, then marketplace (lowercase fallback)
