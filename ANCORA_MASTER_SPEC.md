@@ -1356,9 +1356,24 @@ site_analytics
 
 story_views
 
-16.6 Invariants Checklist (must never regress)
-Import invariants
-Tradera import must use GetItem images (/images/ HD) and import >= 3 images when available
+Intake v1 — Test Only
+intake_raw_listings — original source payloads, unmodified
+intake_normalized_products — canonical enriched intake objects
+intake_evaluations — rules + AI scoring per product per pass
+intake_editorial_actions — human review actions in test queue
+intake_run_logs — structured health log per job execution
+intake_duplicate_candidates — probable and exact duplicate matches
+
+Rules:
+
+- All intake\_\* tables are test-only during v1.
+- No intake\_\* table may be queried by the public storefront.
+- No intake\_\* table may write to or join with products in a mutating operation.
+- Read-only joins against products are permitted for duplicate detection only.
+
+  16.6 Invariants Checklist (must never regress)
+  Import invariants
+  Tradera import must use GetItem images (/images/ HD) and import >= 3 images when available
 
 Hero image must be in images[]
 
