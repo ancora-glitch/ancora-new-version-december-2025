@@ -2139,3 +2139,36 @@ A future AI must NOT generate:
 ❌ "very good" (should be very_good internally)
 ❌ mixed case enums
 All enums are lowercase snake_case.
+
+17.3.15 intake_normalized_products.current_queue_state
+Allowed values:
+raw_imported
+rules_rejected
+normalized
+enriched
+scored_review
+scored_draft_approved
+rejected
+test_approved
+archived
+
+Rules:
+
+- These states exist only within the intake test pipeline.
+- They must never be mapped to or confused with products.status values.
+- No public storefront query may reference these states.
+
+  17.3.16 intake_evaluations.decision
+  Allowed values:
+  reject
+  review
+  draft_approve
+
+  17.3.17 intake_run_logs.status
+  Allowed values:
+  started
+  completed
+  failed
+  aborted_kill_switch
+  aborted_flag_disabled
+  aborted_rate_limit
