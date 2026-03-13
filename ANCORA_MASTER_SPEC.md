@@ -1413,9 +1413,23 @@ Service role bypass allowed only for cron
 
 CORS allows preview origins (.lovable.app, .lovableproject.com)
 
-16.7 "AI Sync Protocol" (how to update code safely)
-When asked to add a feature, the AI must:
-Identify which layer owns it (Admin UI, Edge, DB, Frontend, Cron)
+Intake v1 invariants (test pipeline)
+
+- intake\_\* functions must check INTAKE_V1_ENABLED and INTAKE_KILL_SWITCH
+  before any execution.
+- No intake\_\* function may write to products or any production table.
+- No intake\_\* function may consume the Tradera shared quota counter.
+- intake-detect-duplicates-test may only read products — never mutate it.
+- All AI calls within intake pipeline must be skipped for items already
+  hard-rejected by the rules engine.
+- Prompt version, model version, and rules version must be stored in
+  intake_evaluations for every scoring pass.
+- intake\_\* tables must not be queried by the public storefront under
+  any condition.
+
+  16.7 "AI Sync Protocol" (how to update code safely)
+  When asked to add a feature, the AI must:
+  Identify which layer owns it (Admin UI, Edge, DB, Frontend, Cron)
 
 Update spec first (this document), including:
 
