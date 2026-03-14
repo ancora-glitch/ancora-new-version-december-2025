@@ -434,6 +434,9 @@ Deno.serve(async (req) => {
         hard_flags: hardFlags,
         soft_flags: softFlags,
         price,
+        raw_price: price !== null ? parseFloat(item.price.value) : null,
+        raw_currency: item.price?.currency || "USD",
+        converted_sek: priceSek,
         category,
         brand,
         image_count: images.length,
@@ -484,6 +487,14 @@ Deno.serve(async (req) => {
       rejected_reasons: rejectedReasons,
       soft_flags_summary: softFlagsSummary,
       categories_seen: categoriesSeen,
+      ...(dryRun ? {
+        price_debug: results.slice(0, 5).map((r) => ({
+          external_id: r.external_id,
+          raw_price: r.raw_price,
+          raw_currency: r.raw_currency,
+          converted_sek: r.converted_sek,
+        })),
+      } : {}),
     },
   }).eq("id", runId);
 
