@@ -487,6 +487,14 @@ Deno.serve(async (req) => {
       rejected_reasons: rejectedReasons,
       soft_flags_summary: softFlagsSummary,
       categories_seen: categoriesSeen,
+      ...(dryRun ? {
+        price_debug: results.slice(0, 5).map((r) => ({
+          external_id: r.external_id,
+          raw_price: r.raw_price,
+          raw_currency: r.raw_currency,
+          converted_sek: r.converted_sek,
+        })),
+      } : {}),
     },
   }).eq("id", runId);
 
