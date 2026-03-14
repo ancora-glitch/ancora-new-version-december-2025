@@ -822,13 +822,14 @@ const AdminPortal = () => {
           </p>
 
           <Tabs defaultValue="statistics" className="w-full">
-            <TabsList className="grid w-full grid-cols-6 mb-8">
+             <TabsList className="grid w-full grid-cols-7 mb-8">
               <TabsTrigger value="statistics">Statistics</TabsTrigger>
               <TabsTrigger value="imports">Imports</TabsTrigger>
               <TabsTrigger value="weekly-edits">Edits</TabsTrigger>
               <TabsTrigger value="categories">Categories</TabsTrigger>
               <TabsTrigger value="products">Products</TabsTrigger>
               <TabsTrigger value="stories">Stories</TabsTrigger>
+              <TabsTrigger value="intake-test">Intake (test)</TabsTrigger>
             </TabsList>
 
             {/* STATISTICS TAB */}
