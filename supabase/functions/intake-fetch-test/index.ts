@@ -351,7 +351,7 @@ Deno.serve(async (req) => {
       if (images.length < 2) softFlags.push("fewer_than_2_images");
       if (!brand) softFlags.push("brand_undetected");
       if (!item.size) softFlags.push("size_missing");
-      if (price !== null && price < 300) softFlags.push("price_below_300_sek");
+      if (price !== null && price < 500) softFlags.push("price_below_500_sek");
       if (price !== null && price > 50000) softFlags.push("price_above_50000_sek");
 
       const isRejected = hardFlags.length > 0;
