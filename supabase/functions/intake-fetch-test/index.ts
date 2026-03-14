@@ -258,7 +258,7 @@ Deno.serve(async (req) => {
 
   const euroCountries = "DE|GB|FR|IT|ES|SE|NL|AT|BE|DK|FI|IE|PL|PT|CZ|GR|HU|RO|NO|CH";
   searchParams.set("filter",
-    `itemLocationCountry:{${euroCountries}},deliveryCountry:SE,buyingOptions:{FIXED_PRICE}`
+    `itemLocationCountry:{${euroCountries}},deliveryCountry:SE,buyingOptions:{FIXED_PRICE},price:[500..],priceCurrency:SEK`
   );
 
   const baseUrl = getEbayBaseUrl();
