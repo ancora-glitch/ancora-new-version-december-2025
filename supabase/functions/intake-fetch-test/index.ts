@@ -448,6 +448,20 @@ Deno.serve(async (req) => {
   const reviewCount = results.filter((r) => r.hard_flags.length === 0 && r.soft_flags.length > 0).length;
   const approvedCount = results.filter((r) => r.hard_flags.length === 0 && r.soft_flags.length === 0).length;
 
+  // Build detailed summary
+  const rejectedReasons = results
+    .filter((r) => r.hard_flags.length > 0)
+    .map((r) => ({ external_id: r.external_id, reasons: r.hard_flags }));
+
+  const softFlagsSummary: Record<string, number> = {};
+  for (const r of results) {
+    for (const flag of r.soft_flags) {
+      softFlagsSummary[flag] = (softFlagsSummary[flag] || 0) + 1;
+    }
+  }
+
+  const categoriesSeen = [...new Set(results.map((r) => r.category).filter(Boolean))];
+
   await svc.from("intake_run_logs").update({
     status: rateLimited ? "failed" : "completed",
     completed_at: new Date().toISOString(),
@@ -458,7 +472,13 @@ Deno.serve(async (req) => {
     draft_approved_count: approvedCount,
     error_count: errorCount,
     rate_limit_count: rateLimitCount,
-    summary: { dry_run: dryRun, total_results: results.length },
+    summary: {
+      dry_run: dryRun,
+      total_results: results.length,
+      rejected_reasons: rejectedReasons,
+      soft_flags_summary: softFlagsSummary,
+      categories_seen: categoriesSeen,
+    },
   }).eq("id", runId);
 
   return jsonRes({
