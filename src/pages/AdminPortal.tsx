@@ -22,6 +22,7 @@ import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { Badge } from "@/components/ui/badge";
 import { ImportsTab } from "@/components/admin/ImportsTab";
 import { WeeklyEditsTab } from "@/components/admin/WeeklyEditsTab";
+import { IntakeTab } from "@/components/admin/IntakeTab";
 import {
   DndContext,
   closestCenter,
