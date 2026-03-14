@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.vintagesphere-item]
 verify_jwt = false
+
+[functions.intake-fetch-test]
+verify_jwt = false
