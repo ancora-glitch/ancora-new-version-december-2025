@@ -1843,30 +1843,7 @@ const AdminPortal = () => {
             </TabsContent>
 
             <TabsContent value="intake-test">
-              <div className="space-y-6">
-                {/* Permanent warning banner */}
-                <div className="flex items-start gap-3 rounded-md border border-amber-300 bg-amber-50 p-4 w-full">
-                  <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-amber-900">Test environment — does not affect the live site</p>
-                    <p className="text-sm text-amber-800 mt-0.5">
-                      This intake pipeline runs in isolation. No data here is published, unpublished, or written to the products table. All results are stored in intake_* tables only.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Placeholder content */}
-                <div>
-                  <h2 className="text-xl font-heading font-semibold text-foreground">Intake pipeline v1</h2>
-                  <p className="text-sm text-muted-foreground mt-1">Shadow mode — evaluation only</p>
-                </div>
-
-                <div className="rounded-md border border-border bg-card p-5 max-w-sm">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Pipeline status</p>
-                  <p className="text-2xl font-semibold text-foreground mt-1">Disabled</p>
-                  <p className="text-xs text-muted-foreground mt-2">Enable via INTAKE_V1_ENABLED feature flag</p>
-                </div>
-              </div>
+              <IntakeTab />
             </TabsContent>
           </Tabs>
         </div>
