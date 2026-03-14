@@ -1,11 +1,24 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { AlertTriangle, RefreshCw, Play, Loader2, FlaskConical, Zap, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
-/* ── env helpers (VITE_ prefix required for client access) ── */
+/* ── env helpers ── */
 const envFlag = (key: string): boolean | null => {
   const v = import.meta.env[key];
   if (v === undefined || v === "") return null;
@@ -49,6 +62,7 @@ const queueColor = (state: string) => {
   const map: Record<string, string> = {
     raw_imported: "bg-blue-100 text-blue-800",
     rules_rejected: "bg-red-100 text-red-800",
+    normalized: "bg-cyan-100 text-cyan-800",
     enriched: "bg-indigo-100 text-indigo-800",
     scored_review: "bg-amber-100 text-amber-800",
     scored_draft_approved: "bg-emerald-100 text-emerald-800",
@@ -61,6 +75,7 @@ const queueColor = (state: string) => {
 const QUEUE_STATES = [
   "raw_imported",
   "rules_rejected",
+  "normalized",
   "enriched",
   "scored_review",
   "scored_draft_approved",
@@ -74,14 +89,31 @@ const fmtDate = (iso: string | null) => {
   return d.toLocaleDateString("sv-SE") + " " + d.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" });
 };
 
+/* ── Result summary type ── */
+interface RunResult {
+  items_fetched: number;
+  items_processed: number;
+  rules_rejected: number;
+  review: number;
+  draft_approved: number;
+  errors: number;
+  dry_run: boolean;
+}
+
 export const IntakeTab = () => {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [confirmMode, setConfirmMode] = useState<"dry" | "live" | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
+  const [runResult, setRunResult] = useState<RunResult | null>(null);
+  const [runError, setRunError] = useState<string | null>(null);
 
   /* ── pipeline flags ── */
   const pipelineEnabled = envFlag("VITE_INTAKE_V1_ENABLED");
   const killSwitch = envFlag("VITE_INTAKE_KILL_SWITCH");
   const allowedSources = envStr("VITE_INTAKE_ALLOWED_SOURCES");
   const batchLimit = envStr("VITE_INTAKE_MAX_ITEMS_PER_RUN");
+  const isEnabled = pipelineEnabled === true;
 
   /* ── run logs ── */
   const { data: runs, isLoading: runsLoading } = useQuery({
@@ -117,6 +149,67 @@ export const IntakeTab = () => {
   const handleRefresh = () => setRefreshKey((k) => k + 1);
   const totalQueue = queueCounts ? Object.values(queueCounts).reduce((a, b) => a + b, 0) : 0;
 
+  /* ── Trigger run ── */
+  const handleTrigger = () => {
+    setRunResult(null);
+    setRunError(null);
+    setConfirmMode(null);
+    setDialogOpen(true);
+  };
+
+  const handleSelectMode = (mode: "dry" | "live") => {
+    setConfirmMode(mode);
+  };
+
+  const handleConfirmRun = async () => {
+    if (!confirmMode) return;
+    setIsRunning(true);
+    setRunError(null);
+    setRunResult(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("intake-fetch-test", {
+        body: { source: "ebay", dry_run: confirmMode === "dry" },
+      });
+
+      if (error) {
+        setRunError(error.message || "Unknown error calling intake-fetch-test");
+        return;
+      }
+
+      if (data?.error) {
+        setRunError(data.error);
+        return;
+      }
+
+      setRunResult({
+        items_fetched: data.items_fetched ?? 0,
+        items_processed: data.items_processed ?? 0,
+        rules_rejected: data.rules_rejected ?? 0,
+        review: data.review ?? 0,
+        draft_approved: data.draft_approved ?? 0,
+        errors: data.errors ?? 0,
+        dry_run: data.dry_run ?? false,
+      });
+
+      // Auto-refresh tables
+      handleRefresh();
+    } catch (e: any) {
+      setRunError(e.message || "Unexpected error");
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const handleCloseDialog = () => {
+    if (!isRunning) {
+      setDialogOpen(false);
+      setConfirmMode(null);
+      setRunResult(null);
+      setRunError(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Permanent warning banner */}
@@ -132,7 +225,32 @@ export const IntakeTab = () => {
 
       {/* SECTION 1: Pipeline status row */}
       <div>
-        <h2 className="text-xl font-heading font-semibold text-foreground mb-3">Intake pipeline v1</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xl font-heading font-semibold text-foreground">Intake pipeline v1</h2>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span tabIndex={!isEnabled ? 0 : undefined}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleTrigger}
+                    disabled={!isEnabled}
+                    className="gap-1.5"
+                  >
+                    <Play className="w-3.5 h-3.5" />
+                    Trigger test run
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {!isEnabled && (
+                <TooltipContent>
+                  <p>Pipeline is disabled</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <div className="flex flex-wrap gap-3">
           <StatusCard
             label="Pipeline"
@@ -245,6 +363,140 @@ export const IntakeTab = () => {
           </div>
         )}
       </div>
+
+      {/* ── Trigger test run dialog ── */}
+      <Dialog open={dialogOpen} onOpenChange={handleCloseDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Trigger test run</DialogTitle>
+            <DialogDescription>
+              Fetch items from eBay into the isolated test pipeline.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Loading state */}
+          {isRunning && (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Running {confirmMode === "dry" ? "dry" : "live"} fetch…
+              </p>
+            </div>
+          )}
+
+          {/* Result state */}
+          {!isRunning && runResult && (
+            <div className="space-y-3 py-2">
+              <div className="flex items-center gap-2 text-emerald-700">
+                <CheckCircle2 className="h-5 w-5" />
+                <span className="font-semibold text-sm">
+                  {runResult.dry_run ? "Dry run completed" : "Live run completed"}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="rounded-md border border-border bg-muted/50 p-2.5">
+                  <p className="text-muted-foreground text-xs">Items fetched</p>
+                  <p className="font-semibold tabular-nums">{runResult.items_fetched}</p>
+                </div>
+                <div className="rounded-md border border-border bg-muted/50 p-2.5">
+                  <p className="text-muted-foreground text-xs">Passed rules</p>
+                  <p className="font-semibold tabular-nums text-emerald-700">
+                    {runResult.items_processed - runResult.rules_rejected}
+                  </p>
+                </div>
+                <div className="rounded-md border border-border bg-muted/50 p-2.5">
+                  <p className="text-muted-foreground text-xs">Rejected</p>
+                  <p className="font-semibold tabular-nums text-red-700">{runResult.rules_rejected}</p>
+                </div>
+                <div className="rounded-md border border-border bg-muted/50 p-2.5">
+                  <p className="text-muted-foreground text-xs">Soft flags</p>
+                  <p className="font-semibold tabular-nums text-amber-700">{runResult.review}</p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={handleCloseDialog}>
+                  Close
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+
+          {/* Error state */}
+          {!isRunning && runError && (
+            <div className="space-y-3 py-2">
+              <div className="flex items-start gap-2 text-red-700">
+                <XCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-sm">Run failed</p>
+                  <p className="text-sm mt-1">{runError}</p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={handleCloseDialog}>
+                  Close
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+
+          {/* Selection / confirmation state */}
+          {!isRunning && !runResult && !runError && (
+            <>
+              {confirmMode === null ? (
+                <div className="space-y-2 py-2">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start gap-3 h-auto py-3 px-4"
+                    onClick={() => handleSelectMode("dry")}
+                  >
+                    <FlaskConical className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                    <div className="text-left">
+                      <p className="font-medium text-sm">Dry run (no writes)</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Fetch and evaluate items without saving to database
+                      </p>
+                    </div>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start gap-3 h-auto py-3 px-4"
+                    onClick={() => handleSelectMode("live")}
+                  >
+                    <Zap className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                    <div className="text-left">
+                      <p className="font-medium text-sm">Live run (writes to intake tables)</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Fetch, evaluate, and store results in intake_* tables
+                      </p>
+                    </div>
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4 py-2">
+                  <div className="rounded-md border border-amber-300 bg-amber-50 p-3">
+                    <p className="text-sm text-amber-900">
+                      This will fetch up to {batchLimit || "10"} items from eBay into the test pipeline. No live data will be affected.
+                    </p>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Mode: <span className="font-medium text-foreground">
+                      {confirmMode === "dry" ? "Dry run (no writes)" : "Live run (writes to intake tables)"}
+                    </span>
+                  </p>
+                  <DialogFooter className="gap-2 sm:gap-0">
+                    <Button variant="ghost" size="sm" onClick={() => setConfirmMode(null)}>
+                      Back
+                    </Button>
+                    <Button size="sm" onClick={handleConfirmRun}>
+                      Confirm & run
+                    </Button>
+                  </DialogFooter>
+                </div>
+              )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
