@@ -258,7 +258,7 @@ Deno.serve(async (req) => {
 
   const euroCountries = "DE|GB|FR|IT|ES|SE|NL|AT|BE|DK|FI|IE|PL|PT|CZ|GR|HU|RO|NO|CH";
   searchParams.set("filter",
-    `itemLocationCountry:{${euroCountries}},deliveryCountry:SE,buyingOptions:{FIXED_PRICE},price:[500..],priceCurrency:SEK`
+    `itemLocationCountry:{${euroCountries}},deliveryCountry:SE,buyingOptions:{FIXED_PRICE}`
   );
 
   const baseUrl = getEbayBaseUrl();
@@ -331,6 +331,12 @@ Deno.serve(async (req) => {
 
       const price = item.price?.value ? parseFloat(item.price.value) : null;
       const currency = item.price?.currency || "USD";
+
+      // Convert price to SEK using fixed approximate rates
+      const SEK_RATES: Record<string, number> = { GBP: 13, EUR: 11.5, USD: 10.5, SEK: 1 };
+      const sekRate = SEK_RATES[currency] || 10.5;
+      const priceSek = price !== null ? Math.round(price * sekRate) : null;
+
       const title = item.title || "";
       const affiliateUrl = item.itemWebUrl || null;
       const externalId = item.itemId || null;
@@ -351,8 +357,8 @@ Deno.serve(async (req) => {
       if (images.length < 2) softFlags.push("fewer_than_2_images");
       if (!brand) softFlags.push("brand_undetected");
       if (!item.size) softFlags.push("size_missing");
-      if (price !== null && price < 500) softFlags.push("price_below_500_sek");
-      if (price !== null && price > 50000) softFlags.push("price_above_50000_sek");
+      if (priceSek !== null && priceSek < 500) softFlags.push("price_below_500_sek");
+      if (priceSek !== null && priceSek > 50000) softFlags.push("price_above_50000_sek");
 
       const isRejected = hardFlags.length > 0;
       const queueState = isRejected ? "rules_rejected" : "normalized";
@@ -370,8 +376,8 @@ Deno.serve(async (req) => {
         size: item.size || null,
         material: null,
         condition,
-        price,
-        currency,
+        price: priceSek,
+        currency: "SEK",
         image_urls: images,
         availability_status: "available",
         current_queue_state: queueState,
