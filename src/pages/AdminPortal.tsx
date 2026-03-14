@@ -13,7 +13,7 @@ import { useAllCategories, type Category, type CategoryStatus } from "@/hooks/us
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Trash2, Pencil, X, GripVertical, Bold, Italic, RefreshCw, Loader2, Image as ImageIcon, Eye, EyeOff, Star, Search } from "lucide-react";
+import { Trash2, Pencil, X, GripVertical, Bold, Italic, RefreshCw, Loader2, Image as ImageIcon, Eye, EyeOff, Star, Search, AlertTriangle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StorageImagePicker } from "@/components/StorageImagePicker";
@@ -822,13 +822,14 @@ const AdminPortal = () => {
           </p>
 
           <Tabs defaultValue="statistics" className="w-full">
-            <TabsList className="grid w-full grid-cols-6 mb-8">
+             <TabsList className="grid w-full grid-cols-7 mb-8">
               <TabsTrigger value="statistics">Statistics</TabsTrigger>
               <TabsTrigger value="imports">Imports</TabsTrigger>
               <TabsTrigger value="weekly-edits">Edits</TabsTrigger>
               <TabsTrigger value="categories">Categories</TabsTrigger>
               <TabsTrigger value="products">Products</TabsTrigger>
               <TabsTrigger value="stories">Stories</TabsTrigger>
+              <TabsTrigger value="intake-test">Intake (test)</TabsTrigger>
             </TabsList>
 
             {/* STATISTICS TAB */}
@@ -1837,6 +1838,33 @@ const AdminPortal = () => {
                     {storyStatusFilter === "all" ? "No stories yet." : `No ${storyStatusFilter} stories.`}
                   </p>
                 )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="intake-test">
+              <div className="space-y-6">
+                {/* Permanent warning banner */}
+                <div className="flex items-start gap-3 rounded-md border border-amber-300 bg-amber-50 p-4 w-full">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-amber-900">Test environment — does not affect the live site</p>
+                    <p className="text-sm text-amber-800 mt-0.5">
+                      This intake pipeline runs in isolation. No data here is published, unpublished, or written to the products table. All results are stored in intake_* tables only.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Placeholder content */}
+                <div>
+                  <h2 className="text-xl font-heading font-semibold text-foreground">Intake pipeline v1</h2>
+                  <p className="text-sm text-muted-foreground mt-1">Shadow mode — evaluation only</p>
+                </div>
+
+                <div className="rounded-md border border-border bg-card p-5 max-w-sm">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Pipeline status</p>
+                  <p className="text-2xl font-semibold text-foreground mt-1">Disabled</p>
+                  <p className="text-xs text-muted-foreground mt-2">Enable via INTAKE_V1_ENABLED feature flag</p>
+                </div>
               </div>
             </TabsContent>
           </Tabs>
