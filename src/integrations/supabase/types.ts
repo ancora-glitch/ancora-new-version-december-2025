@@ -245,6 +245,314 @@ export type Database = {
         }
         Relationships: []
       }
+      intake_duplicate_candidates: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          id: string
+          match_type: string | null
+          matched_reference: string | null
+          normalized_product_id: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          match_type?: string | null
+          matched_reference?: string | null
+          normalized_product_id?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          match_type?: string | null
+          matched_reference?: string | null
+          normalized_product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intake_duplicate_candidates_normalized_product_id_fkey"
+            columns: ["normalized_product_id"]
+            isOneToOne: false
+            referencedRelation: "intake_normalized_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intake_editorial_actions: {
+        Row: {
+          action_type: string | null
+          changed_fields: Json | null
+          created_at: string | null
+          editor_id: string | null
+          id: string
+          new_state: string | null
+          normalized_product_id: string | null
+          override_reason: string | null
+          previous_state: string | null
+        }
+        Insert: {
+          action_type?: string | null
+          changed_fields?: Json | null
+          created_at?: string | null
+          editor_id?: string | null
+          id?: string
+          new_state?: string | null
+          normalized_product_id?: string | null
+          override_reason?: string | null
+          previous_state?: string | null
+        }
+        Update: {
+          action_type?: string | null
+          changed_fields?: Json | null
+          created_at?: string | null
+          editor_id?: string | null
+          id?: string
+          new_state?: string | null
+          normalized_product_id?: string | null
+          override_reason?: string | null
+          previous_state?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intake_editorial_actions_normalized_product_id_fkey"
+            columns: ["normalized_product_id"]
+            isOneToOne: false
+            referencedRelation: "intake_normalized_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intake_evaluations: {
+        Row: {
+          decision: string | null
+          evaluated_at: string | null
+          hard_flags: Json | null
+          id: string
+          model_version: string | null
+          normalized_product_id: string | null
+          prompt_version: string | null
+          reasons: Json | null
+          rules_version: string | null
+          score_total: number | null
+          soft_flags: Json | null
+          subscores: Json | null
+        }
+        Insert: {
+          decision?: string | null
+          evaluated_at?: string | null
+          hard_flags?: Json | null
+          id?: string
+          model_version?: string | null
+          normalized_product_id?: string | null
+          prompt_version?: string | null
+          reasons?: Json | null
+          rules_version?: string | null
+          score_total?: number | null
+          soft_flags?: Json | null
+          subscores?: Json | null
+        }
+        Update: {
+          decision?: string | null
+          evaluated_at?: string | null
+          hard_flags?: Json | null
+          id?: string
+          model_version?: string | null
+          normalized_product_id?: string | null
+          prompt_version?: string | null
+          reasons?: Json | null
+          rules_version?: string | null
+          score_total?: number | null
+          soft_flags?: Json | null
+          subscores?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intake_evaluations_normalized_product_id_fkey"
+            columns: ["normalized_product_id"]
+            isOneToOne: false
+            referencedRelation: "intake_normalized_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intake_normalized_products: {
+        Row: {
+          affiliate_url: string | null
+          availability_status: string | null
+          brand: string | null
+          category: string | null
+          color: string | null
+          condition: string | null
+          confidence: Json | null
+          created_at: string | null
+          currency: string | null
+          current_queue_state: string | null
+          description_raw: string | null
+          external_id: string | null
+          id: string
+          image_urls: Json | null
+          material: string | null
+          partner_id: string | null
+          price: number | null
+          raw_listing_id: string | null
+          size: string | null
+          source: string
+          style_tags: Json | null
+          subcategory: string | null
+          title_clean: string | null
+          title_raw: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          affiliate_url?: string | null
+          availability_status?: string | null
+          brand?: string | null
+          category?: string | null
+          color?: string | null
+          condition?: string | null
+          confidence?: Json | null
+          created_at?: string | null
+          currency?: string | null
+          current_queue_state?: string | null
+          description_raw?: string | null
+          external_id?: string | null
+          id?: string
+          image_urls?: Json | null
+          material?: string | null
+          partner_id?: string | null
+          price?: number | null
+          raw_listing_id?: string | null
+          size?: string | null
+          source: string
+          style_tags?: Json | null
+          subcategory?: string | null
+          title_clean?: string | null
+          title_raw?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          affiliate_url?: string | null
+          availability_status?: string | null
+          brand?: string | null
+          category?: string | null
+          color?: string | null
+          condition?: string | null
+          confidence?: Json | null
+          created_at?: string | null
+          currency?: string | null
+          current_queue_state?: string | null
+          description_raw?: string | null
+          external_id?: string | null
+          id?: string
+          image_urls?: Json | null
+          material?: string | null
+          partner_id?: string | null
+          price?: number | null
+          raw_listing_id?: string | null
+          size?: string | null
+          source?: string
+          style_tags?: Json | null
+          subcategory?: string | null
+          title_clean?: string | null
+          title_raw?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intake_normalized_products_raw_listing_id_fkey"
+            columns: ["raw_listing_id"]
+            isOneToOne: false
+            referencedRelation: "intake_raw_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intake_raw_listings: {
+        Row: {
+          checksum: string | null
+          external_id: string | null
+          id: string
+          import_run_id: string | null
+          imported_at: string | null
+          partner_id: string | null
+          raw_payload: Json
+          source: string
+        }
+        Insert: {
+          checksum?: string | null
+          external_id?: string | null
+          id?: string
+          import_run_id?: string | null
+          imported_at?: string | null
+          partner_id?: string | null
+          raw_payload: Json
+          source: string
+        }
+        Update: {
+          checksum?: string | null
+          external_id?: string | null
+          id?: string
+          import_run_id?: string | null
+          imported_at?: string | null
+          partner_id?: string | null
+          raw_payload?: Json
+          source?: string
+        }
+        Relationships: []
+      }
+      intake_run_logs: {
+        Row: {
+          completed_at: string | null
+          draft_approved_count: number | null
+          error_count: number | null
+          id: string
+          items_fetched: number | null
+          items_processed: number | null
+          rate_limit_count: number | null
+          review_count: number | null
+          rules_rejected_count: number | null
+          run_type: string | null
+          source: string | null
+          started_at: string | null
+          status: string | null
+          summary: Json | null
+        }
+        Insert: {
+          completed_at?: string | null
+          draft_approved_count?: number | null
+          error_count?: number | null
+          id?: string
+          items_fetched?: number | null
+          items_processed?: number | null
+          rate_limit_count?: number | null
+          review_count?: number | null
+          rules_rejected_count?: number | null
+          run_type?: string | null
+          source?: string | null
+          started_at?: string | null
+          status?: string | null
+          summary?: Json | null
+        }
+        Update: {
+          completed_at?: string | null
+          draft_approved_count?: number | null
+          error_count?: number | null
+          id?: string
+          items_fetched?: number | null
+          items_processed?: number | null
+          rate_limit_count?: number | null
+          review_count?: number | null
+          rules_rejected_count?: number | null
+          run_type?: string | null
+          source?: string | null
+          started_at?: string | null
+          status?: string | null
+          summary?: Json | null
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           additional_images: Json | null
