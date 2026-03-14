@@ -250,15 +250,16 @@ Deno.serve(async (req) => {
     return jsonRes({ error: tokenResult.error }, 500, cors);
   }
 
-  // Search eBay for women's vintage fashion
+  // Search eBay for women's clothing in Europe
   const searchParams = new URLSearchParams({
-    q: "vintage women fashion",
+    q: "women's clothing",
+    category_ids: "15724",
     limit: String(Math.min(maxItems, 50)),
   });
 
   const euroCountries = "DE|GB|FR|IT|ES|SE|NL|AT|BE|DK|FI|IE|PL|PT|CZ|GR|HU|RO|NO|CH";
   searchParams.set("filter",
-    `itemLocationCountry:{${euroCountries}},deliveryCountry:SE,buyingOptions:{FIXED_PRICE}`
+    `itemLocationCountry:{${euroCountries}},deliveryCountry:SE,buyingOptions:{FIXED_PRICE},price:[38.46..],priceCurrency:GBP`
   );
 
   const baseUrl = getEbayBaseUrl();
