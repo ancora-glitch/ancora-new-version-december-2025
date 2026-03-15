@@ -45,9 +45,16 @@ export function extractEbayItemId(urlOrId: string | null | undefined): string | 
  */
 export function buildEbayAffiliateUrl(itemId: string, customId?: string): string {
   const numericId = extractEbayItemId(itemId) || itemId;
-  let qs = `campid=${EBAY_EPN_CAMP_ID}&toolid=${EBAY_EPN_TOOL_ID}`;
-  if (customId) qs += `&customid=${encodeURIComponent(customId)}`;
-  return `${EBAY_ITEM_BASE}/${numericId}?${qs}`;
+  const params = new URLSearchParams({
+    mkcid: "1",
+    mkrid: "710-53481-19255-0",
+    siteid: "3",
+    campid: EBAY_EPN_CAMP_ID,
+    customid: customId ?? "",
+    toolid: EBAY_EPN_TOOL_ID,
+    mkevt: "1",
+  });
+  return `${EBAY_ITEM_BASE}/${numericId}?${params.toString()}`;
 }
 
 /**
