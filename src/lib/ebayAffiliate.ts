@@ -81,5 +81,6 @@ export function isEbayAffiliateUrl(url: string | null | undefined): boolean {
   if (!url) return false;
   return url.includes("ebay.co.uk/itm/") &&
     url.includes(`campid=${EBAY_EPN_CAMP_ID}`) &&
-    url.includes(`toolid=${EBAY_EPN_TOOL_ID}`);
+    url.includes(`toolid=${EBAY_EPN_TOOL_ID}`) &&
+    url.includes("mkevt=1");
 }
