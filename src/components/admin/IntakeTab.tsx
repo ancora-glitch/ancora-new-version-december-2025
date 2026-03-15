@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { IntakeReviewQueue } from "./IntakeReviewQueue";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertTriangle, RefreshCw, Play, Loader2, FlaskConical, Zap, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -363,6 +364,9 @@ export const IntakeTab = () => {
           </div>
         )}
       </div>
+
+      {/* SECTION 4: Review queue */}
+      <IntakeReviewQueue refreshKey={refreshKey} />
 
       {/* ── Trigger test run dialog ── */}
       <Dialog open={dialogOpen} onOpenChange={handleCloseDialog}>
