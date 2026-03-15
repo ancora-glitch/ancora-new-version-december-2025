@@ -365,6 +365,9 @@ export const IntakeTab = () => {
         )}
       </div>
 
+      {/* SECTION 4: Review queue */}
+      <IntakeReviewQueue refreshKey={refreshKey} />
+
       {/* ── Trigger test run dialog ── */}
       <Dialog open={dialogOpen} onOpenChange={handleCloseDialog}>
         <DialogContent className="sm:max-w-md">
