@@ -296,6 +296,29 @@ Create Product draft
 
 Fallback description built from structured fields if missing.
 
+4.3.1 eBay EPN Affiliate URL Standard
+
+All eBay outbound links use direct item URLs with EPN query parameters.
+Canonical format:
+
+    https://www.ebay.co.uk/itm/{itemId}?mkcid=1&mkrid=710-53481-19255-0&siteid=3&campid=5339143507&customid=&toolid=10001&mkevt=1
+
+Constants (src/lib/ebayAffiliate.ts):
+- EBAY_EPN_CAMP_ID = "5339143507"
+- EBAY_EPN_TOOL_ID = "10001"
+- EBAY_ITEM_BASE   = "https://www.ebay.co.uk/itm"
+
+Key functions:
+- extractEbayItemId — extracts numeric ID from any eBay URL, pipe-delimited Browse API format (v1|id|0), or plain number
+- buildEbayAffiliateUrl — constructs canonical EPN URL from item ID
+- toEbayAffiliateUrl — idempotent converter (returns existing valid URL or builds new one)
+- isEbayAffiliateUrl — validates presence of campid, toolid, and mkevt=1
+
+Rules:
+- No rover redirects — direct item links only (browser tracking compatibility)
+- Outgoing links use rel="noopener sponsored"
+- If affiliate_url is lost, it can be rebuilt from source_ref (v1|{itemId}|0) in ancora_import_items
+
 4.4 VintageSphere Import (Partner Importer)
 Data Source:
 Shopify JSON endpoint (/products.json and /products/{handle}.json)
