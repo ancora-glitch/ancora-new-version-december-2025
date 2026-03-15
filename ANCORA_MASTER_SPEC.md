@@ -1,6 +1,15 @@
 ANCORA — MASTER PROJECT SPECIFICATION
 Version 1.7
 
+Changelog v1.8:
+
+- eBay EPN affiliate URL format standardised (Section 4.3.1)
+- buildEbayAffiliateUrl switched to direct item URLs with full EPN query params
+- isEbayAffiliateUrl validation now checks mkevt=1
+- All existing eBay product affiliate_urls rebuilt via migration
+- intake-fetch-test: search refined — q=women's clothing, category_ids=15724, min price 38.46 GBP
+- intake-fetch-test: price_debug array added to dry_run summary output
+
 Changelog v1.7:
 
 - VintageSphere partner importer added (Section 4.4)
@@ -286,6 +295,29 @@ Fetch getItem endpoint for description enrichment
 Create Product draft
 
 Fallback description built from structured fields if missing.
+
+4.3.1 eBay EPN Affiliate URL Standard
+
+All eBay outbound links use direct item URLs with EPN query parameters.
+Canonical format:
+
+    https://www.ebay.co.uk/itm/{itemId}?mkcid=1&mkrid=710-53481-19255-0&siteid=3&campid=5339143507&customid=&toolid=10001&mkevt=1
+
+Constants (src/lib/ebayAffiliate.ts):
+- EBAY_EPN_CAMP_ID = "5339143507"
+- EBAY_EPN_TOOL_ID = "10001"
+- EBAY_ITEM_BASE   = "https://www.ebay.co.uk/itm"
+
+Key functions:
+- extractEbayItemId — extracts numeric ID from any eBay URL, pipe-delimited Browse API format (v1|id|0), or plain number
+- buildEbayAffiliateUrl — constructs canonical EPN URL from item ID
+- toEbayAffiliateUrl — idempotent converter (returns existing valid URL or builds new one)
+- isEbayAffiliateUrl — validates presence of campid, toolid, and mkevt=1
+
+Rules:
+- No rover redirects — direct item links only (browser tracking compatibility)
+- Outgoing links use rel="noopener sponsored"
+- If affiliate_url is lost, it can be rebuilt from source_ref (v1|{itemId}|0) in ancora_import_items
 
 4.4 VintageSphere Import (Partner Importer)
 Data Source:
@@ -1287,9 +1319,14 @@ Intake v1 — Test Only (feature-flagged, isolated)
 
 intake-fetch-test
 Purpose: Fetch a capped batch from one source in test mode.
-Saves raw payloads to intake_raw_listings only.
+Writes to intake_raw_listings, intake_normalized_products,
+intake_evaluations, and intake_run_logs.
+Search params (eBay): q=women's clothing · category_ids=15724 ·
+  min price 38.46 GBP (≈500 SEK) · EU location · delivery SE · FIXED_PRICE.
+Dry-run mode: adds price_debug array (first 5 items) to summary.
 Guards: INTAKE_V1_ENABLED check · INTAKE_FETCH_ENABLED check ·
-INTAKE_KILL_SWITCH check · max items cap · source throttling.
+INTAKE_KILL_SWITCH check · INTAKE_ALLOWED_SOURCES check ·
+max items cap · source throttling.
 Forbidden: Any write to products or production tables.
 
 intake-normalize-test
