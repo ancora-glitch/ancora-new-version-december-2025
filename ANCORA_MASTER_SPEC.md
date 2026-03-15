@@ -1,6 +1,15 @@
 ANCORA — MASTER PROJECT SPECIFICATION
 Version 1.7
 
+Changelog v1.8:
+
+- eBay EPN affiliate URL format standardised (Section 4.3.1)
+- buildEbayAffiliateUrl switched to direct item URLs with full EPN query params
+- isEbayAffiliateUrl validation now checks mkevt=1
+- All existing eBay product affiliate_urls rebuilt via migration
+- intake-fetch-test: search refined — q=women's clothing, category_ids=15724, min price 38.46 GBP
+- intake-fetch-test: price_debug array added to dry_run summary output
+
 Changelog v1.7:
 
 - VintageSphere partner importer added (Section 4.4)
