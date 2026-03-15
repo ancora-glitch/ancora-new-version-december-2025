@@ -1296,9 +1296,14 @@ Intake v1 — Test Only (feature-flagged, isolated)
 
 intake-fetch-test
 Purpose: Fetch a capped batch from one source in test mode.
-Saves raw payloads to intake_raw_listings only.
+Writes to intake_raw_listings, intake_normalized_products,
+intake_evaluations, and intake_run_logs.
+Search params (eBay): q=women's clothing · category_ids=15724 ·
+  min price 38.46 GBP (≈500 SEK) · EU location · delivery SE · FIXED_PRICE.
+Dry-run mode: adds price_debug array (first 5 items) to summary.
 Guards: INTAKE_V1_ENABLED check · INTAKE_FETCH_ENABLED check ·
-INTAKE_KILL_SWITCH check · max items cap · source throttling.
+INTAKE_KILL_SWITCH check · INTAKE_ALLOWED_SOURCES check ·
+max items cap · source throttling.
 Forbidden: Any write to products or production tables.
 
 intake-normalize-test
