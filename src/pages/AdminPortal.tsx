@@ -325,6 +325,7 @@ const AdminPortal = () => {
     setStoryBody("");
     setStorySlug("");
     setStoryAuthor("");
+    setStorySlugManuallyEdited(false);
   };
 
   const handleEditStory = (story: { id: string; title: string; image: string; intro_text: string; body: string; slug: string; author?: string | null; status?: string }) => {
