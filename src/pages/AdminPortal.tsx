@@ -506,6 +506,8 @@ const AdminPortal = () => {
     setProductAncoraSelectSource(product.ancora_select_source || null);
     setProductInWeeklyEdit(product.in_weekly_edit || false);
     setProductAffiliateAutoHandling(product.affiliate_auto_handling !== false);
+    setProductSlug(product.slug || "");
+    setProductSlugManuallyEdited(true);
     
     // Scroll to form
     window.scrollTo({ top: 0, behavior: 'smooth' });
