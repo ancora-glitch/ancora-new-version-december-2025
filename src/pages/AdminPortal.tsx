@@ -1180,7 +1180,7 @@ const AdminPortal = () => {
                 {/* This Week's Edit Toggle */}
                 <div className="flex items-center justify-between p-4 border border-border rounded-sm bg-secondary/20">
                   <div className="space-y-0.5">
-                    <Label htmlFor="productInWeeklyEdit" className="text-base font-medium flex items-center gap-2">
+                    <Label className="text-base font-medium flex items-center gap-2">
                       <Star className="w-4 h-4 text-amber-500" />
                       Include in This Week's Edit
                     </Label>
