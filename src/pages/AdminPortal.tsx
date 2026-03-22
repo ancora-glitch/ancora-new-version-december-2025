@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { ImportsTab } from "@/components/admin/ImportsTab";
 import { WeeklyEditsTab } from "@/components/admin/WeeklyEditsTab";
 import { IntakeTab } from "@/components/admin/IntakeTab";
+import { slugify } from "@/utils/slugify";
 import {
   DndContext,
   closestCenter,
@@ -263,6 +264,7 @@ const AdminPortal = () => {
   const [storySlug, setStorySlug] = useState("");
   const [storyAuthor, setStoryAuthor] = useState<string>("");
   const [savingStory, setSavingStory] = useState(false);
+  const [storySlugManuallyEdited, setStorySlugManuallyEdited] = useState(false);
   const [storyStatusFilter, setStoryStatusFilter] = useState<"all" | StoryStatus>("draft");
   const [showInlineImagePicker, setShowInlineImagePicker] = useState(false);
   const [inlineImageCaption, setInlineImageCaption] = useState("");
@@ -288,6 +290,8 @@ const AdminPortal = () => {
   const [productInWeeklyEdit, setProductInWeeklyEdit] = useState(false);
   const [productAffiliateAutoHandling, setProductAffiliateAutoHandling] = useState(true);
   const [savingProduct, setSavingProduct] = useState(false);
+  const [productSlug, setProductSlug] = useState("");
+  const [productSlugManuallyEdited, setProductSlugManuallyEdited] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "active" | "sold" | "review_required">("all");
   const [productSearchQuery, setProductSearchQuery] = useState("");
   const [brandFilter, setBrandFilter] = useState<string>("all");
@@ -303,13 +307,20 @@ const AdminPortal = () => {
   const [categorySeoTitle, setCategorySeoTitle] = useState("");
   const [categorySeoDescription, setCategorySeoDescription] = useState("");
   const [savingCategory, setSavingCategory] = useState(false);
+  const [categorySlugManuallyEdited, setCategorySlugManuallyEdited] = useState(false);
+
+  // Auto-generate product slug from brand + name
+  useEffect(() => {
+    if (!productSlugManuallyEdited) {
+      setProductSlug(slugify(`${productBrand}-${productName}`));
+    }
+  }, [productBrand, productName, productSlugManuallyEdited]);
 
   // Auto-generate slug from title (only when creating new story)
   const handleStoryTitleChange = (value: string) => {
     setStoryTitle(value);
-    if (!editingStoryId) {
-      const slug = value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-      setStorySlug(slug);
+    if (!editingStoryId && !storySlugManuallyEdited) {
+      setStorySlug(slugify(value));
     }
   };
 
@@ -321,6 +332,7 @@ const AdminPortal = () => {
     setStoryBody("");
     setStorySlug("");
     setStoryAuthor("");
+    setStorySlugManuallyEdited(false);
   };
 
   const handleEditStory = (story: { id: string; title: string; image: string; intro_text: string; body: string; slug: string; author?: string | null; status?: string }) => {
@@ -331,6 +343,7 @@ const AdminPortal = () => {
     setStoryBody(story.body);
     setStorySlug(story.slug);
     setStoryAuthor(story.author || "");
+    setStorySlugManuallyEdited(true);
     
     // Scroll to form
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -355,14 +368,15 @@ const AdminPortal = () => {
     setProductAncoraSelectSource(null);
     setProductInWeeklyEdit(false);
     setProductAffiliateAutoHandling(true);
+    setProductSlug("");
+    setProductSlugManuallyEdited(false);
   };
 
   // Category form helpers
   const handleCategoryNameChange = (value: string) => {
     setCategoryName(value);
-    if (!editingCategoryId) {
-      const slug = value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-      setCategorySlug(slug);
+    if (!editingCategoryId && !categorySlugManuallyEdited) {
+      setCategorySlug(slugify(value));
     }
   };
 
@@ -374,6 +388,8 @@ const AdminPortal = () => {
     setCategoryDescription("");
     setCategorySeoTitle("");
     setCategorySeoDescription("");
+    setCategorySlugManuallyEdited(false);
+  };
   };
 
   const handleEditCategory = (category: Category) => {
@@ -384,6 +400,7 @@ const AdminPortal = () => {
     setCategoryDescription(category.description || "");
     setCategorySeoTitle(category.seo_title || "");
     setCategorySeoDescription(category.seo_description || "");
+    setCategorySlugManuallyEdited(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -393,6 +410,20 @@ const AdminPortal = () => {
       toast.error("Name and slug are required");
       return;
     }
+
+    // Uniqueness check
+    const slugToSave = categorySlug.trim();
+    const { data: existingSlug } = await supabase
+      .from("categories")
+      .select("slug")
+      .eq("slug", slugToSave)
+      .neq("id", editingCategoryId ?? "")
+      .maybeSingle();
+    if (existingSlug) {
+      toast.error("This slug is already taken. Please change the name or edit the slug manually.");
+      return;
+    }
+
     setSavingCategory(true);
     
     const categoryData = {
@@ -482,6 +513,8 @@ const AdminPortal = () => {
     setProductAncoraSelectSource(product.ancora_select_source || null);
     setProductInWeeklyEdit(product.in_weekly_edit || false);
     setProductAffiliateAutoHandling(product.affiliate_auto_handling !== false);
+    setProductSlug(product.slug || "");
+    setProductSlugManuallyEdited(true);
     
     // Scroll to form
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -493,6 +526,20 @@ const AdminPortal = () => {
       toast.error("Title, image, intro text and body are required");
       return;
     }
+
+    // Uniqueness check for story slug
+    const storySlugToSave = storySlug.trim() || slugify(storyTitle);
+    const { data: existingStorySlug } = await supabase
+      .from("style_guides")
+      .select("slug")
+      .eq("slug", storySlugToSave)
+      .neq("id", editingStoryId ?? "")
+      .maybeSingle();
+    if (existingStorySlug) {
+      toast.error("This slug is already taken. Please change the title or edit the slug manually.");
+      return;
+    }
+
     setSavingStory(true);
     
     const storyData = {
@@ -500,7 +547,7 @@ const AdminPortal = () => {
       image: storyImage[0],
       intro_text: storyIntroText.trim(),
       body: storyBody.trim(),
-      slug: storySlug.trim() || storyTitle.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+      slug: storySlug.trim() || slugify(storyTitle),
       author: storyAuthor.trim() || null,
     };
 
@@ -651,9 +698,23 @@ const AdminPortal = () => {
       toast.error("Brand, name, price and at least one image are required");
       return;
     }
+
+    // Use the slug from state (auto-generated or manually edited)
+    const slug = productSlug || slugify(`${productBrand}-${productName}`);
+
+    // Uniqueness check
+    const { data: existingProductSlug } = await supabase
+      .from("products")
+      .select("slug")
+      .eq("slug", slug)
+      .neq("id", editingProductId ?? "")
+      .maybeSingle();
+    if (existingProductSlug) {
+      toast.error("This slug is already taken. Please change the product name or edit the slug manually.");
+      return;
+    }
+
     setSavingProduct(true);
-    
-    const slug = `${productBrand}-${productName}`.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
     const mainImage = productImages[0];
     const additionalImages = productImages.slice(1);
     
@@ -942,10 +1003,14 @@ const AdminPortal = () => {
                     <Input 
                       id="categorySlug" 
                       value={categorySlug} 
-                      onChange={(e) => setCategorySlug(e.target.value)} 
+                      onChange={(e) => {
+                        setCategorySlug(slugify(e.target.value));
+                        setCategorySlugManuallyEdited(true);
+                      }}
                       placeholder="coats-jackets" 
                       className="bg-background border-border" 
                     />
+                    <p className="text-xs text-muted-foreground">Auto-generated from name. You can override.</p>
                   </div>
                 </div>
 
@@ -1104,6 +1169,21 @@ const AdminPortal = () => {
                     <Label htmlFor="productName">Name *</Label>
                     <Input id="productName" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="e.g. Trenchcoat" className="bg-background border-border" />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="productSlug">Slug</Label>
+                  <Input 
+                    id="productSlug" 
+                    value={productSlug} 
+                    onChange={(e) => {
+                      setProductSlug(slugify(e.target.value));
+                      setProductSlugManuallyEdited(true);
+                    }}
+                    placeholder="auto-generated from brand + name" 
+                    className="bg-background border-border" 
+                  />
+                  <p className="text-xs text-muted-foreground">Auto-generated from brand + name. You can override.</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1595,7 +1675,11 @@ const AdminPortal = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="storySlug">Slug</Label>
-                  <Input id="storySlug" value={storySlug} onChange={(e) => setStorySlug(e.target.value)} placeholder="auto-generated-from-title" className="bg-background border-border" />
+                  <Input id="storySlug" value={storySlug} onChange={(e) => {
+                    setStorySlug(slugify(e.target.value));
+                    setStorySlugManuallyEdited(true);
+                  }} placeholder="auto-generated-from-title" className="bg-background border-border" />
+                  <p className="text-xs text-muted-foreground">Auto-generated from title. You can override.</p>
                 </div>
 
                 <div className="space-y-2">

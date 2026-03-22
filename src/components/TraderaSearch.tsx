@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Search, Loader2, Check, ExternalLink } from "lucide-react";
 import { determineBrand } from "@/lib/brandExtractor";
 import { deduplicateImages } from "@/lib/imageUtils";
+import { slugify } from "@/utils/slugify";
 
 interface TraderaItem {
   id: number;
@@ -214,16 +215,7 @@ const TraderaSearch = () => {
     }
   };
 
-  const createSlug = (brand: string, name: string): string => {
-    const combined = `${brand}-${name}`;
-    return combined
-      .toLowerCase()
-      .replace(/[åä]/g, "a")
-      .replace(/ö/g, "o")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")
-      .substring(0, 100);
-  };
+  // Slug generation centralised in src/utils/slugify.ts
 
   /**
    * STRICT: Only extracts images from the full GetItem payload.
@@ -320,7 +312,7 @@ const TraderaSearch = () => {
   ): Promise<{ id: string } | null> => {
     const traderaItemId = String(item.id);
     const price = `${Math.round(details.price)} SEK`;
-    const slug = createSlug(extractedBrand, cleanedName);
+    const slug = slugify(`${extractedBrand}-${cleanedName}`);
 
     // Check if product already exists
     const { data: existingProduct } = await supabase
@@ -427,7 +419,7 @@ const TraderaSearch = () => {
     );
 
     const mappedCondition = mapCondition(translated.condition);
-    const slug = createSlug(extractedBrand, translated.name);
+    const slug = slugify(`${extractedBrand}-${translated.name}`);
 
     // Check for existing product
     const { data: existingProduct } = await supabase
