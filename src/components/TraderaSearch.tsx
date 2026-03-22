@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Search, Loader2, Check, ExternalLink } from "lucide-react";
 import { determineBrand } from "@/lib/brandExtractor";
 import { deduplicateImages } from "@/lib/imageUtils";
+import { slugify } from "@/utils/slugify";
 
 interface TraderaItem {
   id: number;
