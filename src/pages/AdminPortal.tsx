@@ -524,7 +524,7 @@ const AdminPortal = () => {
       image: storyImage[0],
       intro_text: storyIntroText.trim(),
       body: storyBody.trim(),
-      slug: storySlug.trim() || storyTitle.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+      slug: storySlug.trim() || slugify(storyTitle),
       author: storyAuthor.trim() || null,
     };
 
