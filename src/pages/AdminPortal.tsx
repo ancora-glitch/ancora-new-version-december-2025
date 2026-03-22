@@ -309,6 +309,13 @@ const AdminPortal = () => {
   const [savingCategory, setSavingCategory] = useState(false);
   const [categorySlugManuallyEdited, setCategorySlugManuallyEdited] = useState(false);
 
+  // Auto-generate product slug from brand + name
+  useEffect(() => {
+    if (!productSlugManuallyEdited) {
+      setProductSlug(slugify(`${productBrand}-${productName}`));
+    }
+  }, [productBrand, productName, productSlugManuallyEdited]);
+
   // Auto-generate slug from title (only when creating new story)
   const handleStoryTitleChange = (value: string) => {
     setStoryTitle(value);
