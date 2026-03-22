@@ -1660,7 +1660,11 @@ const AdminPortal = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="storySlug">Slug</Label>
-                  <Input id="storySlug" value={storySlug} onChange={(e) => setStorySlug(e.target.value)} placeholder="auto-generated-from-title" className="bg-background border-border" />
+                  <Input id="storySlug" value={storySlug} onChange={(e) => {
+                    setStorySlug(slugify(e.target.value));
+                    setStorySlugManuallyEdited(true);
+                  }} placeholder="auto-generated-from-title" className="bg-background border-border" />
+                  <p className="text-xs text-muted-foreground">Auto-generated from title. You can override.</p>
                 </div>
 
                 <div className="space-y-2">
