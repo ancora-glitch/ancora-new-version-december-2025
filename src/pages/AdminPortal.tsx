@@ -1188,11 +1188,13 @@ const AdminPortal = () => {
                       Products in the edit appear on the homepage
                     </p>
                   </div>
-                  <Switch
-                    id="productInWeeklyEdit"
-                    checked={productInWeeklyEdit}
-                    onCheckedChange={setProductInWeeklyEdit}
-                  />
+                  <button type="button" className="inline-flex" onClick={() => setProductInWeeklyEdit(!productInWeeklyEdit)}>
+                    <Switch
+                      id="productInWeeklyEdit"
+                      checked={productInWeeklyEdit}
+                      onCheckedChange={setProductInWeeklyEdit}
+                    />
+                  </button>
                 </div>
 
                 {/* Affiliate Auto-Handling Toggle */}
