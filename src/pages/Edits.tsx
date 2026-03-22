@@ -83,10 +83,8 @@ const Edits = () => {
                         <span className="text-xs font-semibold uppercase tracking-widest text-foreground">
                           {product.brand}
                         </span>
-                        <p className="text-sm text-muted-foreground leading-relaxed flex items-baseline min-w-0">
-                          <span className="truncate">{product.name}</span>
-                          {product.size && <span className="text-xs text-muted-foreground/70 shrink-0"> · {product.size}</span>}
-                        </p>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{product.name}</p>
+                        {product.size && <p className="text-sm text-muted-foreground">Size: {product.size}</p>}
                         <p className="text-base font-semibold text-foreground pt-1">
                           {formatPrice(product.price)}
                         </p>
