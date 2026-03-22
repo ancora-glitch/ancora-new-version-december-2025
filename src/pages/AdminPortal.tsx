@@ -368,9 +368,8 @@ const AdminPortal = () => {
   // Category form helpers
   const handleCategoryNameChange = (value: string) => {
     setCategoryName(value);
-    if (!editingCategoryId) {
-      const slug = value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-      setCategorySlug(slug);
+    if (!editingCategoryId && !categorySlugManuallyEdited) {
+      setCategorySlug(slugify(value));
     }
   };
 
