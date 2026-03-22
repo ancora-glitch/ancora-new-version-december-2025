@@ -519,6 +519,20 @@ const AdminPortal = () => {
       toast.error("Title, image, intro text and body are required");
       return;
     }
+
+    // Uniqueness check for story slug
+    const storySlugToSave = storySlug.trim() || slugify(storyTitle);
+    const { data: existingStorySlug } = await supabase
+      .from("style_guides")
+      .select("slug")
+      .eq("slug", storySlugToSave)
+      .neq("id", editingStoryId ?? "")
+      .maybeSingle();
+    if (existingStorySlug) {
+      toast.error("This slug is already taken. Please change the title or edit the slug manually.");
+      return;
+    }
+
     setSavingStory(true);
     
     const storyData = {
