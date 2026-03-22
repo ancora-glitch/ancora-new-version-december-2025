@@ -10,6 +10,7 @@ interface ProductCardProps {
   brand: string;
   name: string;
   price: string;
+  size?: string | null;
   additionalImages?: string[];
   affiliateUrl?: string;
   marketplace?: string;
