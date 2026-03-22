@@ -93,9 +93,9 @@ export const ProductCard = ({
           </div>
 
           {/* Product Name + Size */}
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            {name}
-            {size && <span className="text-xs text-muted-foreground/70"> · {size}</span>}
+          <p className="text-sm text-muted-foreground leading-relaxed flex items-baseline min-w-0">
+            <span className="truncate">{name}</span>
+            {size && <span className="text-xs text-muted-foreground/70 shrink-0"> · {size}</span>}
           </p>
 
           {/* Price */}
