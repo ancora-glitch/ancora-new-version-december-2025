@@ -312,9 +312,8 @@ const AdminPortal = () => {
   // Auto-generate slug from title (only when creating new story)
   const handleStoryTitleChange = (value: string) => {
     setStoryTitle(value);
-    if (!editingStoryId) {
-      const slug = value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-      setStorySlug(slug);
+    if (!editingStoryId && !storySlugManuallyEdited) {
+      setStorySlug(slugify(value));
     }
   };
 
