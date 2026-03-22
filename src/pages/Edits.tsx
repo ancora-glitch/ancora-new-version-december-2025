@@ -83,8 +83,9 @@ const Edits = () => {
                         <span className="text-xs font-semibold uppercase tracking-widest text-foreground">
                           {product.brand}
                         </span>
-                        <p className="text-sm text-muted-foreground leading-relaxed">{product.name}</p>
-                        {product.size && <p className="text-sm text-muted-foreground">Size: {product.size}</p>}
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {product.name}{product.size && <>, size: {product.size}</>}
+                        </p>
                         <p className="text-base font-semibold text-foreground pt-1">
                           {formatPrice(product.price)}
                         </p>
