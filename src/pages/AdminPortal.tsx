@@ -289,6 +289,8 @@ const AdminPortal = () => {
   const [productInWeeklyEdit, setProductInWeeklyEdit] = useState(false);
   const [productAffiliateAutoHandling, setProductAffiliateAutoHandling] = useState(true);
   const [savingProduct, setSavingProduct] = useState(false);
+  const [productSlug, setProductSlug] = useState("");
+  const [productSlugManuallyEdited, setProductSlugManuallyEdited] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "active" | "sold" | "review_required">("all");
   const [productSearchQuery, setProductSearchQuery] = useState("");
   const [brandFilter, setBrandFilter] = useState<string>("all");
