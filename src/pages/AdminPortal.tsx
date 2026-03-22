@@ -601,6 +601,50 @@ const AdminPortal = () => {
     return s.status === storyStatusFilter;
   });
 
+  const syncPublishedWeeklyEditMembership = async (productId: string, includeInWeeklyEdit: boolean) => {
+    const { data: publishedEdit, error: publishedEditError } = await supabase
+      .from("weekly_edits")
+      .select("id")
+      .eq("status", "published")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (publishedEditError || !publishedEdit) return;
+
+    if (includeInWeeklyEdit) {
+      const { data: existingRow, error: existingRowError } = await supabase
+        .from("weekly_edit_products")
+        .select("id")
+        .eq("weekly_edit_id", publishedEdit.id)
+        .eq("product_id", productId)
+        .maybeSingle();
+
+      if (existingRowError || existingRow) return;
+
+      const { data: lastRow } = await supabase
+        .from("weekly_edit_products")
+        .select("sort_order")
+        .eq("weekly_edit_id", publishedEdit.id)
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      await supabase.from("weekly_edit_products").insert({
+        weekly_edit_id: publishedEdit.id,
+        product_id: productId,
+        sort_order: (lastRow?.sort_order ?? -1) + 1,
+      });
+      return;
+    }
+
+    await supabase
+      .from("weekly_edit_products")
+      .delete()
+      .eq("product_id", productId)
+      .eq("weekly_edit_id", publishedEdit.id);
+  };
+
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!productBrand.trim() || !productName.trim() || !productPrice || productImages.length === 0) {
@@ -615,16 +659,16 @@ const AdminPortal = () => {
     
     const trimmedName = productName.trim();
     const trimmedDesc = productDescription.trim() || null;
-
+ 
     const productData = {
       brand: productBrand.trim(),
       name: trimmedName,
-      name_en: trimmedName,           // mirror edits to name_en (primary display field)
+      name_en: trimmedName,
       description: trimmedDesc,
-      description_en: trimmedDesc,     // mirror edits to description_en (primary display field)
+      description_en: trimmedDesc,
       price: productPrice.trim(),
       size: productSize.trim() || null,
-     color: productColor.trim() || null,
+      color: productColor.trim() || null,
       image: mainImage,
       additional_images: additionalImages,
       affiliate_url: productAffiliateUrl.trim() || null,
@@ -639,31 +683,37 @@ const AdminPortal = () => {
       in_weekly_edit: productInWeeklyEdit,
       affiliate_auto_handling: productAffiliateAutoHandling,
     };
-
+ 
     let error;
+    let savedProductId = editingProductId;
     
     if (editingProductId) {
-      // Update existing product
       const result = await supabase
         .from("products")
         .update(productData)
         .eq("id", editingProductId);
       error = result.error;
     } else {
-      // Insert new product
-      const result = await supabase.from("products").insert([productData]);
+      const result = await supabase.from("products").insert([productData]).select("id").single();
       error = result.error;
+      savedProductId = result.data?.id;
     }
     
     if (error) {
       toast.error(`Failed to ${editingProductId ? 'update' : 'save'} product: ` + error.message);
     } else {
+      if (savedProductId) {
+        await syncPublishedWeeklyEditMembership(savedProductId, productInWeeklyEdit);
+      }
       toast.success(editingProductId ? "Product updated" : "Product saved");
       resetProductForm();
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["products-all"] });
       queryClient.invalidateQueries({ queryKey: ["products-weekly-edit"] });
       queryClient.invalidateQueries({ queryKey: ["category-products"] });
+      queryClient.invalidateQueries({ queryKey: ["weekly-edit-active"] });
+      queryClient.invalidateQueries({ queryKey: ["weekly-edit-products"] });
+      queryClient.invalidateQueries({ queryKey: ["weekly-edits-all"] });
     }
     setSavingProduct(false);
   };
@@ -682,6 +732,8 @@ const AdminPortal = () => {
       queryClient.invalidateQueries({ queryKey: ["products-all"] });
       queryClient.invalidateQueries({ queryKey: ["products-weekly-edit"] });
       queryClient.invalidateQueries({ queryKey: ["category-products"] });
+      queryClient.invalidateQueries({ queryKey: ["weekly-edit-active"] });
+      queryClient.invalidateQueries({ queryKey: ["weekly-edit-products"] });
     }
   };
 
@@ -691,7 +743,7 @@ const AdminPortal = () => {
       .from("products")
       .update({ status: newStatus })
       .eq("id", product.id);
-
+ 
     if (error) {
       toast.error("Failed to update status: " + error.message);
     } else {
@@ -700,6 +752,7 @@ const AdminPortal = () => {
       queryClient.invalidateQueries({ queryKey: ["products-all"] });
       queryClient.invalidateQueries({ queryKey: ["products-weekly-edit"] });
       queryClient.invalidateQueries({ queryKey: ["category-products"] });
+      queryClient.invalidateQueries({ queryKey: ["weekly-edit-active"] });
     }
   };
 
@@ -709,15 +762,19 @@ const AdminPortal = () => {
       .from("products")
       .update({ in_weekly_edit: newValue })
       .eq("id", product.id);
-
+ 
     if (error) {
       toast.error("Failed to update: " + error.message);
     } else {
+      await syncPublishedWeeklyEditMembership(product.id, newValue);
       toast.success(newValue ? "Added to This Week's Edit" : "Removed from This Week's Edit");
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["products-all"] });
       queryClient.invalidateQueries({ queryKey: ["products-weekly-edit"] });
       queryClient.invalidateQueries({ queryKey: ["category-products"] });
+      queryClient.invalidateQueries({ queryKey: ["weekly-edit-active"] });
+      queryClient.invalidateQueries({ queryKey: ["weekly-edit-products"] });
+      queryClient.invalidateQueries({ queryKey: ["weekly-edits-all"] });
     }
   };
 
