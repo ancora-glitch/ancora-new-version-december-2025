@@ -419,7 +419,7 @@ const TraderaSearch = () => {
     );
 
     const mappedCondition = mapCondition(translated.condition);
-    const slug = createSlug(extractedBrand, translated.name);
+    const slug = slugify(`${extractedBrand}-${translated.name}`);
 
     // Check for existing product
     const { data: existingProduct } = await supabase
