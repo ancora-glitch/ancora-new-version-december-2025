@@ -264,6 +264,7 @@ const AdminPortal = () => {
   const [storySlug, setStorySlug] = useState("");
   const [storyAuthor, setStoryAuthor] = useState<string>("");
   const [savingStory, setSavingStory] = useState(false);
+  const [storySlugManuallyEdited, setStorySlugManuallyEdited] = useState(false);
   const [storyStatusFilter, setStoryStatusFilter] = useState<"all" | StoryStatus>("draft");
   const [showInlineImagePicker, setShowInlineImagePicker] = useState(false);
   const [inlineImageCaption, setInlineImageCaption] = useState("");
