@@ -1003,10 +1003,14 @@ const AdminPortal = () => {
                     <Input 
                       id="categorySlug" 
                       value={categorySlug} 
-                      onChange={(e) => setCategorySlug(e.target.value)} 
+                      onChange={(e) => {
+                        setCategorySlug(slugify(e.target.value));
+                        setCategorySlugManuallyEdited(true);
+                      }}
                       placeholder="coats-jackets" 
                       className="bg-background border-border" 
                     />
+                    <p className="text-xs text-muted-foreground">Auto-generated from name. You can override.</p>
                   </div>
                 </div>
 
