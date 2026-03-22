@@ -312,7 +312,7 @@ const TraderaSearch = () => {
   ): Promise<{ id: string } | null> => {
     const traderaItemId = String(item.id);
     const price = `${Math.round(details.price)} SEK`;
-    const slug = createSlug(extractedBrand, cleanedName);
+    const slug = slugify(`${extractedBrand}-${cleanedName}`);
 
     // Check if product already exists
     const { data: existingProduct } = await supabase
