@@ -691,9 +691,23 @@ const AdminPortal = () => {
       toast.error("Brand, name, price and at least one image are required");
       return;
     }
+
+    // Use the slug from state (auto-generated or manually edited)
+    const slug = productSlug || slugify(`${productBrand}-${productName}`);
+
+    // Uniqueness check
+    const { data: existingProductSlug } = await supabase
+      .from("products")
+      .select("slug")
+      .eq("slug", slug)
+      .neq("id", editingProductId ?? "")
+      .maybeSingle();
+    if (existingProductSlug) {
+      toast.error("This slug is already taken. Please change the product name or edit the slug manually.");
+      return;
+    }
+
     setSavingProduct(true);
-    
-    const slug = `${productBrand}-${productName}`.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
     const mainImage = productImages[0];
     const additionalImages = productImages.slice(1);
     
