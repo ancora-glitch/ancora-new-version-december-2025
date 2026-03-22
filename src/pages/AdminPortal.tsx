@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { ImportsTab } from "@/components/admin/ImportsTab";
 import { WeeklyEditsTab } from "@/components/admin/WeeklyEditsTab";
 import { IntakeTab } from "@/components/admin/IntakeTab";
+import { slugify } from "@/utils/slugify";
 import {
   DndContext,
   closestCenter,
