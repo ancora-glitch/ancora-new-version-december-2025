@@ -307,6 +307,7 @@ const AdminPortal = () => {
   const [categorySeoTitle, setCategorySeoTitle] = useState("");
   const [categorySeoDescription, setCategorySeoDescription] = useState("");
   const [savingCategory, setSavingCategory] = useState(false);
+  const [categorySlugManuallyEdited, setCategorySlugManuallyEdited] = useState(false);
 
   // Auto-generate slug from title (only when creating new story)
   const handleStoryTitleChange = (value: string) => {
