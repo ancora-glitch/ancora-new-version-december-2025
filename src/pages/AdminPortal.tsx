@@ -336,6 +336,7 @@ const AdminPortal = () => {
     setStoryBody(story.body);
     setStorySlug(story.slug);
     setStoryAuthor(story.author || "");
+    setStorySlugManuallyEdited(true);
     
     // Scroll to form
     window.scrollTo({ top: 0, behavior: 'smooth' });
