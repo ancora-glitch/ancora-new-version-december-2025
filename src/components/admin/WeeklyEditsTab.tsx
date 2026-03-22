@@ -63,6 +63,7 @@ const statusBadge = (status: WeeklyEditStatus) => {
 
 export const WeeklyEditsTab = () => {
   const { data: edits, isLoading } = useAllWeeklyEdits();
+  const [productSearch, setProductSearch] = useState("");
   const { data: allProducts } = useAllProducts();
   const saveMutation = useSaveWeeklyEdit();
   const deleteMutation = useDeleteWeeklyEdit();
