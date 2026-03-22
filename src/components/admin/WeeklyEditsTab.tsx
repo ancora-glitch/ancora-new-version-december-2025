@@ -63,6 +63,7 @@ const statusBadge = (status: WeeklyEditStatus) => {
 
 export const WeeklyEditsTab = () => {
   const { data: edits, isLoading } = useAllWeeklyEdits();
+  const [productSearch, setProductSearch] = useState("");
   const { data: allProducts } = useAllProducts();
   const saveMutation = useSaveWeeklyEdit();
   const deleteMutation = useDeleteWeeklyEdit();
@@ -395,41 +396,54 @@ export const WeeklyEditsTab = () => {
       </form>
 
       {/* Product Picker Dialog */}
-      <Dialog open={showProductPicker} onOpenChange={setShowProductPicker}>
-        <DialogContent className="max-w-lg max-h-[70vh] overflow-y-auto">
+      <Dialog open={showProductPicker} onOpenChange={(open) => { setShowProductPicker(open); if (!open) setProductSearch(""); }}>
+        <DialogContent className="max-w-lg max-h-[70vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Add Products</DialogTitle>
           </DialogHeader>
-          <div className="space-y-2">
-            {availableProducts && availableProducts.length > 0 ? (
-              availableProducts.map((product) => (
-                <div
-                  key={product.id}
-                  className="flex items-center gap-3 p-2 border border-border rounded-sm hover:bg-secondary/20 cursor-pointer transition-colors"
-                  onClick={() => {
-                    setSelectedProductIds([...selectedProductIds, product.id]);
-                  }}
-                >
-                  {product.image && (
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-8 h-8 object-cover rounded-sm"
-                    />
-                  )}
-                  <span className="text-sm flex-1 truncate">
-                    {product.brand} – {product.name}
-                  </span>
-                  <Badge variant="secondary" className="text-xs">
-                    {product.status}
-                  </Badge>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                All products already added.
-              </p>
-            )}
+          <Input
+            value={productSearch}
+            onChange={(e) => setProductSearch(e.target.value)}
+            placeholder="Search by brand or name…"
+            className="bg-background border-border"
+          />
+          <div className="space-y-2 overflow-y-auto flex-1">
+            {(() => {
+              const q = productSearch.toLowerCase();
+              const filtered = availableProducts?.filter((p) =>
+                !q || p.brand.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)
+              );
+              if (filtered && filtered.length > 0) {
+                return filtered.map((product) => (
+                  <div
+                    key={product.id}
+                    className="flex items-center gap-3 p-2 border border-border rounded-sm hover:bg-secondary/20 cursor-pointer transition-colors"
+                    onClick={() => {
+                      setSelectedProductIds([...selectedProductIds, product.id]);
+                    }}
+                  >
+                    {product.image && (
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-8 h-8 object-cover rounded-sm"
+                      />
+                    )}
+                    <span className="text-sm flex-1 truncate">
+                      {product.brand} – {product.name}
+                    </span>
+                    <Badge variant="secondary" className="text-xs">
+                      {product.status}
+                    </Badge>
+                  </div>
+                ));
+              }
+              return (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  {productSearch ? "No matching products." : "All products already added."}
+                </p>
+              );
+            })()}
           </div>
         </DialogContent>
       </Dialog>
