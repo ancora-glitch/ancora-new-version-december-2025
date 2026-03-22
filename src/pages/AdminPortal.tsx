@@ -361,6 +361,8 @@ const AdminPortal = () => {
     setProductAncoraSelectSource(null);
     setProductInWeeklyEdit(false);
     setProductAffiliateAutoHandling(true);
+    setProductSlug("");
+    setProductSlugManuallyEdited(false);
   };
 
   // Category form helpers
