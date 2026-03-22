@@ -390,7 +390,6 @@ const AdminPortal = () => {
     setCategorySeoDescription("");
     setCategorySlugManuallyEdited(false);
   };
-  };
 
   const handleEditCategory = (category: Category) => {
     setEditingCategoryId(category.id);
