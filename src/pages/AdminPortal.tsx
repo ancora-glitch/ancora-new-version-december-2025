@@ -403,6 +403,20 @@ const AdminPortal = () => {
       toast.error("Name and slug are required");
       return;
     }
+
+    // Uniqueness check
+    const slugToSave = categorySlug.trim();
+    const { data: existingSlug } = await supabase
+      .from("categories")
+      .select("slug")
+      .eq("slug", slugToSave)
+      .neq("id", editingCategoryId ?? "")
+      .maybeSingle();
+    if (existingSlug) {
+      toast.error("This slug is already taken. Please change the name or edit the slug manually.");
+      return;
+    }
+
     setSavingCategory(true);
     
     const categoryData = {
