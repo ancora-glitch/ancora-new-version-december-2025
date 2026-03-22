@@ -1171,6 +1171,21 @@ const AdminPortal = () => {
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="productSlug">Slug</Label>
+                  <Input 
+                    id="productSlug" 
+                    value={productSlug} 
+                    onChange={(e) => {
+                      setProductSlug(slugify(e.target.value));
+                      setProductSlugManuallyEdited(true);
+                    }}
+                    placeholder="auto-generated from brand + name" 
+                    className="bg-background border-border" 
+                  />
+                  <p className="text-xs text-muted-foreground">Auto-generated from brand + name. You can override.</p>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="productPrice">Price *</Label>
