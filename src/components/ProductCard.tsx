@@ -93,8 +93,9 @@ export const ProductCard = ({
           </div>
 
           {/* Product Name + Size */}
-          <p className="text-sm text-muted-foreground leading-relaxed">{name}</p>
-          {size && <p className="text-sm text-muted-foreground">Size: {size}</p>}
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {name}{size && <>, size: {size}</>}
+          </p>
 
           {/* Price */}
           <div className="pt-2">
