@@ -24,6 +24,7 @@ export const ProductCard = ({
   brand,
   name,
   price,
+  size,
   additionalImages = [],
   affiliateUrl,
   marketplace,
