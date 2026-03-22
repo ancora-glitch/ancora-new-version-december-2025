@@ -10,6 +10,7 @@ interface ProductCardProps {
   brand: string;
   name: string;
   price: string;
+  size?: string | null;
   additionalImages?: string[];
   affiliateUrl?: string;
   marketplace?: string;
@@ -23,6 +24,7 @@ export const ProductCard = ({
   brand,
   name,
   price,
+  size,
   additionalImages = [],
   affiliateUrl,
   marketplace,
@@ -90,8 +92,11 @@ export const ProductCard = ({
             </button>
           </div>
 
-          {/* Product Name */}
-          <p className="text-sm text-muted-foreground leading-relaxed">{name}</p>
+          {/* Product Name + Size */}
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {name}
+            {size && <span className="text-xs text-muted-foreground/70"> · {size}</span>}
+          </p>
 
           {/* Price */}
           <div className="pt-2">
