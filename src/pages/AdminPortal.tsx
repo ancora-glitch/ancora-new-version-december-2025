@@ -393,6 +393,7 @@ const AdminPortal = () => {
     setCategoryDescription(category.description || "");
     setCategorySeoTitle(category.seo_title || "");
     setCategorySeoDescription(category.seo_description || "");
+    setCategorySlugManuallyEdited(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
