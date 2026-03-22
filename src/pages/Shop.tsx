@@ -242,6 +242,7 @@ const Shop = () => {
                     </span>
                     <p className="text-sm text-muted-foreground leading-relaxed line-clamp-1">
                       {product.name}
+                      {product.size && <span className="text-xs text-muted-foreground/70"> · {product.size}</span>}
                     </p>
                     <p className="text-base font-semibold text-foreground pt-1">
                       {formatPrice(product.price)}
