@@ -1,6 +1,15 @@
 ANCORA — MASTER PROJECT SPECIFICATION
 Version 1.7
 
+Changelog v1.9:
+
+- Centralized slug management system added (Section 3.4)
+- src/utils/slugify.ts: single utility for all slug generation
+- Swedish character transliteration (å/ä → a, ö → o)
+- Editable slug fields in Admin Portal (Products, Stories, Categories)
+- UNIQUE constraints + indexes on slug columns (products, categories, style_guides)
+- Pre-save application-level uniqueness checks
+
 Changelog v1.8:
 
 - eBay EPN affiliate URL format standardised (Section 4.3.1)
