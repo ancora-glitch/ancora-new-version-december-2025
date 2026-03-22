@@ -381,6 +381,8 @@ const AdminPortal = () => {
     setCategoryDescription("");
     setCategorySeoTitle("");
     setCategorySeoDescription("");
+    setCategorySlugManuallyEdited(false);
+  };
   };
 
   const handleEditCategory = (category: Category) => {
