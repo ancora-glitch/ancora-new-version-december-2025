@@ -243,7 +243,7 @@ export function Header() {
                 <div
                   className={cn(
                     "overflow-hidden transition-all duration-300",
-                    shopExpanded ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+                    shopExpanded ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"
                   )}
                 >
                   <div className="pl-4 pb-2 space-y-0.5">
