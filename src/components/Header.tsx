@@ -203,7 +203,7 @@ export function Header() {
           {/* Slide-in panel */}
           <div
             className={cn(
-              "fixed top-0 left-0 bottom-0 w-[85%] max-w-[340px] bg-background z-50 shadow-2xl transition-transform duration-300 ease-out flex flex-col",
+              "fixed top-0 left-0 bottom-0 w-[85%] max-w-[340px] bg-background z-50 shadow-2xl transition-transform duration-300 ease-out flex flex-col overflow-hidden",
               mobileOpen ? "translate-x-0" : "-translate-x-full"
             )}
           >
