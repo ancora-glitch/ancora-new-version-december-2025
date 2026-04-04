@@ -203,7 +203,7 @@ export function Header() {
           {/* Slide-in panel */}
           <div
             className={cn(
-              "fixed top-0 left-0 bottom-0 w-[85%] max-w-[340px] bg-background z-50 shadow-2xl transition-transform duration-300 ease-out flex flex-col",
+              "fixed top-0 left-0 bottom-0 w-[85%] max-w-[340px] bg-background z-50 shadow-2xl transition-transform duration-300 ease-out flex flex-col overflow-hidden",
               mobileOpen ? "translate-x-0" : "-translate-x-full"
             )}
           >
@@ -222,7 +222,7 @@ export function Header() {
             </div>
 
             {/* Mobile nav links */}
-            <nav className="flex-1 overflow-y-auto py-6 pb-16 px-5">
+            <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain py-6 pb-20 px-5" style={{ maxHeight: 'calc(100vh - 4rem)' }}>
               {/* Shop — expandable */}
               <div className="mb-1">
                 <button
@@ -243,7 +243,7 @@ export function Header() {
                 <div
                   className={cn(
                     "overflow-hidden transition-all duration-300",
-                    shopExpanded ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+                    shopExpanded ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"
                   )}
                 >
                   <div className="pl-4 pb-2 space-y-0.5">
