@@ -222,7 +222,7 @@ export function Header() {
             </div>
 
             {/* Mobile nav links */}
-            <nav className="flex-1 overflow-y-auto py-6 pb-16 px-5">
+            <nav className="flex-1 min-h-0 overflow-y-auto py-6 pb-20 px-5">
               {/* Shop — expandable */}
               <div className="mb-1">
                 <button
