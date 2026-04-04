@@ -4,7 +4,7 @@ import { Instagram } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { PullQuote } from "@/components/PullQuote";
-import teamAncoraImage from "@/assets/team-ancora.png";
+import teamAncoraImage from "@/assets/team-ancora.jpg";
 
 const SubstackIcon = ({ className, strokeWidth = 1.5 }: {className?: string;strokeWidth?: number;}) =>
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
