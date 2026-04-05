@@ -271,11 +271,11 @@ serve(async (req) => {
     // Fetch ALL eligible Tradera products (guardrails applied in query)
     const { data: allProducts, error: fetchError } = await supabase
       .from('products')
-      .select('id, name, brand, price, affiliate_url, tradera_item_id, affiliate_auto_handling, affiliate_status')
+      .select('id, name, brand, price, affiliate_url, tradera_item_id, affiliate_auto_handling, affiliate_status, affiliate_last_checked_at')
       .ilike('marketplace', 'tradera')
       .in('status', ['active', 'published'])
       .not('affiliate_url', 'is', null)
-      .order('id', { ascending: true });
+      .order('affiliate_last_checked_at', { ascending: true, nullsFirst: true });
 
     if (fetchError) {
       const finishedAt = new Date();
@@ -401,7 +401,7 @@ serve(async (req) => {
           let autoUnpublished = false;
           if (affiliateAutoHandling) {
             updateData.status = 'sold';
-            updateData.unpublished_reason = 'affiliate_unavailable';
+            updateData.unpublished_reason = 'sold';
             autoUnpublished = true;
           }
           await supabase.from('products').update(updateData).eq('id', product.id);
