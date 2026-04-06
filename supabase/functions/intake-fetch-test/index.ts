@@ -275,66 +275,80 @@ Deno.serve(async (req) => {
     'Proenza Schouler', 'Axel Arigato', 'Celine',
   ];
 
-  // Fisher-Yates shuffle and pick 8-10
+  // Fisher-Yates shuffle and pick 3-5 brands to search individually
   const shuffled = [...allBrands];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-  const pickCount = 8 + Math.floor(Math.random() * 3); // 8, 9, or 10
+  const pickCount = 3 + Math.floor(Math.random() * 3); // 3, 4, or 5
   const selectedBrands = shuffled.slice(0, pickCount);
-  // Wrap multi-word brands in parens for eBay Browse API
-  const queryParts = selectedBrands.map((b) =>
-    b.includes(' ') ? `(${b})` : b
-  );
-  const brandQuery = queryParts.join(',');
-  console.log(`Selected ${selectedBrands.length} brands for query:`, selectedBrands);
-  console.log(`eBay q param: ${brandQuery}`);
+  console.log(`Selected ${selectedBrands.length} brands:`, selectedBrands);
 
-  const euroCountries = "DE|GB|FR|IT|ES|SE|NL|AT|BE|DK|FI|IE|PL|PT|CZ|GR|HU|RO|NO|CH";
-
-  // Build URL manually to avoid double-encoding of parens/commas
   const baseUrl = getEbayBaseUrl();
   const filterStr = `buyingOptions:{FIXED_PRICE},price:[38.46..],priceCurrency:GBP`;
-  const limit = Math.min(maxItems, 50);
-  const searchUrl = `${baseUrl}/buy/browse/v1/item_summary/search?q=${encodeURIComponent(brandQuery)}&category_ids=15724&limit=${limit}&filter=${encodeURIComponent(filterStr)}`;
-  console.log(`eBay search URL: ${searchUrl}`);
+  const perBrandLimit = Math.max(2, Math.floor(Math.min(maxItems, 50) / selectedBrands.length));
 
   let ebayItems: any[] = [];
   let rateLimited = false;
   let rateLimitCount = 0;
 
-  try {
-    const res = await fetch(searchUrl, {
-      headers: {
-        Authorization: `Bearer ${tokenResult.token}`,
-        "X-EBAY-C-MARKETPLACE-ID": "EBAY_GB",
-        "Content-Type": "application/json",
-      },
-    });
+  // Search one brand at a time to stay within eBay q-param limits
+  for (const brand of selectedBrands) {
+    if (rateLimited || ebayItems.length >= maxItems) break;
 
-    if (res.status === 429) {
-      rateLimited = true;
-      rateLimitCount = 1;
-    } else if (!res.ok) {
-      const t = await res.text();
-      console.error("eBay search failed:", res.status, t);
-      await svc.from("intake_run_logs").update({
-        status: "failed", completed_at: new Date().toISOString(),
-        summary: { reason: `eBay search HTTP ${res.status}` },
-      }).eq("id", runId);
-      return jsonRes({ error: `eBay search failed (${res.status})` }, 500, cors);
-    } else {
-      const data = await res.json();
-      console.log(`eBay response: total=${data.total}, count=${(data.itemSummaries || []).length}, warnings=${JSON.stringify(data.warnings || [])}`);
-      ebayItems = (data.itemSummaries || []).slice(0, maxItems);
+    const searchUrl = `${baseUrl}/buy/browse/v1/item_summary/search?q=${encodeURIComponent(brand)}&category_ids=15724&limit=${perBrandLimit}&filter=${encodeURIComponent(filterStr)}`;
+    console.log(`Searching eBay for brand: ${brand}`);
+
+    try {
+      const res = await fetch(searchUrl, {
+        headers: {
+          Authorization: `Bearer ${tokenResult.token}`,
+          "X-EBAY-C-MARKETPLACE-ID": "EBAY_GB",
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (res.status === 429) {
+        rateLimited = true;
+        rateLimitCount++;
+        console.warn(`Rate limited on brand: ${brand}`);
+        break;
+      } else if (!res.ok) {
+        const t = await res.text();
+        console.error(`eBay search failed for ${brand}:`, res.status, t);
+      } else {
+        const data = await res.json();
+        const items = data.itemSummaries || [];
+        console.log(`Brand "${brand}": ${items.length} results (total: ${data.total || 0})`);
+        ebayItems.push(...items);
+      }
+
+      // Rate-limit courtesy delay between brand searches
+      if (selectedBrands.indexOf(brand) < selectedBrands.length - 1) {
+        await delay(200);
+      }
+    } catch (e: any) {
+      console.error(`Error searching brand ${brand}:`, e.message);
     }
-  } catch (e: any) {
+  }
+
+  // Trim to maxItems and deduplicate by itemId
+  const seen = new Set<string>();
+  ebayItems = ebayItems.filter((item) => {
+    if (!item.itemId || seen.has(item.itemId)) return false;
+    seen.add(item.itemId);
+    return true;
+  }).slice(0, maxItems);
+
+  console.log(`Total unique eBay items after all brand searches: ${ebayItems.length}`);
+
+  if (ebayItems.length === 0 && rateLimited) {
     await svc.from("intake_run_logs").update({
       status: "failed", completed_at: new Date().toISOString(),
-      summary: { reason: e.message },
+      summary: { reason: "Rate limited, no items fetched", selected_brands: selectedBrands },
     }).eq("id", runId);
-    return jsonRes({ error: e.message }, 500, cors);
+    return jsonRes({ error: "Rate limited" }, 429, cors);
   }
 
   /* ════════════════════════════════════════ */
