@@ -121,11 +121,9 @@ export const IntakeTab = () => {
   /* ── pipeline flags ── */
   const pipelineEnabled = envFlag("VITE_INTAKE_V1_ENABLED");
   const killSwitch = envFlag("VITE_INTAKE_KILL_SWITCH");
-  const aiEnabled = envFlag("VITE_INTAKE_AI_ENABLED");
   const allowedSources = envStr("VITE_INTAKE_ALLOWED_SOURCES");
   const batchLimit = envStr("VITE_INTAKE_MAX_ITEMS_PER_RUN");
   const isEnabled = pipelineEnabled === true;
-  const isAiEnabled = isEnabled; // AI flag is enforced server-side by the edge function
 
   /* ── run logs ── */
   const { data: runs, isLoading: runsLoading } = useQuery({
@@ -307,12 +305,12 @@ export const IntakeTab = () => {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <span tabIndex={!isAiEnabled ? 0 : undefined}>
+                <span tabIndex={!isEnabled ? 0 : undefined}>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleEnrichOpen}
-                    disabled={!isAiEnabled || isEnriching}
+                    disabled={!isEnabled}
                     className="gap-1.5"
                   >
                     {isEnriching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
@@ -320,9 +318,9 @@ export const IntakeTab = () => {
                   </Button>
                 </span>
               </TooltipTrigger>
-              {!isAiEnabled && (
+              {!isEnabled && (
                 <TooltipContent>
-                  <p>AI enrichment is disabled</p>
+                  <p>Pipeline is disabled</p>
                 </TooltipContent>
               )}
             </Tooltip>
