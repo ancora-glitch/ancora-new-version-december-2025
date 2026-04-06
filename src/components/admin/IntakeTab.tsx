@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { IntakeReviewQueue } from "./IntakeReviewQueue";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertTriangle, RefreshCw, Play, Loader2, FlaskConical, Zap, CheckCircle2, XCircle } from "lucide-react";
+import { AlertTriangle, RefreshCw, Play, Loader2, FlaskConical, Zap, CheckCircle2, XCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -112,9 +112,11 @@ export const IntakeTab = () => {
   /* ── pipeline flags ── */
   const pipelineEnabled = envFlag("VITE_INTAKE_V1_ENABLED");
   const killSwitch = envFlag("VITE_INTAKE_KILL_SWITCH");
+  const aiEnabled = envFlag("VITE_INTAKE_AI_ENABLED");
   const allowedSources = envStr("VITE_INTAKE_ALLOWED_SOURCES");
   const batchLimit = envStr("VITE_INTAKE_MAX_ITEMS_PER_RUN");
   const isEnabled = pipelineEnabled === true;
+  const isAiEnabled = aiEnabled === true;
 
   /* ── run logs ── */
   const { data: runs, isLoading: runsLoading } = useQuery({
