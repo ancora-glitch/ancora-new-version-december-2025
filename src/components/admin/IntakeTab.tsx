@@ -125,7 +125,7 @@ export const IntakeTab = () => {
   const allowedSources = envStr("VITE_INTAKE_ALLOWED_SOURCES");
   const batchLimit = envStr("VITE_INTAKE_MAX_ITEMS_PER_RUN");
   const isEnabled = pipelineEnabled === true;
-  const isAiEnabled = aiEnabled === true;
+  const isAiEnabled = isEnabled; // AI flag is enforced server-side by the edge function
 
   /* ── run logs ── */
   const { data: runs, isLoading: runsLoading } = useQuery({
