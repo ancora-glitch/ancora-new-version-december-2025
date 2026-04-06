@@ -108,6 +108,10 @@ export const IntakeTab = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [runResult, setRunResult] = useState<RunResult | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
+  const [enrichDialogOpen, setEnrichDialogOpen] = useState(false);
+  const [isEnriching, setIsEnriching] = useState(false);
+  const [enrichResult, setEnrichResult] = useState<EnrichResult | null>(null);
+  const [enrichError, setEnrichError] = useState<string | null>(null);
 
   /* ── pipeline flags ── */
   const pipelineEnabled = envFlag("VITE_INTAKE_V1_ENABLED");
@@ -210,6 +214,47 @@ export const IntakeTab = () => {
       setConfirmMode(null);
       setRunResult(null);
       setRunError(null);
+    }
+  };
+
+  /* ── Enrich handlers ── */
+  const handleEnrichOpen = () => {
+    setEnrichResult(null);
+    setEnrichError(null);
+    setEnrichDialogOpen(true);
+  };
+
+  const handleConfirmEnrich = async () => {
+    setIsEnriching(true);
+    setEnrichError(null);
+    setEnrichResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("intake-enrich-test");
+      if (error) {
+        setEnrichError(error.message || "Unknown error calling intake-enrich-test");
+        return;
+      }
+      if (data?.error) {
+        setEnrichError(data.error);
+        return;
+      }
+      setEnrichResult({
+        enriched: data.items_processed ?? 0,
+        errors: data.error_count ?? 0,
+      });
+      handleRefresh();
+    } catch (e: any) {
+      setEnrichError(e.message || "Unexpected error");
+    } finally {
+      setIsEnriching(false);
+    }
+  };
+
+  const handleCloseEnrichDialog = () => {
+    if (!isEnriching) {
+      setEnrichDialogOpen(false);
+      setEnrichResult(null);
+      setEnrichError(null);
     }
   };
 
