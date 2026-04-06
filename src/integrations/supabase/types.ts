@@ -245,6 +245,33 @@ export type Database = {
         }
         Relationships: []
       }
+      intake_brand_tiers: {
+        Row: {
+          brand_name: string
+          created_at: string | null
+          id: string
+          notes: string | null
+          tier: string
+          updated_at: string | null
+        }
+        Insert: {
+          brand_name: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          tier: string
+          updated_at?: string | null
+        }
+        Update: {
+          brand_name?: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          tier?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       intake_duplicate_candidates: {
         Row: {
           confidence_score: number | null
