@@ -250,9 +250,33 @@ Deno.serve(async (req) => {
     return jsonRes({ error: tokenResult.error }, 500, cors);
   }
 
-  // Search eBay for women's clothing in Europe
+  // Search eBay for curated brand list
+  const brandQuery = [
+    'Toteme', '"Acne Studios"', '"Filippa K"', '"Tiger of Sweden"',
+    '"Stine Goya"', 'Ganni', '"By Malene Birger"', 'Rodebjer',
+    '"Hope Stockholm"', '"Our Legacy"', '"3.1 Phillip Lim"', 'Alaia',
+    '"Alexander McQueen"', '"ATP Atelier"', 'APC', 'Balenciaga',
+    'Baserange', '"Baum und Pferdgarten"', '"Brixtol Textiles"',
+    '"Bottega Veneta"', 'Burberry', '"Copenhagen Studios"', '"By Malina"',
+    'Carhartt', 'CDLP', 'Chanel', 'Chimi', 'Chloe', 'Dagmar', 'Dior',
+    '"Dr Martens"', 'Eytys', 'Flattered', '"House of Dagmar"', 'Gucci',
+    'Patagonia', '"Isabel Marant"', 'Jacquemus', 'Jeanerica',
+    '"Jil Sander"', '"Lisa Yang"', 'Loewe', '"Louis Vuitton"',
+    '"Ralph Lauren"', '"Maison Margiela"', '"Maria Nilsdotter"',
+    'Marimekko', 'Marni', '"Miu Miu"', 'Moncler', 'Mulberry', 'Prada',
+    'Pucci', '"Saint Laurent"', 'Sandqvist', '"See by Chloe"',
+    '"Self Portrait"', 'Sefr', '"Skall Studio"', '"Stella McCartney"',
+    '"The Row"', '"Sophie Billie Brahe"', '"Stand Studio"', 'Valentino',
+    'Veja', 'Versace', '"Wood Wood"', 'Avavav', '"Soft Goat"',
+    '"Vivienne Westwood"', 'Diesel', '"Adidas by Stella McCartney"',
+    'Barbour', '"Ahlvar Gallery"', '"ROTATE Birger Christensen"',
+    'Stylein', '"Just Cavalli"', '"Helmut Lang"', '"Calvin Klein"',
+    '"Little Liffner"', '"Paloma Wool"', '"Simone Rocha"',
+    '"Proenza Schouler"', '"Axel Arigato"', 'Celine',
+  ].join(' OR ');
+
   const searchParams = new URLSearchParams({
-    q: "women's clothing",
+    q: brandQuery,
     category_ids: "15724",
     limit: String(Math.min(maxItems, 50)),
   });
