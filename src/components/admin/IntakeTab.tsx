@@ -101,6 +101,11 @@ interface RunResult {
   dry_run: boolean;
 }
 
+interface EnrichResult {
+  enriched: number;
+  errors: number;
+}
+
 export const IntakeTab = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
