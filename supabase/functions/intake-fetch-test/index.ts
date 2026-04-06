@@ -325,6 +325,7 @@ Deno.serve(async (req) => {
       return jsonRes({ error: `eBay search failed (${res.status})` }, 500, cors);
     } else {
       const data = await res.json();
+      console.log(`eBay response: total=${data.total}, count=${(data.itemSummaries || []).length}, warnings=${JSON.stringify(data.warnings || [])}`);
       ebayItems = (data.itemSummaries || []).slice(0, maxItems);
     }
   } catch (e: any) {
