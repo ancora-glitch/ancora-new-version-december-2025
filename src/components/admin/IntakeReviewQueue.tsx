@@ -1,18 +1,40 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { CheckCircle2, XCircle, Star, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const stateStyles: Record<string, string> = {
-  normalized: "bg-blue-100 text-blue-800",
-  rules_rejected: "bg-red-100 text-red-800",
-  scored_review: "bg-amber-100 text-amber-800",
   scored_draft_approved: "bg-emerald-100 text-emerald-800",
+  scored_review: "bg-amber-100 text-amber-800",
+  rejected: "bg-red-100 text-red-800",
+  enriched: "bg-blue-100 text-blue-800",
+  normalized: "bg-gray-100 text-gray-700",
   test_approved: "bg-emerald-100 text-emerald-800",
-  rejected: "bg-muted text-muted-foreground",
-  raw_imported: "bg-blue-50 text-blue-700",
-  enriched: "bg-indigo-100 text-indigo-800",
+  raw_imported: "bg-gray-100 text-gray-600",
+  rules_rejected: "bg-red-100 text-red-800",
+};
+
+const tierStyles: Record<string, string> = {
+  a: "bg-emerald-100 text-emerald-800",
+  b: "bg-blue-100 text-blue-800",
+  c: "bg-amber-100 text-amber-800",
+  reject: "bg-red-100 text-red-800",
+  unknown: "bg-gray-100 text-gray-600",
+};
+
+const tierLabel: Record<string, string> = {
+  a: "Tier A", b: "Tier B", c: "Tier C", reject: "Reject", unknown: "Unknown",
+};
+
+const scoreColor = (score: number): string => {
+  if (score >= 75) return "bg-emerald-100 text-emerald-800";
+  if (score >= 40) return "bg-amber-100 text-amber-800";
+  return "bg-red-100 text-red-800";
 };
 
 const flagStyle = (type: "hard" | "soft") =>
@@ -20,11 +42,25 @@ const flagStyle = (type: "hard" | "soft") =>
     ? "bg-red-50 text-red-700 border-red-200"
     : "bg-amber-50 text-amber-700 border-amber-200";
 
+type FilterState = "all" | "scored_draft_approved" | "scored_review" | "rejected" | "test_approved";
+
+const FILTERS: { label: string; value: FilterState }[] = [
+  { label: "All", value: "all" },
+  { label: "Draft approved", value: "scored_draft_approved" },
+  { label: "Review", value: "scored_review" },
+  { label: "Rejected", value: "rejected" },
+  { label: "Test approved", value: "test_approved" },
+];
+
 interface IntakeReviewQueueProps {
   refreshKey: number;
 }
 
 export const IntakeReviewQueue = ({ refreshKey }: IntakeReviewQueueProps) => {
+  const [filter, setFilter] = useState<FilterState>("all");
+  const [actionLoading, setActionLoading] = useState<Record<string, string>>({});
+  const queryClient = useQueryClient();
+
   const { data: products, isLoading } = useQuery({
     queryKey: ["intake-review-queue", refreshKey],
     queryFn: async () => {
@@ -53,13 +89,34 @@ export const IntakeReviewQueue = ({ refreshKey }: IntakeReviewQueueProps) => {
     },
   });
 
+  const { data: brandTiers } = useQuery({
+    queryKey: ["intake-brand-tiers"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("intake_brand_tiers")
+        .select("brand_name, tier");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const evalMap = new Map(
     (evaluations ?? []).map((e) => [e.normalized_product_id, e])
+  );
+
+  const tierMap = new Map(
+    (brandTiers ?? []).map((bt) => [bt.brand_name.toLowerCase(), bt.tier])
   );
 
   const getFirstImage = (urls: unknown): string | null => {
     if (Array.isArray(urls) && typeof urls[0] === "string") return urls[0];
     return null;
+  };
+
+  const getEditorialReason = (ev: any): string | null => {
+    if (!ev?.reasons || !Array.isArray(ev.reasons)) return null;
+    const reason = ev.reasons[0];
+    return typeof reason === "string" && reason.length > 0 ? reason : null;
   };
 
   const renderFlags = (flags: unknown, type: "hard" | "soft") => {
@@ -78,11 +135,91 @@ export const IntakeReviewQueue = ({ refreshKey }: IntakeReviewQueueProps) => {
     );
   };
 
+  // Sort products by score descending
+  const sortedProducts = [...(products ?? [])].sort((a, b) => {
+    const scoreA = evalMap.get(a.id)?.score_total ?? -1;
+    const scoreB = evalMap.get(b.id)?.score_total ?? -1;
+    return scoreB - scoreA;
+  });
+
+  const filteredProducts = filter === "all"
+    ? sortedProducts
+    : sortedProducts.filter((p) => p.current_queue_state === filter);
+
+  const handleAction = async (
+    productId: string,
+    action: "approve" | "reject" | "feature"
+  ) => {
+    setActionLoading((prev) => ({ ...prev, [productId]: action }));
+    try {
+      const newState = action === "reject" ? "rejected" : "test_approved";
+
+      const { error: updateErr } = await supabase
+        .from("intake_normalized_products")
+        .update({
+          current_queue_state: newState,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", productId);
+
+      if (updateErr) throw updateErr;
+
+      if (action === "feature") {
+        const ev = evalMap.get(productId);
+        if (ev) {
+          const existingSoftFlags = Array.isArray(ev.soft_flags) ? ev.soft_flags : [];
+          if (!existingSoftFlags.includes("feature_candidate")) {
+            const { error: evalErr } = await supabase
+              .from("intake_evaluations")
+              .update({
+                soft_flags: [...existingSoftFlags, "feature_candidate"],
+              })
+              .eq("id", ev.id);
+            if (evalErr) throw evalErr;
+          }
+        }
+      }
+
+      toast.success(
+        action === "approve" ? "Approved" :
+        action === "reject" ? "Rejected" : "Featured"
+      );
+
+      // Refresh queries
+      queryClient.invalidateQueries({ queryKey: ["intake-review-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["intake-evaluations"] });
+      queryClient.invalidateQueries({ queryKey: ["intake-queue-counts"] });
+    } catch (err: any) {
+      toast.error(err.message || "Action failed");
+    } finally {
+      setActionLoading((prev) => {
+        const next = { ...prev };
+        delete next[productId];
+        return next;
+      });
+    }
+  };
+
   return (
     <div>
       <h3 className="text-lg font-heading font-semibold text-foreground mb-3">
         Review queue
       </h3>
+
+      {/* Filter bar */}
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        {FILTERS.map((f) => (
+          <Button
+            key={f.value}
+            variant={filter === f.value ? "default" : "outline"}
+            size="sm"
+            className="text-xs h-7 px-3"
+            onClick={() => setFilter(f.value)}
+          >
+            {f.label}
+          </Button>
+        ))}
+      </div>
 
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -90,19 +227,23 @@ export const IntakeReviewQueue = ({ refreshKey }: IntakeReviewQueueProps) => {
             <div key={i} className="h-48 bg-muted rounded-md animate-pulse" />
           ))}
         </div>
-      ) : !products || products.length === 0 ? (
+      ) : filteredProducts.length === 0 ? (
         <p className="text-sm text-muted-foreground border border-border rounded-md p-6 text-center">
-          No products in queue yet.
+          {filter === "all" ? "No products in queue yet." : `No products with state "${filter.replace(/_/g, " ")}".`}
         </p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {products.map((p) => {
+          {filteredProducts.map((p) => {
             const img = getFirstImage(p.image_urls);
             const ev = evalMap.get(p.id);
             const state = p.current_queue_state ?? "unknown";
+            const brandLower = (p.brand ?? "").toLowerCase();
+            const tier = tierMap.get(brandLower) ?? "unknown";
+            const editorialReason = getEditorialReason(ev);
+            const loading = actionLoading[p.id];
 
             return (
-              <Card key={p.id} className="overflow-hidden">
+              <Card key={p.id} className="overflow-hidden flex flex-col">
                 {img && (
                   <AspectRatio ratio={4 / 5}>
                     <img
@@ -113,9 +254,9 @@ export const IntakeReviewQueue = ({ refreshKey }: IntakeReviewQueueProps) => {
                     />
                   </AspectRatio>
                 )}
-                <CardContent className="p-3 space-y-1.5">
+                <CardContent className="p-3 space-y-1.5 flex-1 flex flex-col">
                   <p className="text-sm font-medium leading-tight line-clamp-2">
-                    {p.title_raw || "Untitled"}
+                    {p.title_clean || p.title_raw || "Untitled"}
                   </p>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span className="uppercase tracking-wide">{p.source}</span>
@@ -130,19 +271,79 @@ export const IntakeReviewQueue = ({ refreshKey }: IntakeReviewQueueProps) => {
                       {[p.category, p.subcategory].filter(Boolean).join(" / ")}
                     </p>
                   )}
-                  <Badge
-                    variant="secondary"
-                    className={`text-[10px] ${stateStyles[state] ?? "bg-muted text-muted-foreground"}`}
-                  >
-                    {state.replace(/_/g, " ")}
-                  </Badge>
 
+                  {/* Badges row */}
+                  <div className="flex flex-wrap gap-1.5">
+                    <Badge
+                      variant="secondary"
+                      className={`text-[10px] ${stateStyles[state] ?? "bg-muted text-muted-foreground"}`}
+                    >
+                      {state.replace(/_/g, " ")}
+                    </Badge>
+                    {ev?.score_total != null && (
+                      <Badge
+                        variant="secondary"
+                        className={`text-[10px] ${scoreColor(ev.score_total)}`}
+                      >
+                        Score: {ev.score_total}
+                      </Badge>
+                    )}
+                    <Badge
+                      variant="secondary"
+                      className={`text-[10px] ${tierStyles[tier]}`}
+                    >
+                      {tierLabel[tier] ?? "Unknown"}
+                    </Badge>
+                  </div>
+
+                  {/* Flags */}
                   {ev && (
-                    <div className="space-y-1 pt-1">
+                    <div className="space-y-1">
                       {renderFlags(ev.hard_flags, "hard")}
                       {renderFlags(ev.soft_flags, "soft")}
                     </div>
                   )}
+
+                  {/* Editorial reason */}
+                  {editorialReason && (
+                    <p className="text-[11px] italic text-muted-foreground leading-snug">
+                      {editorialReason}
+                    </p>
+                  )}
+
+                  {/* Action buttons */}
+                  <div className="flex gap-1.5 pt-2 mt-auto">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 h-7 text-xs gap-1 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                      disabled={!!loading}
+                      onClick={() => handleAction(p.id, "approve")}
+                    >
+                      {loading === "approve" ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
+                      Approve
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 h-7 text-xs gap-1 text-red-700 border-red-300 hover:bg-red-50"
+                      disabled={!!loading}
+                      onClick={() => handleAction(p.id, "reject")}
+                    >
+                      {loading === "reject" ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3 h-3" />}
+                      Reject
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 h-7 text-xs gap-1 text-amber-700 border-amber-300 hover:bg-amber-50"
+                      disabled={!!loading}
+                      onClick={() => handleAction(p.id, "feature")}
+                    >
+                      {loading === "feature" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Star className="w-3 h-3" />}
+                      Feature
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             );
