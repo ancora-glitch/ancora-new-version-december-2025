@@ -327,6 +327,7 @@ export const IntakeTab = () => {
               )}
             </Tooltip>
           </TooltipProvider>
+          </div>
         </div>
         <div className="flex flex-wrap gap-3">
           <StatusCard
