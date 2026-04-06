@@ -59,3 +59,6 @@ verify_jwt = false
 
 [functions.intake-fetch-test]
 verify_jwt = false
+
+[functions.intake-enrich-test]
+verify_jwt = false
