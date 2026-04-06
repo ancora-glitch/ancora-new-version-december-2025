@@ -519,6 +519,7 @@ Deno.serve(async (req) => {
     rate_limit_count: rateLimitCount,
     summary: {
       dry_run: dryRun,
+      selected_brands: selectedBrands,
       total_results: results.length,
       rejected_reasons: rejectedReasons,
       soft_flags_summary: softFlagsSummary,
