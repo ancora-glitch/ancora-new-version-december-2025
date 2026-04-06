@@ -295,7 +295,7 @@ Deno.serve(async (req) => {
 
   // Build URL manually to avoid double-encoding of parens/commas
   const baseUrl = getEbayBaseUrl();
-  const filterStr = `itemLocationCountry:{${euroCountries}},deliveryCountry:SE,buyingOptions:{FIXED_PRICE},price:[38.46..],priceCurrency:GBP`;
+  const filterStr = `buyingOptions:{FIXED_PRICE},price:[38.46..],priceCurrency:GBP`;
   const limit = Math.min(maxItems, 50);
   const searchUrl = `${baseUrl}/buy/browse/v1/item_summary/search?q=${encodeURIComponent(brandQuery)}&category_ids=15724&limit=${limit}&filter=${encodeURIComponent(filterStr)}`;
   console.log(`eBay search URL: ${searchUrl}`);
