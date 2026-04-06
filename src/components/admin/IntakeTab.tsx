@@ -280,6 +280,7 @@ export const IntakeTab = () => {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xl font-heading font-semibold text-foreground">Intake pipeline v1</h2>
+          <div className="flex items-center gap-2">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
