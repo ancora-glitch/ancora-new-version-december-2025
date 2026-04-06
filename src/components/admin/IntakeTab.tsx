@@ -118,12 +118,11 @@ export const IntakeTab = () => {
   const [enrichResult, setEnrichResult] = useState<EnrichResult | null>(null);
   const [enrichError, setEnrichError] = useState<string | null>(null);
 
-  /* ── pipeline flags ── */
+  /* ── pipeline flags (display only, guards are server-side) ── */
   const pipelineEnabled = envFlag("VITE_INTAKE_V1_ENABLED");
   const killSwitch = envFlag("VITE_INTAKE_KILL_SWITCH");
   const allowedSources = envStr("VITE_INTAKE_ALLOWED_SOURCES");
   const batchLimit = envStr("VITE_INTAKE_MAX_ITEMS_PER_RUN");
-  const isEnabled = pipelineEnabled === true;
 
   /* ── run logs ── */
   const { data: runs, isLoading: runsLoading } = useQuery({
@@ -279,52 +278,24 @@ export const IntakeTab = () => {
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xl font-heading font-semibold text-foreground">Intake pipeline v1</h2>
           <div className="flex items-center gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span tabIndex={!isEnabled ? 0 : undefined}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleTrigger}
-                    disabled={!isEnabled}
-                    className="gap-1.5"
-                  >
-                    <Play className="w-3.5 h-3.5" />
-                    Trigger test run
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              {!isEnabled && (
-                <TooltipContent>
-                  <p>Pipeline is disabled</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span tabIndex={!isEnabled ? 0 : undefined}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleEnrichOpen}
-                    disabled={!isEnabled}
-                    className="gap-1.5"
-                  >
-                    {isEnriching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                    Run enrichment
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              {!isEnabled && (
-                <TooltipContent>
-                  <p>Pipeline is disabled</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleTrigger}
+              className="gap-1.5"
+            >
+              <Play className="w-3.5 h-3.5" />
+              Trigger test run
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleEnrichOpen}
+              className="gap-1.5"
+            >
+              {isEnriching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+              Run enrichment
+            </Button>
           </div>
         </div>
         <div className="flex flex-wrap gap-3">
