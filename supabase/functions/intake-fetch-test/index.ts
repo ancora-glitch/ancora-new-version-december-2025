@@ -252,27 +252,27 @@ Deno.serve(async (req) => {
 
   // Full Tier A brand pool — each run picks 8-10 randomly
   const allBrands = [
-    'Toteme', '"Acne Studios"', '"Filippa K"', '"Tiger of Sweden"',
-    '"Stine Goya"', 'Ganni', '"By Malene Birger"', 'Rodebjer',
-    '"Hope Stockholm"', '"Our Legacy"', '"3.1 Phillip Lim"', 'Alaia',
-    '"Alexander McQueen"', '"ATP Atelier"', 'APC', 'Balenciaga',
-    'Baserange', '"Baum und Pferdgarten"', '"Brixtol Textiles"',
-    '"Bottega Veneta"', 'Burberry', '"Copenhagen Studios"', '"By Malina"',
+    'Toteme', 'Acne Studios', 'Filippa K', 'Tiger of Sweden',
+    'Stine Goya', 'Ganni', 'By Malene Birger', 'Rodebjer',
+    'Hope Stockholm', 'Our Legacy', '3.1 Phillip Lim', 'Alaia',
+    'Alexander McQueen', 'ATP Atelier', 'APC', 'Balenciaga',
+    'Baserange', 'Baum und Pferdgarten', 'Brixtol Textiles',
+    'Bottega Veneta', 'Burberry', 'Copenhagen Studios', 'By Malina',
     'Carhartt', 'CDLP', 'Chanel', 'Chimi', 'Chloe', 'Dagmar', 'Dior',
-    '"Dr Martens"', 'Eytys', 'Flattered', '"House of Dagmar"', 'Gucci',
-    'Patagonia', '"Isabel Marant"', 'Jacquemus', 'Jeanerica',
-    '"Jil Sander"', '"Lisa Yang"', 'Loewe', '"Louis Vuitton"',
-    '"Ralph Lauren"', '"Maison Margiela"', '"Maria Nilsdotter"',
-    'Marimekko', 'Marni', '"Miu Miu"', 'Moncler', 'Mulberry', 'Prada',
-    'Pucci', '"Saint Laurent"', 'Sandqvist', '"See by Chloe"',
-    '"Self Portrait"', 'Sefr', '"Skall Studio"', '"Stella McCartney"',
-    '"The Row"', '"Sophie Billie Brahe"', '"Stand Studio"', 'Valentino',
-    'Veja', 'Versace', '"Wood Wood"', 'Avavav', '"Soft Goat"',
-    '"Vivienne Westwood"', 'Diesel', '"Adidas by Stella McCartney"',
-    'Barbour', '"Ahlvar Gallery"', '"ROTATE Birger Christensen"',
-    'Stylein', '"Just Cavalli"', '"Helmut Lang"', '"Calvin Klein"',
-    '"Little Liffner"', '"Paloma Wool"', '"Simone Rocha"',
-    '"Proenza Schouler"', '"Axel Arigato"', 'Celine',
+    'Dr Martens', 'Eytys', 'Flattered', 'House of Dagmar', 'Gucci',
+    'Patagonia', 'Isabel Marant', 'Jacquemus', 'Jeanerica',
+    'Jil Sander', 'Lisa Yang', 'Loewe', 'Louis Vuitton',
+    'Ralph Lauren', 'Maison Margiela', 'Maria Nilsdotter',
+    'Marimekko', 'Marni', 'Miu Miu', 'Moncler', 'Mulberry', 'Prada',
+    'Pucci', 'Saint Laurent', 'Sandqvist', 'See by Chloe',
+    'Self Portrait', 'Sefr', 'Skall Studio', 'Stella McCartney',
+    'The Row', 'Sophie Billie Brahe', 'Stand Studio', 'Valentino',
+    'Veja', 'Versace', 'Wood Wood', 'Avavav', 'Soft Goat',
+    'Vivienne Westwood', 'Diesel', 'Adidas by Stella McCartney',
+    'Barbour', 'Ahlvar Gallery', 'ROTATE Birger Christensen',
+    'Stylein', 'Just Cavalli', 'Helmut Lang', 'Calvin Klein',
+    'Little Liffner', 'Paloma Wool', 'Simone Rocha',
+    'Proenza Schouler', 'Axel Arigato', 'Celine',
   ];
 
   // Fisher-Yates shuffle and pick 8-10
@@ -283,22 +283,21 @@ Deno.serve(async (req) => {
   }
   const pickCount = 8 + Math.floor(Math.random() * 3); // 8, 9, or 10
   const selectedBrands = shuffled.slice(0, pickCount);
-  const brandQuery = selectedBrands.join(' OR ');
-  console.log(`Selected ${selectedBrands.length} brands:`, selectedBrands);
-
-  const searchParams = new URLSearchParams({
-    q: brandQuery,
-    category_ids: "15724",
-    limit: String(Math.min(maxItems, 50)),
-  });
+  // Wrap multi-word brands in parens for eBay Browse API
+  const queryParts = selectedBrands.map((b) =>
+    b.includes(' ') ? `(${b})` : b
+  );
+  const brandQuery = queryParts.join(',');
+  console.log(`Selected ${selectedBrands.length} brands for query:`, selectedBrands);
+  console.log(`eBay q param: ${brandQuery}`);
 
   const euroCountries = "DE|GB|FR|IT|ES|SE|NL|AT|BE|DK|FI|IE|PL|PT|CZ|GR|HU|RO|NO|CH";
-  searchParams.set("filter",
-    `itemLocationCountry:{${euroCountries}},deliveryCountry:SE,buyingOptions:{FIXED_PRICE},price:[38.46..],priceCurrency:GBP`
-  );
 
+  // Build URL manually to avoid double-encoding of parens/commas
   const baseUrl = getEbayBaseUrl();
-  const searchUrl = `${baseUrl}/buy/browse/v1/item_summary/search?${searchParams}`;
+  const filterStr = `itemLocationCountry:{${euroCountries}},deliveryCountry:SE,buyingOptions:{FIXED_PRICE},price:[38.46..],priceCurrency:GBP`;
+  const limit = Math.min(maxItems, 50);
+  const searchUrl = `${baseUrl}/buy/browse/v1/item_summary/search?q=${encodeURIComponent(brandQuery)}&category_ids=15724&limit=${limit}&filter=${encodeURIComponent(filterStr)}`;
 
   let ebayItems: any[] = [];
   let rateLimited = false;
