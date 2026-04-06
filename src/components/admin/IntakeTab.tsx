@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { IntakeReviewQueue } from "./IntakeReviewQueue";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertTriangle, RefreshCw, Play, Loader2, FlaskConical, Zap, CheckCircle2, XCircle } from "lucide-react";
+import { AlertTriangle, RefreshCw, Play, Loader2, FlaskConical, Zap, CheckCircle2, XCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -101,6 +101,11 @@ interface RunResult {
   dry_run: boolean;
 }
 
+interface EnrichResult {
+  enriched: number;
+  errors: number;
+}
+
 export const IntakeTab = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -108,13 +113,19 @@ export const IntakeTab = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [runResult, setRunResult] = useState<RunResult | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
+  const [enrichDialogOpen, setEnrichDialogOpen] = useState(false);
+  const [isEnriching, setIsEnriching] = useState(false);
+  const [enrichResult, setEnrichResult] = useState<EnrichResult | null>(null);
+  const [enrichError, setEnrichError] = useState<string | null>(null);
 
   /* ── pipeline flags ── */
   const pipelineEnabled = envFlag("VITE_INTAKE_V1_ENABLED");
   const killSwitch = envFlag("VITE_INTAKE_KILL_SWITCH");
+  const aiEnabled = envFlag("VITE_INTAKE_AI_ENABLED");
   const allowedSources = envStr("VITE_INTAKE_ALLOWED_SOURCES");
   const batchLimit = envStr("VITE_INTAKE_MAX_ITEMS_PER_RUN");
   const isEnabled = pipelineEnabled === true;
+  const isAiEnabled = aiEnabled === true;
 
   /* ── run logs ── */
   const { data: runs, isLoading: runsLoading } = useQuery({
@@ -211,6 +222,47 @@ export const IntakeTab = () => {
     }
   };
 
+  /* ── Enrich handlers ── */
+  const handleEnrichOpen = () => {
+    setEnrichResult(null);
+    setEnrichError(null);
+    setEnrichDialogOpen(true);
+  };
+
+  const handleConfirmEnrich = async () => {
+    setIsEnriching(true);
+    setEnrichError(null);
+    setEnrichResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("intake-enrich-test");
+      if (error) {
+        setEnrichError(error.message || "Unknown error calling intake-enrich-test");
+        return;
+      }
+      if (data?.error) {
+        setEnrichError(data.error);
+        return;
+      }
+      setEnrichResult({
+        enriched: data.items_processed ?? 0,
+        errors: data.error_count ?? 0,
+      });
+      handleRefresh();
+    } catch (e: any) {
+      setEnrichError(e.message || "Unexpected error");
+    } finally {
+      setIsEnriching(false);
+    }
+  };
+
+  const handleCloseEnrichDialog = () => {
+    if (!isEnriching) {
+      setEnrichDialogOpen(false);
+      setEnrichResult(null);
+      setEnrichError(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Permanent warning banner */}
@@ -228,6 +280,7 @@ export const IntakeTab = () => {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xl font-heading font-semibold text-foreground">Intake pipeline v1</h2>
+          <div className="flex items-center gap-2">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -251,6 +304,30 @@ export const IntakeTab = () => {
               )}
             </Tooltip>
           </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span tabIndex={!isAiEnabled ? 0 : undefined}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleEnrichOpen}
+                    disabled={!isAiEnabled || isEnriching}
+                    className="gap-1.5"
+                  >
+                    {isEnriching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                    Run enrichment
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {!isAiEnabled && (
+                <TooltipContent>
+                  <p>AI enrichment is disabled</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+          </div>
         </div>
         <div className="flex flex-wrap gap-3">
           <StatusCard
@@ -498,6 +575,69 @@ export const IntakeTab = () => {
                 </div>
               )}
             </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Enrich dialog ── */}
+      <Dialog open={enrichDialogOpen} onOpenChange={handleCloseEnrichDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Run AI enrichment</DialogTitle>
+            <DialogDescription>
+              This will enrich all normalized products in the queue using Claude. Results are stored in intake_* tables only. No live data will be affected.
+            </DialogDescription>
+          </DialogHeader>
+
+          {isEnriching && (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Running enrichment…</p>
+            </div>
+          )}
+
+          {!isEnriching && enrichResult && (
+            <div className="space-y-3 py-2">
+              <div className="flex items-center gap-2 text-emerald-700">
+                <CheckCircle2 className="h-5 w-5" />
+                <span className="font-semibold text-sm">Enrichment completed</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="rounded-md border border-border bg-muted/50 p-2.5">
+                  <p className="text-muted-foreground text-xs">Enriched</p>
+                  <p className="font-semibold tabular-nums">{enrichResult.enriched}</p>
+                </div>
+                <div className="rounded-md border border-border bg-muted/50 p-2.5">
+                  <p className="text-muted-foreground text-xs">Errors</p>
+                  <p className="font-semibold tabular-nums text-red-700">{enrichResult.errors}</p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={handleCloseEnrichDialog}>Close</Button>
+              </DialogFooter>
+            </div>
+          )}
+
+          {!isEnriching && enrichError && (
+            <div className="space-y-3 py-2">
+              <div className="flex items-start gap-2 text-red-700">
+                <XCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-sm">Enrichment failed</p>
+                  <p className="text-sm mt-1">{enrichError}</p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={handleCloseEnrichDialog}>Close</Button>
+              </DialogFooter>
+            </div>
+          )}
+
+          {!isEnriching && !enrichResult && !enrichError && (
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="ghost" size="sm" onClick={handleCloseEnrichDialog}>Cancel</Button>
+              <Button size="sm" onClick={handleConfirmEnrich}>Run enrichment</Button>
+            </DialogFooter>
           )}
         </DialogContent>
       </Dialog>
