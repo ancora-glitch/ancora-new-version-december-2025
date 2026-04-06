@@ -84,6 +84,11 @@ serve(async (req) => {
     });
 
   /* ── Guard: flags ── */
+  const killSwitchRaw = Deno.env.get("VITE_INTAKE_KILL_SWITCH");
+  const v1Raw = Deno.env.get("VITE_INTAKE_V1_ENABLED");
+  const aiRaw = Deno.env.get("VITE_INTAKE_AI_ENABLED");
+  console.log("[intake-enrich-test] flags:", { killSwitchRaw, v1Raw, aiRaw });
+
   const killSwitch = envFlag("VITE_INTAKE_KILL_SWITCH");
   if (killSwitch) {
     await supabase.from("intake_run_logs").insert({
@@ -106,7 +111,7 @@ serve(async (req) => {
       started_at: new Date().toISOString(),
       completed_at: new Date().toISOString(),
     });
-    return json({ status: "aborted_flag_disabled" });
+    return json({ status: "aborted_flag_disabled", debug: { v1: v1Raw, ai: aiRaw, kill: killSwitchRaw } });
   }
 
   if (!anthropicKey) {
