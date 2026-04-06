@@ -250,8 +250,8 @@ Deno.serve(async (req) => {
     return jsonRes({ error: tokenResult.error }, 500, cors);
   }
 
-  // Search eBay for curated brand list
-  const brandQuery = [
+  // Full Tier A brand pool — each run picks 8-10 randomly
+  const allBrands = [
     'Toteme', '"Acne Studios"', '"Filippa K"', '"Tiger of Sweden"',
     '"Stine Goya"', 'Ganni', '"By Malene Birger"', 'Rodebjer',
     '"Hope Stockholm"', '"Our Legacy"', '"3.1 Phillip Lim"', 'Alaia',
@@ -273,7 +273,18 @@ Deno.serve(async (req) => {
     'Stylein', '"Just Cavalli"', '"Helmut Lang"', '"Calvin Klein"',
     '"Little Liffner"', '"Paloma Wool"', '"Simone Rocha"',
     '"Proenza Schouler"', '"Axel Arigato"', 'Celine',
-  ].join(' OR ');
+  ];
+
+  // Fisher-Yates shuffle and pick 8-10
+  const shuffled = [...allBrands];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  const pickCount = 8 + Math.floor(Math.random() * 3); // 8, 9, or 10
+  const selectedBrands = shuffled.slice(0, pickCount);
+  const brandQuery = selectedBrands.join(' OR ');
+  console.log(`Selected ${selectedBrands.length} brands:`, selectedBrands);
 
   const searchParams = new URLSearchParams({
     q: brandQuery,
