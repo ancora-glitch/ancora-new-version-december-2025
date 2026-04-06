@@ -303,6 +303,29 @@ export const IntakeTab = () => {
               )}
             </Tooltip>
           </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span tabIndex={!isAiEnabled ? 0 : undefined}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleEnrichOpen}
+                    disabled={!isAiEnabled || isEnriching}
+                    className="gap-1.5"
+                  >
+                    {isEnriching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                    Run enrichment
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {!isAiEnabled && (
+                <TooltipContent>
+                  <p>AI enrichment is disabled</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         </div>
         <div className="flex flex-wrap gap-3">
           <StatusCard
@@ -550,6 +573,69 @@ export const IntakeTab = () => {
                 </div>
               )}
             </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Enrich dialog ── */}
+      <Dialog open={enrichDialogOpen} onOpenChange={handleCloseEnrichDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Run AI enrichment</DialogTitle>
+            <DialogDescription>
+              This will enrich all normalized products in the queue using Claude. Results are stored in intake_* tables only. No live data will be affected.
+            </DialogDescription>
+          </DialogHeader>
+
+          {isEnriching && (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Running enrichment…</p>
+            </div>
+          )}
+
+          {!isEnriching && enrichResult && (
+            <div className="space-y-3 py-2">
+              <div className="flex items-center gap-2 text-emerald-700">
+                <CheckCircle2 className="h-5 w-5" />
+                <span className="font-semibold text-sm">Enrichment completed</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="rounded-md border border-border bg-muted/50 p-2.5">
+                  <p className="text-muted-foreground text-xs">Enriched</p>
+                  <p className="font-semibold tabular-nums">{enrichResult.enriched}</p>
+                </div>
+                <div className="rounded-md border border-border bg-muted/50 p-2.5">
+                  <p className="text-muted-foreground text-xs">Errors</p>
+                  <p className="font-semibold tabular-nums text-red-700">{enrichResult.errors}</p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={handleCloseEnrichDialog}>Close</Button>
+              </DialogFooter>
+            </div>
+          )}
+
+          {!isEnriching && enrichError && (
+            <div className="space-y-3 py-2">
+              <div className="flex items-start gap-2 text-red-700">
+                <XCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-sm">Enrichment failed</p>
+                  <p className="text-sm mt-1">{enrichError}</p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={handleCloseEnrichDialog}>Close</Button>
+              </DialogFooter>
+            </div>
+          )}
+
+          {!isEnriching && !enrichResult && !enrichError && (
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="ghost" size="sm" onClick={handleCloseEnrichDialog}>Cancel</Button>
+              <Button size="sm" onClick={handleConfirmEnrich}>Run enrichment</Button>
+            </DialogFooter>
           )}
         </DialogContent>
       </Dialog>
