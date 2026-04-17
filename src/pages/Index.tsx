@@ -46,7 +46,7 @@ const Index = () => {
         </section>
 
         {/* This Week's Edit Section */}
-        <section className="px-4 md:px-8 lg:px-12 md:py-28 bg-secondary/40 py-[60px] lg:py-[6px] pt-[60px]">
+        <section className="px-4 md:px-8 lg:px-12 md:py-28 bg-secondary/40 lg:py-[6px] py-[40px] pt-[50px]">
           <Link to="/this-weeks-edit" className="block text-center mb-4 hover:opacity-80 transition-opacity">
             <span className="block text-sm md:text-base font-serif text-primary/70 mb-2">This Week's Edit</span>
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-normal">
