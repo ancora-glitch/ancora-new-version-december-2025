@@ -26,17 +26,17 @@ const Index = () => {
         <section className="relative w-full h-[40vh] min-h-[300px]">
           <img alt="Fashion editorial featuring elegant clothing" fetchPriority="high" width={1920} height={1080} className="absolute inset-0 w-full h-full object-cover object-[center_top] md:object-[50%_25%]" src="/lovable-uploads/f5d5719e-ed29-45f3-b4c6-f3849a6e259f.jpg" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
-          <div className="absolute inset-0 flex items-end md:items-center justify-center px-4 md:px-8 pb-12 md:pb-0">
-            <div className="bg-black/15 md:bg-black/25 backdrop-blur-sm rounded-lg p-6 md:p-10 lg:p-12 max-w-2xl text-center">
+          <div className="absolute inset-0 flex items-end md:items-center justify-center px-4 md:px-8 pb-2 md:pb-0">
+            <div className="bg-black/15 md:bg-black/25 backdrop-blur-sm rounded-lg p-4 md:p-10 lg:p-12 max-w-2xl text-center">
               <h1 className="text-3xl md:text-4xl lg:text-5xl mb-4 md:mb-6 leading-tight text-white font-serif">
                 Collected & Curated  
               </h1>
-              <p className="text-base md:text-lg lg:text-xl mb-8 md:mb-10 leading-relaxed text-white/90">A new way to shop second hand.</p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button className="font-medium text-sm tracking-wide px-8 py-4 h-auto" onClick={() => navigate('/shop')}>
+              <p className="text-sm md:text-lg lg:text-xl mb-4 md:mb-10 leading-relaxed text-white/90">A new way to shop second hand.</p>
+              <div className="flex flex-row gap-2 sm:gap-4 justify-center">
+                <Button className="font-medium text-xs md:text-sm tracking-wide px-4 md:px-8 py-2 md:py-4 h-auto" onClick={() => navigate('/shop')}>
                   New Arrivals
                 </Button>
-                <Button className="font-medium text-sm tracking-wide px-8 py-4 h-auto" onClick={() => navigate('/stories')}>
+                <Button className="font-medium text-xs md:text-sm tracking-wide px-4 md:px-8 py-2 md:py-4 h-auto" onClick={() => navigate('/stories')}>
                   Guides & Stories
                 </Button>
               </div>
