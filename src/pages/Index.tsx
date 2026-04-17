@@ -7,7 +7,7 @@ import { useActiveWeeklyEdit } from "@/hooks/useWeeklyEdits";
 import { formatPrice } from "@/hooks/useProducts";
 import { useStyleGuides } from "@/hooks/useStyleGuides";
 import heroImage from "@/assets/hero-fashion-new.jpg";
-import heroImageDesktop from "@/assets/hero-fashion-desktop.jpg";
+
 const Index = () => {
   const navigate = useNavigate();
   const {
