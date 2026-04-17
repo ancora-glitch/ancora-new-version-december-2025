@@ -6,7 +6,7 @@ import { GuideCard } from "@/components/GuideCard";
 import { useActiveWeeklyEdit } from "@/hooks/useWeeklyEdits";
 import { formatPrice } from "@/hooks/useProducts";
 import { useStyleGuides } from "@/hooks/useStyleGuides";
-import heroImage from "@/assets/hero-fashion.jpg";
+import heroImage from "@/assets/hero-fashion-new.jpg";
 const Index = () => {
   const navigate = useNavigate();
   const {
