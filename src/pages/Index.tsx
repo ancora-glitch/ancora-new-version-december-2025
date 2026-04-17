@@ -25,7 +25,7 @@ const Index = () => {
       <main className="pt-16">
         {/* Hero Section */}
         <section className="relative w-full h-[40vh] min-h-[300px]">
-          <img alt="Woman in vintage blazer and jeans on sunlit street" fetchPriority="high" width={1920} height={1080} className="absolute inset-0 w-full h-full object-cover [object-position:center_32%] md:[object-position:center_18%]" src={heroImage} />
+          <img alt="Woman in vintage blazer and jeans on sunlit street" fetchPriority="high" width={1920} height={1080} className="absolute inset-0 w-full h-full object-cover [object-position:center_32%] md:[object-position:center_45%]" src={heroImage} />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
           <div className="absolute inset-0 flex items-end md:items-center justify-center px-4 md:px-8 pb-2 md:pb-0">
             <div className="bg-[hsl(35_30%_35%)]/15 md:bg-[hsl(35_30%_30%)]/25 backdrop-blur-sm rounded-lg px-3 md:px-4 max-w-md text-center py-[14px] mx-auto pb-[10px] pt-[5px]">
