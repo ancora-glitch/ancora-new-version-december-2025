@@ -34,10 +34,10 @@ const Index = () => {
               <p className="text-base md:text-lg lg:text-xl mb-8 md:mb-10 leading-relaxed text-white/90">A new way to shop second hand.</p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button className="font-medium text-sm tracking-wide px-8 py-4 h-auto" onClick={() => navigate('/shop')}>
-                  Shop the collection   
+                  New Arrivals
                 </Button>
                 <Button className="font-medium text-sm tracking-wide px-8 py-4 h-auto" onClick={() => navigate('/stories')}>
-                  Read the stories
+                  Guides & Stories
                 </Button>
               </div>
             </div>
