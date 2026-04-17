@@ -28,7 +28,7 @@ const Index = () => {
           <img alt="Fashion editorial featuring elegant clothing" fetchPriority="high" width={1920} height={1080} className="absolute inset-0 w-full h-full object-cover object-center" src={heroImage} />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
           <div className="absolute inset-0 flex items-end md:items-center justify-center px-4 md:px-8 pb-2 md:pb-0">
-            <div className="bg-black/15 md:bg-black/25 backdrop-blur-sm rounded-lg p-4 md:p-10 lg:p-12 max-w-2xl text-center">
+            <div className="bg-black/15 md:bg-black/25 backdrop-blur-sm rounded-lg p-4 md:p-10 lg:p-12 max-w-2xl text-center py-[25px]">
               <h1 className="text-3xl md:text-4xl lg:text-5xl mb-4 md:mb-6 leading-tight text-white font-serif">
                 Collected & Curated  
               </h1>
