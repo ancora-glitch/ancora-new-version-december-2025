@@ -53,7 +53,7 @@ const Index = () => {
               {activeEdit?.title || "This week's edit"}
             </h2>
           </Link>
-          <p className="text-center text-muted-foreground mb-14 md:mb-16 text-base md:text-lg">
+          <p className="text-center text-muted-foreground mb-14 md:mb-16 md:text-lg text-xs">
             {activeEdit?.short_intro || "Curated second hand pieces, selected exclusively."}
           </p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 lg:gap-8 max-w-7xl mx-auto">
