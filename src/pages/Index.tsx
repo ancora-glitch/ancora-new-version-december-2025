@@ -28,11 +28,11 @@ const Index = () => {
           <img alt="Fashion editorial featuring elegant clothing" fetchPriority="high" width={1920} height={1080} className="absolute inset-0 w-full h-full object-cover object-center" src={heroImage} />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
           <div className="absolute inset-0 flex items-end md:items-center justify-center px-4 md:px-8 pb-2 md:pb-0">
-            <div className="bg-black/15 md:bg-black/25 backdrop-blur-sm rounded-lg px-4 md:px-6 lg:px-8 max-w-xl text-center py-[20px]">
-              <h1 className="text-3xl md:text-4xl lg:text-5xl mb-4 md:mb-6 leading-tight text-white font-serif">
+            <div className="bg-black/15 md:bg-black/25 backdrop-blur-sm rounded-lg px-3 md:px-4 max-w-md text-center py-[14px] mx-auto">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl mb-2 md:mb-3 leading-tight text-white font-serif text-center">
                 Collected & Curated  
               </h1>
-              <p className="text-sm md:text-lg lg:text-xl mb-4 md:mb-10 leading-relaxed text-white/90">A new way to shop second hand.</p>
+              <p className="text-sm md:text-lg lg:text-xl mb-3 md:mb-5 leading-relaxed text-white/90 text-center">A new way to shop second hand.</p>
               <div className="flex flex-row gap-2 sm:gap-4 justify-center">
                 <Button className="font-medium text-xs md:text-sm tracking-wide px-4 md:px-8 py-2 md:py-4 h-auto" onClick={() => navigate('/shop')}>
                   New Arrivals
