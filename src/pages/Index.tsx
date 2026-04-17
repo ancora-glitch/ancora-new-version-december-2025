@@ -29,8 +29,8 @@ const Index = () => {
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
           <div className="absolute inset-0 flex items-end md:items-center justify-center px-4 md:px-8 pb-2 md:pb-0">
             <div className="bg-black/15 md:bg-black/25 backdrop-blur-sm rounded-lg px-3 md:px-4 max-w-md text-center py-[14px] mx-auto pb-[10px] pt-[5px]">
-              <h1 className="text-3xl md:text-4xl lg:text-5xl mb-2 md:mb-3 leading-tight text-white font-serif text-center">
-                Collected & Curated  
+              <h1 className="text-3xl md:text-4xl lg:text-5xl mb-2 md:mb-3 leading-tight text-white font-serif text-center whitespace-nowrap">
+                Collected & Curated
               </h1>
               <p className="text-sm md:text-lg lg:text-xl mb-3 md:mb-5 leading-relaxed text-white/90 text-center">A new way to shop second hand.</p>
               <div className="flex flex-row gap-2 sm:gap-4 justify-center">
