@@ -1,54 +1,38 @@
 
+User wants to add two more presentation penalties to the scoring prompt in `intake-score-test`:
+1. Mirror selfies (person photographing themselves in a mirror, often with phone visible)
+2. Garments shown in plastic bags / poly mailers
 
-## Plan: Add "Run scoring" button to Intake (test) tab
+These should score very low on presentation (1-2 range, similar to home environment).
 
-Mirror the existing "Run enrichment" pattern in `src/components/admin/IntakeTab.tsx`. No other files touched. Edge function `intake-score-test` already exists and returns the needed counts (`items_processed`, `draft_approved_count`, `review_count`, `rules_rejected_count`, `error_count`).
+Single-file change: `supabase/functions/intake-score-test/index.ts` — update the `presentation_score` rubric and the "Be strict" instruction block.
 
-### Changes (single file: `src/components/admin/IntakeTab.tsx`)
+## Plan: Penalize mirror selfies and plastic-bag shots
 
-1. **New state** alongside enrich state:
-   - `scoreDialogOpen`, `isScoring`, `scoreResult`, `scoreError`
-   - `ScoreResult` type: `{ scored, draft_approved, review, rejected, errors }`
+Update only the scoring prompt in `supabase/functions/intake-score-test/index.ts`. No other files, tables, or logic changed.
 
-2. **New handlers** mirroring enrichment handlers:
-   - `handleScoreOpen()` — reset state, open dialog
-   - `handleConfirmScore()` — call `supabase.functions.invoke("intake-score-test")`, map response:
-     - `scored = data.items_processed`
-     - `draft_approved = data.draft_approved_count`
-     - `review = data.review_count`
-     - `rejected = data.rules_rejected_count`
-     - `errors = data.error_count`
-     - On success call `handleRefresh()` (refreshes Review queue via `refreshKey` and Queue summary via React Query key)
-   - `handleCloseScoreDialog()`
+### Changes to the presentation rubric (0-10)
 
-3. **New button** in the "Intake pipeline v1" heading row, placed right after "Run enrichment":
-   ```tsx
-   <Button variant="outline" size="sm" onClick={handleScoreOpen} className="gap-1.5">
-     {isScoring ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
-     Run scoring
-   </Button>
-   ```
-   (`Zap` is already imported.)
+Add two new low-score categories alongside the existing "home environment" rule:
 
-4. **New confirmation dialog** appended near the enrichment dialog:
-   - Title: "Run scoring"
-   - Description: "This will score all enriched products in the queue using Claude. Results are stored in intake_* tables only. No live data will be affected."
-   - Loading state: spinner + "Scoring enriched products…"
-   - Result state (inline summary):
-     - Scored: X
-     - Draft approved: X
-     - Review: X
-     - Rejected: X
-     - Errors: X
-   - Error state: red bordered box with `scoreError` text
-   - Footer buttons:
-     - Initial: "Cancel" + "Run scoring"
-     - Result/error: "Close"
+- **Mirror selfie** (person photographing themselves in a mirror, phone visible, bathroom/bedroom mirror): score **1**
+- **Garment in plastic bag / poly mailer / shipping bag**: score **1**
+
+Updated scale:
+- 10 = model or mannequin, clean/white/neutral background, sharp and well-lit, professional styling
+- 6 = flat lay on clean surface, good lighting
+- 3 = hanger shot on plain wall or door, acceptable background
+- 1 = home environment (bedroom, living room, furniture visible), **mirror selfie with phone visible**, **garment shown inside or on top of a plastic bag / poly mailer**, outfit shot on person in home setting
+- 0 = floor, cluttered background, very dark or blurry
+
+### Strictness instruction update
+
+Extend the existing "Be strict about background quality" paragraph:
+
+> "Be strict about background quality. A home environment with furniture, walls, or personal items visible should score 1-2 regardless of garment quality. Mirror selfies (where a person or phone is visible reflecting in a mirror) and items photographed inside or on plastic shipping bags / poly mailers must score 1-2 regardless of garment quality. Only professional or clean neutral backgrounds score above 6."
 
 ### Guarantees
-- Only invokes `intake-score-test` edge function
-- Uses existing admin auth wrapper (`RequireAdmin` on `/admin-portal`) — no new auth code
-- No changes to enrichment flow, fetch flow, queue, brand tiers, or any other tab
-- No DB schema, cron, or enum changes
-- Errors surfaced inline; never swallowed
-
+- Only the prompt text inside `aiEvaluate()` changes
+- No changes to scoring weights, thresholds, decision logic, DB schema, or other functions
+- No UI changes
+- Spec-aligned: shadow-mode test pipeline only, no live data affected
