@@ -239,13 +239,28 @@ export const AnalyticsDashboard = () => {
         }
       });
 
+      // Per-day unique visitors via RPC (matches the (visitor_id, day) + bot filter rule)
+      const { data: dailyUvRows } = await supabase.rpc("get_unique_visitors", {
+        p_start: chartStart.toISOString(),
+        p_end: null,
+        p_bot_threshold: 200,
+      });
+      const dailyUvByDate: Record<string, number> = {};
+      (dailyUvRows ?? []).forEach((row: { day: string; unique_visitors: number | string }) => {
+        const dateKey = new Date(row.day).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        });
+        dailyUvByDate[dateKey] = Number(row.unique_visitors ?? 0);
+      });
+
       const recentActivity: DailyData[] = Object.entries(activityByDate)
         .map(([date, data]) => ({ 
           date, 
           views: data.views,
           clicks: data.clicks,
           buyNow: data.buyNow,
-          uniqueVisitors: data.visitors.size 
+          uniqueVisitors: dailyUvByDate[date] ?? 0,
         }));
 
       // Get top products by clicks and purchases with unique click counts
