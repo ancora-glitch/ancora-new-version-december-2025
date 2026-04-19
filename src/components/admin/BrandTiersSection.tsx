@@ -108,12 +108,33 @@ export const BrandTiersSection = () => {
     }
   };
 
-  const handleDelete = async (b: BrandTier) => {
-    if (!confirm(`Delete "${b.brand_name}"?`)) return;
-    const { error } = await supabase.from("intake_brand_tiers").delete().eq("id", b.id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Brand deleted");
-    queryClient.invalidateQueries({ queryKey: ["intake-brand-tiers"] });
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase
+        .from("intake_brand_tiers")
+        .delete()
+        .eq("id", deleteTarget.id)
+        .select();
+
+      if (error) {
+        const detail = [error.message, (error as any).details, (error as any).hint].filter(Boolean).join(" — ");
+        toast.error(`Delete failed: ${detail}`);
+        return;
+      }
+      if (!data || data.length === 0) {
+        toast.error("Could not delete — row not found or no permission (RLS).");
+        return;
+      }
+      toast.success(`"${deleteTarget.brand_name}" deleted`);
+      await queryClient.invalidateQueries({ queryKey: ["intake-brand-tiers"] });
+      setDeleteTarget(null);
+    } catch (e: any) {
+      toast.error(e?.message || "Delete failed");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
