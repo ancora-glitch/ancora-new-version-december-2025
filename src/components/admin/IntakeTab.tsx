@@ -679,6 +679,81 @@ export const IntakeTab = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* ── Score dialog ── */}
+      <Dialog open={scoreDialogOpen} onOpenChange={handleCloseScoreDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Run scoring</DialogTitle>
+            <DialogDescription>
+              This will score all enriched products in the queue using Claude. Results are stored in intake_* tables only. No live data will be affected.
+            </DialogDescription>
+          </DialogHeader>
+
+          {isScoring && (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Scoring enriched products…</p>
+            </div>
+          )}
+
+          {!isScoring && scoreResult && (
+            <div className="space-y-3 py-2">
+              <div className="flex items-center gap-2 text-emerald-700">
+                <CheckCircle2 className="h-5 w-5" />
+                <span className="font-semibold text-sm">Scoring completed</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="rounded-md border border-border bg-muted/50 p-2.5">
+                  <p className="text-muted-foreground text-xs">Scored</p>
+                  <p className="font-semibold tabular-nums">{scoreResult.scored}</p>
+                </div>
+                <div className="rounded-md border border-border bg-muted/50 p-2.5">
+                  <p className="text-muted-foreground text-xs">Draft approved</p>
+                  <p className="font-semibold tabular-nums text-emerald-700">{scoreResult.draft_approved}</p>
+                </div>
+                <div className="rounded-md border border-border bg-muted/50 p-2.5">
+                  <p className="text-muted-foreground text-xs">Review</p>
+                  <p className="font-semibold tabular-nums text-amber-700">{scoreResult.review}</p>
+                </div>
+                <div className="rounded-md border border-border bg-muted/50 p-2.5">
+                  <p className="text-muted-foreground text-xs">Rejected</p>
+                  <p className="font-semibold tabular-nums text-red-700">{scoreResult.rejected}</p>
+                </div>
+                <div className="rounded-md border border-border bg-muted/50 p-2.5">
+                  <p className="text-muted-foreground text-xs">Errors</p>
+                  <p className="font-semibold tabular-nums text-red-700">{scoreResult.errors}</p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={handleCloseScoreDialog}>Close</Button>
+              </DialogFooter>
+            </div>
+          )}
+
+          {!isScoring && scoreError && (
+            <div className="space-y-3 py-2">
+              <div className="flex items-start gap-2 text-red-700">
+                <XCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-sm">Scoring failed</p>
+                  <p className="text-sm mt-1">{scoreError}</p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={handleCloseScoreDialog}>Close</Button>
+              </DialogFooter>
+            </div>
+          )}
+
+          {!isScoring && !scoreResult && !scoreError && (
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="ghost" size="sm" onClick={handleCloseScoreDialog}>Cancel</Button>
+              <Button size="sm" onClick={handleConfirmScore}>Run scoring</Button>
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
