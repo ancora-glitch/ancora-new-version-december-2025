@@ -1124,6 +1124,13 @@ export type Database = {
     }
     Functions: {
       check_cron_job_exists: { Args: { p_job_name: string }; Returns: boolean }
+      get_unique_visitors: {
+        Args: { p_bot_threshold?: number; p_end?: string; p_start?: string }
+        Returns: {
+          day: string
+          unique_visitors: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
