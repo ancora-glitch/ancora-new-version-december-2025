@@ -273,6 +273,50 @@ export const IntakeTab = () => {
     }
   };
 
+  /* ── Score handlers ── */
+  const handleScoreOpen = () => {
+    setScoreResult(null);
+    setScoreError(null);
+    setScoreDialogOpen(true);
+  };
+
+  const handleConfirmScore = async () => {
+    setIsScoring(true);
+    setScoreError(null);
+    setScoreResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("intake-score-test");
+      if (error) {
+        setScoreError(error.message || "Unknown error calling intake-score-test");
+        return;
+      }
+      if (data?.error) {
+        setScoreError(data.error);
+        return;
+      }
+      setScoreResult({
+        scored: data.items_processed ?? 0,
+        draft_approved: data.draft_approved_count ?? 0,
+        review: data.review_count ?? 0,
+        rejected: data.rules_rejected_count ?? 0,
+        errors: data.error_count ?? 0,
+      });
+      handleRefresh();
+    } catch (e: any) {
+      setScoreError(e.message || "Unexpected error");
+    } finally {
+      setIsScoring(false);
+    }
+  };
+
+  const handleCloseScoreDialog = () => {
+    if (!isScoring) {
+      setScoreDialogOpen(false);
+      setScoreResult(null);
+      setScoreError(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Permanent warning banner */}
