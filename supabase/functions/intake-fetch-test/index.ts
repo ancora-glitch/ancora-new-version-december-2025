@@ -340,7 +340,28 @@ Deno.serve(async (req) => {
     if (!item.itemId || seen.has(item.itemId)) return false;
     seen.add(item.itemId);
     return true;
-  }).slice(0, maxItems);
+  });
+
+  // Post-fetch gender filter — safety net in case aspect_filter is not applied
+  const GENDER_REJECT_PATTERNS = [
+    /\bmen's\b/i,
+    /\bmens\b/i,
+    /\bman's\b/i,
+    /\bunisex\b/i,
+    /\bboys\b/i,
+    /\bkids\b/i,
+    /\bchildren\b/i,
+    /\smen\s/i,
+  ];
+  const beforeGenderFilter = ebayItems.length;
+  ebayItems = ebayItems.filter((item) => {
+    const title = item.title || "";
+    return !GENDER_REJECT_PATTERNS.some((re) => re.test(title));
+  });
+  const filteredGenderCount = beforeGenderFilter - ebayItems.length;
+  console.log(`Gender filter removed ${filteredGenderCount} items`);
+
+  ebayItems = ebayItems.slice(0, maxItems);
 
   console.log(`Total unique eBay items after all brand searches: ${ebayItems.length}`);
 
