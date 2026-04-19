@@ -126,6 +126,10 @@ export const IntakeTab = () => {
   const [isEnriching, setIsEnriching] = useState(false);
   const [enrichResult, setEnrichResult] = useState<EnrichResult | null>(null);
   const [enrichError, setEnrichError] = useState<string | null>(null);
+  const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
+  const [isScoring, setIsScoring] = useState(false);
+  const [scoreResult, setScoreResult] = useState<ScoreResult | null>(null);
+  const [scoreError, setScoreError] = useState<string | null>(null);
 
   /* ── pipeline flags (display only, guards are server-side) ── */
   const pipelineEnabled = envFlag("VITE_INTAKE_V1_ENABLED");
