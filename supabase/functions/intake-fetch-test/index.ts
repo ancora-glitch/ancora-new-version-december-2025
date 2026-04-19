@@ -286,7 +286,7 @@ Deno.serve(async (req) => {
   console.log(`Selected ${selectedBrands.length} brands:`, selectedBrands);
 
   const baseUrl = getEbayBaseUrl();
-  const filterStr = `buyingOptions:{FIXED_PRICE},price:[38.46..],priceCurrency:GBP`;
+  const filterStr = `buyingOptions:{FIXED_PRICE},price:[38.46..],priceCurrency:GBP,itemLocationCountry:GB`;
   const perBrandLimit = Math.max(2, Math.floor(Math.min(maxItems, 50) / selectedBrands.length));
 
   let ebayItems: any[] = [];
