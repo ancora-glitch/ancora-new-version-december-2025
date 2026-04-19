@@ -1,6 +1,14 @@
 ANCORA — MASTER PROJECT SPECIFICATION
 Version 1.7
 
+### 2026-04-19 — Unique Visitors-räkning fixad
+
+Ursprunglig siffra (473) underskattade pga summering av per-dag-RPC-rader.
+Ny RPC get_unique_visitors_total: COUNT(DISTINCT visitor_id) efter bot-filter (>200 events/dag).
+Grafen använder per-dag-RPC, KPI-kortet använder total-RPC.
+Bekräftad siffra: 589 unika visitors / 7 dagar (1 021 page views).
+Filer: AnalyticsDashboard.tsx, supabase/functions (ny RPC), analytics-beacon (user_agent i metadata).
+
 ### 2026-04-06 — Intake v1 testmiljö: komplett pipeline verifierad
 
 **Vad:** Byggt och verifierat ett isolerat AI-drivet importflöde
