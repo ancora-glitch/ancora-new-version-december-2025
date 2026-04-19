@@ -297,7 +297,8 @@ Deno.serve(async (req) => {
   for (const brand of selectedBrands) {
     if (rateLimited || ebayItems.length >= maxItems) break;
 
-    const searchUrl = `${baseUrl}/buy/browse/v1/item_summary/search?q=${encodeURIComponent(`${brand} women`)}&category_ids=15724&limit=${perBrandLimit}&filter=${encodeURIComponent(filterStr)}`;
+    const aspectFilter = encodeURIComponent("categoryId:15724,Gender:{Women}");
+    const searchUrl = `${baseUrl}/buy/browse/v1/item_summary/search?q=${encodeURIComponent(brand)}&category_ids=15724&limit=${perBrandLimit}&filter=${encodeURIComponent(filterStr)}&aspect_filter=${aspectFilter}`;
     console.log(`Searching eBay for brand: ${brand}`);
 
     try {
@@ -339,7 +340,28 @@ Deno.serve(async (req) => {
     if (!item.itemId || seen.has(item.itemId)) return false;
     seen.add(item.itemId);
     return true;
-  }).slice(0, maxItems);
+  });
+
+  // Post-fetch gender filter — safety net in case aspect_filter is not applied
+  const GENDER_REJECT_PATTERNS = [
+    /\bmen's\b/i,
+    /\bmens\b/i,
+    /\bman's\b/i,
+    /\bunisex\b/i,
+    /\bboys\b/i,
+    /\bkids\b/i,
+    /\bchildren\b/i,
+    /\smen\s/i,
+  ];
+  const beforeGenderFilter = ebayItems.length;
+  ebayItems = ebayItems.filter((item) => {
+    const title = item.title || "";
+    return !GENDER_REJECT_PATTERNS.some((re) => re.test(title));
+  });
+  const filteredGenderCount = beforeGenderFilter - ebayItems.length;
+  console.log(`Gender filter removed ${filteredGenderCount} items`);
+
+  ebayItems = ebayItems.slice(0, maxItems);
 
   console.log(`Total unique eBay items after all brand searches: ${ebayItems.length}`);
 
@@ -536,6 +558,7 @@ Deno.serve(async (req) => {
       dry_run: dryRun,
       selected_brands: selectedBrands,
       total_results: results.length,
+      filtered_gender_count: filteredGenderCount,
       rejected_reasons: rejectedReasons,
       soft_flags_summary: softFlagsSummary,
       categories_seen: categoriesSeen,
