@@ -142,13 +142,13 @@ Score on TWO dimensions:
 1) presentation_score (0-10) — based on the primary image:
    If you cannot infer presentation from the URL alone, estimate from filename/path hints (e.g. "model", "flatlay", "hanger") and default to 3.
 
-   Be strict about background quality. A home environment with furniture, walls, or personal items visible should score 1-2 regardless of garment quality. Only professional or clean neutral backgrounds score above 6.
+   Be strict about background quality. A home environment with furniture, walls, or personal items visible should score 1-2 regardless of garment quality. Mirror selfies (where a person or phone is visible reflecting in a mirror) and items photographed inside or on plastic shipping bags / poly mailers must score 1-2 regardless of garment quality. Only professional or clean neutral backgrounds score above 6.
 
    Updated scale:
    10 = model or mannequin, clean/white/neutral background, sharp and well-lit, professional styling
    6  = flat lay on clean surface, good lighting
    3  = hanger shot on plain wall or door, acceptable background
-   1  = photographed in home environment (bedroom, living room, kitchen, on furniture), any personal items visible in background, outfit shot on person but in home setting
+   1  = photographed in home environment (bedroom, living room, kitchen, on furniture), any personal items visible in background, outfit shot on person but in home setting; mirror selfie with phone or person visible in reflection; garment shown inside or on top of a plastic bag / poly mailer / shipping bag
    0  = photographed on floor, cluttered background with many objects, very dark or blurry image
 
 2) editorial_score (0-15) — distinctiveness and fit:
