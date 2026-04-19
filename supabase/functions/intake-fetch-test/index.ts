@@ -286,7 +286,7 @@ Deno.serve(async (req) => {
   console.log(`Selected ${selectedBrands.length} brands:`, selectedBrands);
 
   const baseUrl = getEbayBaseUrl();
-  const filterStr = `buyingOptions:{FIXED_PRICE},price:[38.46..],priceCurrency:GBP`;
+  const filterStr = `buyingOptions:{FIXED_PRICE},price:[38.46..],priceCurrency:GBP,itemLocationCountry:GB`;
   const perBrandLimit = Math.max(2, Math.floor(Math.min(maxItems, 50) / selectedBrands.length));
 
   let ebayItems: any[] = [];
@@ -297,7 +297,7 @@ Deno.serve(async (req) => {
   for (const brand of selectedBrands) {
     if (rateLimited || ebayItems.length >= maxItems) break;
 
-    const searchUrl = `${baseUrl}/buy/browse/v1/item_summary/search?q=${encodeURIComponent(brand)}&category_ids=15724&limit=${perBrandLimit}&filter=${encodeURIComponent(filterStr)}`;
+    const searchUrl = `${baseUrl}/buy/browse/v1/item_summary/search?q=${encodeURIComponent(`${brand} women`)}&category_ids=15724&limit=${perBrandLimit}&filter=${encodeURIComponent(filterStr)}`;
     console.log(`Searching eBay for brand: ${brand}`);
 
     try {
