@@ -7,8 +7,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const PROMPT_VERSION = "v1";
-const RULES_VERSION = "v1";
+const PROMPT_VERSION = "v2";
+const RULES_VERSION = "v2";
 const MODEL = "claude-sonnet-4-20250514";
 
 const ANCORA_CATEGORIES = new Set([
@@ -32,12 +32,13 @@ function envInt(key: string, fallback: number): number {
   return isNaN(n) ? fallback : n;
 }
 
-function visualScore(imageUrls: unknown): number {
+/* ── VISUAL: image count (0-10) ── */
+function imageCountScore(imageUrls: unknown): number {
   if (!Array.isArray(imageUrls)) return 0;
   const count = imageUrls.length;
-  if (count >= 3) return 20;
-  if (count === 2) return 14;
-  if (count === 1) return 6;
+  if (count >= 3) return 10;
+  if (count === 2) return 6;
+  if (count === 1) return 2;
   return 0;
 }
 
@@ -50,6 +51,20 @@ function metadataScore(p: Record<string, unknown>): number {
   return s;
 }
 
+/* ── MATERIAL adjustment for metadata_quality ── */
+const NATURAL_MATERIALS = ["wool", "cashmere", "silk", "linen", "leather", "cotton", "denim"];
+const SYNTHETIC_MATERIALS = ["polyester", "synthetic", "acrylic", "nylon"];
+
+function materialAdjustment(material: string | null): number {
+  if (!material) return -1;
+  const m = material.toLowerCase();
+  if (NATURAL_MATERIALS.some((n) => m === n || m.startsWith(n))) return 0;
+  if (SYNTHETIC_MATERIALS.some((s) => m.includes(s))) return -4;
+  // mixed/blend with natural majority indicators
+  if (NATURAL_MATERIALS.some((n) => m.includes(n))) return -1;
+  return -1;
+}
+
 function commercialScore(price: number | null): number {
   if (!price || price <= 0) return 0;
   if (price < 500) return 4;
@@ -58,17 +73,42 @@ function commercialScore(price: number | null): number {
   return 12;
 }
 
+/* ── CONDITION adjustment for commercial_quality ── */
+function conditionAdjustment(condition: string | null): { delta: number; flag: string | null } {
+  if (!condition) return { delta: -2, flag: null };
+  const c = condition.toLowerCase();
+  if (c === "new" || c === "very_good" || c === "excellent") return { delta: 0, flag: null };
+  if (c === "good") return { delta: -3, flag: null };
+  if (c === "fair") return { delta: -8, flag: null };
+  if (c === "poor") return { delta: -15, flag: "poor_condition" };
+  return { delta: -2, flag: null };
+}
+
 function categoryScore(cat: string | null): number {
   if (!cat) return 0;
   return ANCORA_CATEGORIES.has(cat.toLowerCase()) ? 15 : 0;
 }
 
-async function editorialScore(
+interface EditorialResult {
+  presentation_score: number;
+  editorial_score: number;
+  editorial_reason: string;
+}
+
+async function aiEvaluate(
   anthropicKey: string,
   p: Record<string, unknown>,
   tier: string,
-): Promise<{ editorial_score: number; editorial_reason: string }> {
+  editorialBrief: string,
+): Promise<EditorialResult> {
   const styleTags = Array.isArray(p.style_tags) ? p.style_tags.join(", ") : "";
+  const imageUrls = Array.isArray(p.image_urls) ? p.image_urls : [];
+  const firstImage = imageUrls[0] || "(none)";
+
+  const briefBlock = editorialBrief.trim()
+    ? `\n\nCurrent editorial brief for Ancora:\n${editorialBrief}\nProducts that align with this brief should score higher on editorial distinctiveness. Products that feel off-season, off-trend, or misaligned with the brief should score lower.`
+    : "";
+
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -78,13 +118,14 @@ async function editorialScore(
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 256,
+      max_tokens: 384,
       system:
-        "You are an editorial assistant for Ancora, a curated second-hand fashion storefront with a minimalist, Scandinavian aesthetic. Score editorial distinctiveness only. Return JSON only.",
+        "You are an editorial assistant for Ancora, a curated second-hand fashion storefront with a minimalist, Scandinavian aesthetic. Score presentation quality and editorial distinctiveness. Return JSON only.",
       messages: [
         {
           role: "user",
-          content: `Score this product's editorial distinctiveness for Ancora on a scale of 0-15.
+          content: `Evaluate this product for Ancora.
+
 Brand: ${p.brand || "unknown"} (tier: ${tier})
 Category: ${p.category || "unknown"} / ${p.subcategory || ""}
 Title: ${p.title_clean || p.title_raw || ""}
@@ -92,10 +133,26 @@ Style tags: ${styleTags}
 Price: ${p.price || 0} SEK
 Color: ${p.color || "unknown"}
 Material: ${p.material || "unknown"}
-Consider: is this distinctive, timeless, or trend-relevant? Would it feel at home in a curated Ancora edit?
-Marks & Spencer, fast fashion, or generic items score 0-3. Tier A brands with strong editorial potential score 10-15.
+Condition: ${p.condition || "unknown"}
+Primary image URL: ${firstImage}
+Image count: ${imageUrls.length}
+
+Score on TWO dimensions:
+
+1) presentation_score (0-10) — based on the primary image:
+   10 = model or mannequin, clean/white/neutral background, sharp and well-lit
+   7  = flat lay on clean surface, good lighting
+   4  = hanger shot, acceptable background
+   1  = photographed on floor, bed, or chair
+   0  = cluttered background, other items visible
+   If you cannot infer presentation from the URL alone, estimate from filename/path hints (e.g. "model", "flatlay", "hanger") and default to 4.
+
+2) editorial_score (0-15) — distinctiveness and fit:
+   Is this distinctive, timeless, or trend-relevant? Would it feel at home in a curated Ancora edit?
+   Marks & Spencer, fast fashion, or generic items score 0-3. Tier A brands with strong editorial potential score 10-15.${briefBlock}
+
 Return JSON only:
-{"editorial_score": number 0-15, "editorial_reason": string (one sentence)}`,
+{"presentation_score": number 0-10, "editorial_score": number 0-15, "editorial_reason": string (one sentence)}`,
         },
       ],
     }),
@@ -104,25 +161,26 @@ Return JSON only:
   if (!res.ok) {
     const err = await res.text();
     console.error(`[intake-score-test] Anthropic error: ${res.status} ${err}`);
-    return { editorial_score: 5, editorial_reason: "AI scoring unavailable" };
+    return { presentation_score: 4, editorial_score: 5, editorial_reason: "AI scoring unavailable" };
   }
 
   const data = await res.json();
   const textBlock = data?.content?.find((b: { type: string }) => b.type === "text");
   if (!textBlock?.text) {
-    return { editorial_score: 5, editorial_reason: "No AI response" };
+    return { presentation_score: 4, editorial_score: 5, editorial_reason: "No AI response" };
   }
 
   try {
     const raw = textBlock.text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     const parsed = JSON.parse(raw);
     return {
+      presentation_score: Math.min(10, Math.max(0, Number(parsed.presentation_score) || 0)),
       editorial_score: Math.min(15, Math.max(0, Number(parsed.editorial_score) || 0)),
       editorial_reason: String(parsed.editorial_reason || ""),
     };
   } catch {
-    console.error("[intake-score-test] Malformed editorial JSON:", textBlock.text.slice(0, 200));
-    return { editorial_score: 5, editorial_reason: "Parse error" };
+    console.error("[intake-score-test] Malformed JSON:", textBlock.text.slice(0, 200));
+    return { presentation_score: 4, editorial_score: 5, editorial_reason: "Parse error" };
   }
 }
 
@@ -166,6 +224,20 @@ serve(async (req) => {
   const limit = envInt("VITE_INTAKE_MAX_ITEMS_PER_RUN", 10);
   const startedAt = new Date().toISOString();
 
+  // 0. Fetch active editorial brief
+  let editorialBrief = "";
+  try {
+    const { data: briefRow } = await supabase
+      .from("intake_editorial_briefs")
+      .select("brief_text")
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle();
+    if (briefRow?.brief_text) editorialBrief = briefRow.brief_text;
+  } catch (e) {
+    console.error("[intake-score-test] brief fetch error:", e);
+  }
+
   // 1. Fetch enriched products
   const { data: products, error: fetchErr } = await supabase
     .from("intake_normalized_products")
@@ -183,7 +255,7 @@ serve(async (req) => {
       run_type: "score", source: "ebay", status: "completed",
       started_at: startedAt, completed_at: new Date().toISOString(),
       items_fetched: 0, items_processed: 0, error_count: 0,
-      summary: { model_version: MODEL, prompt_version: PROMPT_VERSION, score_distribution: {} },
+      summary: { model_version: MODEL, prompt_version: PROMPT_VERSION, score_distribution: {}, editorial_brief_used: !!editorialBrief },
     });
     return json({ status: "completed", items_fetched: 0, items_processed: 0 });
   }
@@ -211,19 +283,34 @@ serve(async (req) => {
       const tier = tierMap.get(brandLower) || "unknown";
       const brandFit = BRAND_SCORES[tier] ?? 10;
       const catFit = categoryScore(product.category);
-      const visual = visualScore(product.image_urls);
-      const metadata = metadataScore(product);
-      const commercial = commercialScore(product.price);
 
-      const editorial = await editorialScore(anthropicKey, product, tier);
+      // AI evaluates presentation + editorial
+      const ai = await aiEvaluate(anthropicKey, product, tier, editorialBrief);
 
-      const totalScore = brandFit + catFit + visual + metadata + commercial + editorial.editorial_score;
+      // VISUAL = presentation (0-10) + image count (0-10) = 0-20
+      const imgCountScore = imageCountScore(product.image_urls);
+      const visual = ai.presentation_score + imgCountScore;
+
+      // METADATA with material adjustment
+      const metaBase = metadataScore(product);
+      const matAdj = materialAdjustment(product.material);
+      const metadata = Math.max(0, metaBase + matAdj);
+
+      // COMMERCIAL with condition adjustment
+      const commBase = commercialScore(product.price);
+      const condAdj = conditionAdjustment(product.condition);
+      const commercial = Math.max(0, commBase + condAdj.delta);
+
+      const totalScore = brandFit + catFit + visual + metadata + commercial + ai.editorial_score;
 
       // Hard overrides
       const hardFlags: string[] = [];
       if (tier === "reject") hardFlags.push("tier_reject");
       if (!product.affiliate_url) hardFlags.push("no_affiliate_url");
       if (!Array.isArray(product.image_urls) || product.image_urls.length === 0) hardFlags.push("no_images");
+
+      const softFlags: string[] = [];
+      if (condAdj.flag) softFlags.push(condAdj.flag);
 
       let decision: string;
       if (hardFlags.length > 0) {
@@ -246,15 +333,19 @@ serve(async (req) => {
           brand_fit: brandFit,
           category_fit: catFit,
           visual_quality: visual,
+          visual_presentation: ai.presentation_score,
+          visual_image_count: imgCountScore,
           metadata_quality: metadata,
+          metadata_material_adjustment: matAdj,
           commercial_quality: commercial,
-          editorial_distinctiveness: editorial.editorial_score,
+          commercial_condition_adjustment: condAdj.delta,
+          editorial_distinctiveness: ai.editorial_score,
         },
         score_total: totalScore,
         decision,
-        reasons: [editorial.editorial_reason, `brand tier: ${tier}`],
+        reasons: [ai.editorial_reason, `brand tier: ${tier}`, editorialBrief ? "editorial brief applied" : "no brief"],
         hard_flags: hardFlags,
-        soft_flags: [],
+        soft_flags: softFlags,
       });
 
       if (evalErr) {
@@ -301,6 +392,7 @@ serve(async (req) => {
     summary: {
       model_version: MODEL,
       prompt_version: PROMPT_VERSION,
+      editorial_brief_used: !!editorialBrief,
       score_distribution: {
         scored_draft_approved: draftApproved,
         scored_review: reviewCount,

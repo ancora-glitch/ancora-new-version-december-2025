@@ -351,6 +351,30 @@ export type Database = {
           },
         ]
       }
+      intake_editorial_briefs: {
+        Row: {
+          brief_text: string
+          created_at: string
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          brief_text: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          brief_text?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       intake_evaluations: {
         Row: {
           decision: string | null
