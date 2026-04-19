@@ -1,38 +1,59 @@
 
-User wants to add two more presentation penalties to the scoring prompt in `intake-score-test`:
-1. Mirror selfies (person photographing themselves in a mirror, often with phone visible)
-2. Garments shown in plastic bags / poly mailers
+User reports: cannot delete a brand (e.g. CDLP) from the "Brand tiers" list in Admin Portal → Intake (test).
 
-These should score very low on presentation (1-2 range, similar to home environment).
+Looking at `BrandTiersSection.tsx` `handleDelete`:
+```ts
+const { error } = await supabase.from("intake_brand_tiers").delete().eq("id", b.id);
+if (error) { toast.error(error.message); return; }
+toast.success("Brand deleted");
+```
 
-Single-file change: `supabase/functions/intake-score-test/index.ts` — update the `presentation_score` rubric and the "Be strict" instruction block.
+And RLS on `intake_brand_tiers`:
+- DELETE policy: `Admins can delete intake_brand_tiers` → `has_role(auth.uid(), 'admin'::app_role)` for `{authenticated}` role.
 
-## Plan: Penalize mirror selfies and plastic-bag shots
+That looks fine on paper. So why would CDLP fail silently?
 
-Update only the scoring prompt in `supabase/functions/intake-score-test/index.ts`. No other files, tables, or logic changed.
+Most likely cause: **`window.confirm()` is being blocked or dismissed silently**, OR the delete request returns no error but matches 0 rows because of RLS misalignment (e.g. the row was inserted by another path), OR the toast is showing but the list isn't refreshing because the query cache key matches but `invalidateQueries` race.
 
-### Changes to the presentation rubric (0-10)
+Actually — re-reading carefully: the most common real-world cause for "delete doesn't work, no error" with Supabase RLS is that **`.delete()` succeeds (returns no error) but affects 0 rows because RLS silently filters them**. With `{authenticated}` role + `has_role` check, this works only if the user session is fully authenticated. If session is fine for SELECT (we see the brands) and UPDATE works (edit works), DELETE should too — same predicate.
 
-Add two new low-score categories alongside the existing "home environment" rule:
+Let me verify by querying the actual row and checking if there's something specific about CDLP.
 
-- **Mirror selfie** (person photographing themselves in a mirror, phone visible, bathroom/bedroom mirror): score **1**
-- **Garment in plastic bag / poly mailer / shipping bag**: score **1**
+## Plan: Fix brand deletion in Brand tiers
 
-Updated scale:
-- 10 = model or mannequin, clean/white/neutral background, sharp and well-lit, professional styling
-- 6 = flat lay on clean surface, good lighting
-- 3 = hanger shot on plain wall or door, acceptable background
-- 1 = home environment (bedroom, living room, furniture visible), **mirror selfie with phone visible**, **garment shown inside or on top of a plastic bag / poly mailer**, outfit shot on person in home setting
-- 0 = floor, cluttered background, very dark or blurry
+### Investigation needed first
+Check the actual DB state for CDLP and similar entries to confirm whether:
+1. The row exists and is unique
+2. There are duplicates causing confusion
+3. The RLS DELETE policy is actually firing
 
-### Strictness instruction update
+### Likely fix in `src/components/admin/BrandTiersSection.tsx`
 
-Extend the existing "Be strict about background quality" paragraph:
+The current `handleDelete` swallows the "0 rows affected" case. Improvements:
 
-> "Be strict about background quality. A home environment with furniture, walls, or personal items visible should score 1-2 regardless of garment quality. Mirror selfies (where a person or phone is visible reflecting in a mirror) and items photographed inside or on plastic shipping bags / poly mailers must score 1-2 regardless of garment quality. Only professional or clean neutral backgrounds score above 6."
+1. **Use `.select()` chained to `.delete()`** so we can verify how many rows were actually deleted:
+   ```ts
+   const { data, error } = await supabase
+     .from("intake_brand_tiers")
+     .delete()
+     .eq("id", b.id)
+     .select();
+   ```
+   If `data.length === 0` → show explicit error: "Could not delete (no permission or row not found)".
+
+2. **Replace `window.confirm()`** with the existing `AlertDialog` component for a reliable, non-blocked confirmation that works across all browsers/embedded previews (Lovable preview iframe sometimes suppresses native `confirm`).
+
+3. **Await `invalidateQueries`** so the UI reflects the deletion immediately:
+   ```ts
+   await queryClient.invalidateQueries({ queryKey: ["intake-brand-tiers"] });
+   ```
+
+4. **Surface the real error** with full detail (`error.message + error.details + error.hint`) for debugging.
+
+### Single file changed
+`src/components/admin/BrandTiersSection.tsx` — replace `handleDelete` + add `AlertDialog` for delete confirmation. No other component, table, edge function, or data flow touched.
 
 ### Guarantees
-- Only the prompt text inside `aiEvaluate()` changes
-- No changes to scoring weights, thresholds, decision logic, DB schema, or other functions
-- No UI changes
-- Spec-aligned: shadow-mode test pipeline only, no live data affected
+- No schema changes, no RLS changes, no enum changes
+- No changes to enrichment, scoring, fetch, or any other tab
+- Spec-aligned: read-only governance impact
