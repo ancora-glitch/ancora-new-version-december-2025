@@ -297,7 +297,8 @@ Deno.serve(async (req) => {
   for (const brand of selectedBrands) {
     if (rateLimited || ebayItems.length >= maxItems) break;
 
-    const searchUrl = `${baseUrl}/buy/browse/v1/item_summary/search?q=${encodeURIComponent(`${brand} women`)}&category_ids=15724&limit=${perBrandLimit}&filter=${encodeURIComponent(filterStr)}`;
+    const aspectFilter = encodeURIComponent("categoryId:15724,Gender:{Women}");
+    const searchUrl = `${baseUrl}/buy/browse/v1/item_summary/search?q=${encodeURIComponent(brand)}&category_ids=15724&limit=${perBrandLimit}&filter=${encodeURIComponent(filterStr)}&aspect_filter=${aspectFilter}`;
     console.log(`Searching eBay for brand: ${brand}`);
 
     try {
