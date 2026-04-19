@@ -10,6 +10,10 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,6 +48,8 @@ export const BrandTiersSection = () => {
   const [editing, setEditing] = useState<BrandTier | null>(null);
   const [form, setForm] = useState({ brand_name: "", tier: "a", notes: "" });
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<BrandTier | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: brands, isLoading } = useQuery({
     queryKey: ["intake-brand-tiers"],
@@ -102,12 +108,33 @@ export const BrandTiersSection = () => {
     }
   };
 
-  const handleDelete = async (b: BrandTier) => {
-    if (!confirm(`Delete "${b.brand_name}"?`)) return;
-    const { error } = await supabase.from("intake_brand_tiers").delete().eq("id", b.id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Brand deleted");
-    queryClient.invalidateQueries({ queryKey: ["intake-brand-tiers"] });
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase
+        .from("intake_brand_tiers")
+        .delete()
+        .eq("id", deleteTarget.id)
+        .select();
+
+      if (error) {
+        const detail = [error.message, (error as any).details, (error as any).hint].filter(Boolean).join(" — ");
+        toast.error(`Delete failed: ${detail}`);
+        return;
+      }
+      if (!data || data.length === 0) {
+        toast.error("Could not delete — row not found or no permission (RLS).");
+        return;
+      }
+      toast.success(`"${deleteTarget.brand_name}" deleted`);
+      await queryClient.invalidateQueries({ queryKey: ["intake-brand-tiers"] });
+      setDeleteTarget(null);
+    } catch (e: any) {
+      toast.error(e?.message || "Delete failed");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -156,7 +183,7 @@ export const BrandTiersSection = () => {
                               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(b)}>
                                 <Pencil className="w-3.5 h-3.5" />
                               </Button>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-red-600 hover:text-red-700" onClick={() => handleDelete(b)}>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteTarget(b)}>
                                 <Trash2 className="w-3.5 h-3.5" />
                               </Button>
                             </div>
@@ -205,6 +232,24 @@ export const BrandTiersSection = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !deleting && !v && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete brand?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove "{deleteTarget?.brand_name}" from the brand tiers list.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); handleDelete(); }} disabled={deleting}>
+              {deleting && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
