@@ -155,20 +155,18 @@ export const AnalyticsDashboard = () => {
       }) || [];
       const buyNowClicks = filteredBuyNow.length;
 
-      // Get unique visitors count
-      let visitorsQuery = supabase
-        .from("site_analytics")
-        .select("visitor_id");
-      
-      if (rangeStart) {
-        visitorsQuery = visitorsQuery.gte("created_at", rangeStart.toISOString());
-      }
-      
-      const { data: visitorData } = await visitorsQuery;
-      const uniqueVisitorIds = new Set(
-        visitorData?.map(v => v.visitor_id).filter(Boolean) || []
+      // Get unique visitors count via RPC: counts (visitor_id, day) pairs and
+      // excludes bot-like visitors with > 200 events on a given day.
+      const { data: uvRows } = await supabase.rpc("get_unique_visitors", {
+        p_start: rangeStart ? rangeStart.toISOString() : null,
+        p_end: null,
+        p_bot_threshold: 200,
+      });
+      const uniqueVisitors = (uvRows ?? []).reduce(
+        (sum: number, row: { unique_visitors: number | string }) =>
+          sum + Number(row.unique_visitors ?? 0),
+        0
       );
-      const uniqueVisitors = uniqueVisitorIds.size;
 
       // Get popular pages
       let pagesQuery = supabase

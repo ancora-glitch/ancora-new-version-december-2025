@@ -78,6 +78,13 @@ serve(async (req) => {
 
     console.log("analytics-beacon: inserting", payload.event_type, payload.page_path);
 
+    // Capture user_agent from request header for downstream bot/device analysis
+    const userAgent = req.headers.get("user-agent") || null;
+    const mergedMetadata = {
+      ...(payload.metadata ?? {}),
+      user_agent: userAgent,
+    };
+
     // Don't block the response - insert in background
     EdgeRuntime.waitUntil(
       supabase
@@ -86,7 +93,7 @@ serve(async (req) => {
           {
             event_type: payload.event_type,
             page_path: payload.page_path || "/buy-now",
-            metadata: payload.metadata ?? {},
+            metadata: mergedMetadata,
           },
         ])
         .then(({ error }) => {
