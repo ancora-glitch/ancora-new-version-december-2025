@@ -1,5 +1,56 @@
 ANCORA — MASTER PROJECT SPECIFICATION
-Version 1.7
+Version 1.8
+
+### 2026-04-19 — Intake (test): gender-filter + skärpt visuell scoring
+
+Dagens iteration på intake-test-flödet (shadow mode, ingen live-data påverkad).
+Två edge functions uppdaterade: `intake-fetch-test` och `intake-score-test`.
+Inga schema-, cron- eller UI-ändringar.
+
+**1. intake-fetch-test — strikt women's-only-filter**
+
+- Behåller `category_ids=15724` (Women's Clothing) och `itemLocationCountry:GB`.
+- Lade till aspect filter på API-nivå:
+  `aspect_filter=categoryId:15724,Gender:{Women}`.
+- Tog bort tidigare " women"-suffix på brand-queryn (gav irrelevanta träffar).
+- Post-fetch säkerhetsfilter på titel (regex, case-insensitive) som
+  förkastar items med: `men's`, `mens`, `man's`, `unisex`, `boys`,
+  `kids`, `children`, ` men ` (med spaces).
+- Nytt fält i run-summary: `filtered_gender_count` (antal items
+  bortfiltrerade av titel-safety-filtret).
+
+**2. intake-score-test — skärpt presentation_score-rubrik**
+
+Visual quality (20p) är fortsatt presentation (0–10) + image count (0–10),
+men presentations-skalan är omskriven för att vara strikt mot dåliga foton.
+Endast prompt-text inuti `aiEvaluate()` ändrad — vikter, trösklar,
+beslutslogik och DB-skrivningar oförändrade.
+
+Ny presentation_score-skala:
+- 10 = model/mannequin, ren/vit/neutral bakgrund, skarp och välbelyst,
+  professionell styling
+- 6 = flat lay på ren yta, bra ljus
+- 3 = galge mot enfärgad vägg/dörr, acceptabel bakgrund
+- 1 = hemmiljö (sovrum, vardagsrum, kök, möbler synliga, personliga
+  saker i bakgrunden), outfit-shot på person i hemmiljö,
+  **mirror selfie där telefon eller person syns i reflektionen**,
+  **plagg fotograferat i eller på plastpåse / poly mailer / fraktpåse**
+- 0 = golv, rörig bakgrund med många objekt, mycket mörk eller suddig
+
+Skärpt instruktion till Claude:
+> "Be strict about background quality. A home environment with furniture,
+> walls, or personal items visible should score 1-2 regardless of garment
+> quality. Mirror selfies (where a person or phone is visible reflecting
+> in a mirror) and items photographed inside or on plastic shipping bags /
+> poly mailers must score 1-2 regardless of garment quality. Only
+> professional or clean neutral backgrounds score above 6."
+
+**Spec-alignment:**
+- Shadow-mode pipeline, ingen påverkan på live-products eller cron.
+- Inga enum-ändringar, ingen quota-påverkan (egen Anthropic-nyckel).
+- Editorial brief-mekanismen (sedan tidigare) fortsatt aktiv:
+  scoring läser aktiv brief från `intake_editorial_briefs` och
+  injicerar i Claude-prompten.
 
 ### 2026-04-19 — Unique Visitors-räkning fixad
 
