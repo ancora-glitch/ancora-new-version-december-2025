@@ -1131,6 +1131,10 @@ export type Database = {
           unique_visitors: number
         }[]
       }
+      get_unique_visitors_total: {
+        Args: { p_bot_threshold?: number; p_end?: string; p_start?: string }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

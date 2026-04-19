@@ -155,18 +155,15 @@ export const AnalyticsDashboard = () => {
       }) || [];
       const buyNowClicks = filteredBuyNow.length;
 
-      // Get unique visitors count via RPC: counts (visitor_id, day) pairs and
-      // excludes bot-like visitors with > 200 events on a given day.
-      const { data: uvRows } = await supabase.rpc("get_unique_visitors", {
+      // Get unique visitors total via RPC: counts DISTINCT visitor_ids over the
+      // period after excluding bot-like visitors with > 200 events on any day.
+      // A person who visits multiple days is still counted once.
+      const { data: uvTotal } = await supabase.rpc("get_unique_visitors_total", {
         p_start: rangeStart ? rangeStart.toISOString() : null,
         p_end: null,
         p_bot_threshold: 200,
       });
-      const uniqueVisitors = (uvRows ?? []).reduce(
-        (sum: number, row: { unique_visitors: number | string }) =>
-          sum + Number(row.unique_visitors ?? 0),
-        0
-      );
+      const uniqueVisitors = Number(uvTotal ?? 0);
 
       // Get popular pages
       let pagesQuery = supabase
