@@ -107,6 +107,14 @@ interface EnrichResult {
   errors: number;
 }
 
+interface ScoreResult {
+  scored: number;
+  draft_approved: number;
+  review: number;
+  rejected: number;
+  errors: number;
+}
+
 export const IntakeTab = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -118,6 +126,10 @@ export const IntakeTab = () => {
   const [isEnriching, setIsEnriching] = useState(false);
   const [enrichResult, setEnrichResult] = useState<EnrichResult | null>(null);
   const [enrichError, setEnrichError] = useState<string | null>(null);
+  const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
+  const [isScoring, setIsScoring] = useState(false);
+  const [scoreResult, setScoreResult] = useState<ScoreResult | null>(null);
+  const [scoreError, setScoreError] = useState<string | null>(null);
 
   /* ── pipeline flags (display only, guards are server-side) ── */
   const pipelineEnabled = envFlag("VITE_INTAKE_V1_ENABLED");
@@ -261,6 +273,50 @@ export const IntakeTab = () => {
     }
   };
 
+  /* ── Score handlers ── */
+  const handleScoreOpen = () => {
+    setScoreResult(null);
+    setScoreError(null);
+    setScoreDialogOpen(true);
+  };
+
+  const handleConfirmScore = async () => {
+    setIsScoring(true);
+    setScoreError(null);
+    setScoreResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("intake-score-test");
+      if (error) {
+        setScoreError(error.message || "Unknown error calling intake-score-test");
+        return;
+      }
+      if (data?.error) {
+        setScoreError(data.error);
+        return;
+      }
+      setScoreResult({
+        scored: data.items_processed ?? 0,
+        draft_approved: data.draft_approved_count ?? 0,
+        review: data.review_count ?? 0,
+        rejected: data.rules_rejected_count ?? 0,
+        errors: data.error_count ?? 0,
+      });
+      handleRefresh();
+    } catch (e: any) {
+      setScoreError(e.message || "Unexpected error");
+    } finally {
+      setIsScoring(false);
+    }
+  };
+
+  const handleCloseScoreDialog = () => {
+    if (!isScoring) {
+      setScoreDialogOpen(false);
+      setScoreResult(null);
+      setScoreError(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Permanent warning banner */}
@@ -296,6 +352,15 @@ export const IntakeTab = () => {
             >
               {isEnriching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
               Run enrichment
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleScoreOpen}
+              className="gap-1.5"
+            >
+              {isScoring ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+              Run scoring
             </Button>
           </div>
         </div>
@@ -610,6 +675,81 @@ export const IntakeTab = () => {
             <DialogFooter className="gap-2 sm:gap-0">
               <Button variant="ghost" size="sm" onClick={handleCloseEnrichDialog}>Cancel</Button>
               <Button size="sm" onClick={handleConfirmEnrich}>Run enrichment</Button>
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Score dialog ── */}
+      <Dialog open={scoreDialogOpen} onOpenChange={handleCloseScoreDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Run scoring</DialogTitle>
+            <DialogDescription>
+              This will score all enriched products in the queue using Claude. Results are stored in intake_* tables only. No live data will be affected.
+            </DialogDescription>
+          </DialogHeader>
+
+          {isScoring && (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Scoring enriched products…</p>
+            </div>
+          )}
+
+          {!isScoring && scoreResult && (
+            <div className="space-y-3 py-2">
+              <div className="flex items-center gap-2 text-emerald-700">
+                <CheckCircle2 className="h-5 w-5" />
+                <span className="font-semibold text-sm">Scoring completed</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="rounded-md border border-border bg-muted/50 p-2.5">
+                  <p className="text-muted-foreground text-xs">Scored</p>
+                  <p className="font-semibold tabular-nums">{scoreResult.scored}</p>
+                </div>
+                <div className="rounded-md border border-border bg-muted/50 p-2.5">
+                  <p className="text-muted-foreground text-xs">Draft approved</p>
+                  <p className="font-semibold tabular-nums text-emerald-700">{scoreResult.draft_approved}</p>
+                </div>
+                <div className="rounded-md border border-border bg-muted/50 p-2.5">
+                  <p className="text-muted-foreground text-xs">Review</p>
+                  <p className="font-semibold tabular-nums text-amber-700">{scoreResult.review}</p>
+                </div>
+                <div className="rounded-md border border-border bg-muted/50 p-2.5">
+                  <p className="text-muted-foreground text-xs">Rejected</p>
+                  <p className="font-semibold tabular-nums text-red-700">{scoreResult.rejected}</p>
+                </div>
+                <div className="rounded-md border border-border bg-muted/50 p-2.5">
+                  <p className="text-muted-foreground text-xs">Errors</p>
+                  <p className="font-semibold tabular-nums text-red-700">{scoreResult.errors}</p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={handleCloseScoreDialog}>Close</Button>
+              </DialogFooter>
+            </div>
+          )}
+
+          {!isScoring && scoreError && (
+            <div className="space-y-3 py-2">
+              <div className="flex items-start gap-2 text-red-700">
+                <XCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-sm">Scoring failed</p>
+                  <p className="text-sm mt-1">{scoreError}</p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={handleCloseScoreDialog}>Close</Button>
+              </DialogFooter>
+            </div>
+          )}
+
+          {!isScoring && !scoreResult && !scoreError && (
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="ghost" size="sm" onClick={handleCloseScoreDialog}>Cancel</Button>
+              <Button size="sm" onClick={handleConfirmScore}>Run scoring</Button>
             </DialogFooter>
           )}
         </DialogContent>
