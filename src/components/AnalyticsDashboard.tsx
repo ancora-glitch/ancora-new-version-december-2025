@@ -155,20 +155,18 @@ export const AnalyticsDashboard = () => {
       }) || [];
       const buyNowClicks = filteredBuyNow.length;
 
-      // Get unique visitors count
-      let visitorsQuery = supabase
-        .from("site_analytics")
-        .select("visitor_id");
-      
-      if (rangeStart) {
-        visitorsQuery = visitorsQuery.gte("created_at", rangeStart.toISOString());
-      }
-      
-      const { data: visitorData } = await visitorsQuery;
-      const uniqueVisitorIds = new Set(
-        visitorData?.map(v => v.visitor_id).filter(Boolean) || []
+      // Get unique visitors count via RPC: counts (visitor_id, day) pairs and
+      // excludes bot-like visitors with > 200 events on a given day.
+      const { data: uvRows } = await supabase.rpc("get_unique_visitors", {
+        p_start: rangeStart ? rangeStart.toISOString() : null,
+        p_end: null,
+        p_bot_threshold: 200,
+      });
+      const uniqueVisitors = (uvRows ?? []).reduce(
+        (sum: number, row: { unique_visitors: number | string }) =>
+          sum + Number(row.unique_visitors ?? 0),
+        0
       );
-      const uniqueVisitors = uniqueVisitorIds.size;
 
       // Get popular pages
       let pagesQuery = supabase
@@ -241,13 +239,28 @@ export const AnalyticsDashboard = () => {
         }
       });
 
+      // Per-day unique visitors via RPC (matches the (visitor_id, day) + bot filter rule)
+      const { data: dailyUvRows } = await supabase.rpc("get_unique_visitors", {
+        p_start: chartStart.toISOString(),
+        p_end: null,
+        p_bot_threshold: 200,
+      });
+      const dailyUvByDate: Record<string, number> = {};
+      (dailyUvRows ?? []).forEach((row: { day: string; unique_visitors: number | string }) => {
+        const dateKey = new Date(row.day).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        });
+        dailyUvByDate[dateKey] = Number(row.unique_visitors ?? 0);
+      });
+
       const recentActivity: DailyData[] = Object.entries(activityByDate)
         .map(([date, data]) => ({ 
           date, 
           views: data.views,
           clicks: data.clicks,
           buyNow: data.buyNow,
-          uniqueVisitors: data.visitors.size 
+          uniqueVisitors: dailyUvByDate[date] ?? 0,
         }));
 
       // Get top products by clicks and purchases with unique click counts
