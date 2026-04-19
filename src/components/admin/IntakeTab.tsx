@@ -353,6 +353,15 @@ export const IntakeTab = () => {
               {isEnriching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
               Run enrichment
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleScoreOpen}
+              className="gap-1.5"
+            >
+              {isScoring ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+              Run scoring
+            </Button>
           </div>
         </div>
         <div className="flex flex-wrap gap-3">
