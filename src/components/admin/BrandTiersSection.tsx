@@ -48,6 +48,8 @@ export const BrandTiersSection = () => {
   const [editing, setEditing] = useState<BrandTier | null>(null);
   const [form, setForm] = useState({ brand_name: "", tier: "a", notes: "" });
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<BrandTier | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: brands, isLoading } = useQuery({
     queryKey: ["intake-brand-tiers"],
