@@ -558,6 +558,7 @@ Deno.serve(async (req) => {
       dry_run: dryRun,
       selected_brands: selectedBrands,
       total_results: results.length,
+      filtered_gender_count: filteredGenderCount,
       rejected_reasons: rejectedReasons,
       soft_flags_summary: softFlagsSummary,
       categories_seen: categoriesSeen,
