@@ -140,12 +140,7 @@ Image count: ${imageUrls.length}
 Score on TWO dimensions:
 
 1) presentation_score (0-10) — based on the primary image:
-   10 = model or mannequin, clean/white/neutral background, sharp and well-lit
-   7  = flat lay on clean surface, good lighting
-   4  = hanger shot, acceptable background
-   1  = photographed on floor, bed, or chair
-   0  = cluttered background, other items visible
-   If you cannot infer presentation from the URL alone, estimate from filename/path hints (e.g. "model", "flatlay", "hanger") and default to 4.
+   If you cannot infer presentation from the URL alone, estimate from filename/path hints (e.g. "model", "flatlay", "hanger") and default to 3.
 
    Be strict about background quality. A home environment with furniture, walls, or personal items visible should score 1-2 regardless of garment quality. Only professional or clean neutral backgrounds score above 6.
 
