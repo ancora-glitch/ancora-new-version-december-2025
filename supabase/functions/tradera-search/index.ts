@@ -268,7 +268,7 @@ serve(async (req) => {
     // INPUT VALIDATION
     // ========================================
     const validation = validateSearchInput(body);
-    if (!validation.valid) {
+    if (validation.valid === false) {
       return new Response(
         JSON.stringify({ error: validation.error }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
