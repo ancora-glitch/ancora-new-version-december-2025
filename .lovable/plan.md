@@ -1,59 +1,70 @@
+## Mål
 
-User reports: cannot delete a brand (e.g. CDLP) from the "Brand tiers" list in Admin Portal → Intake (test).
+Skapa två nya isolerade Edge Functions för partner-importören **ReDesignedBy** (Shopify JSON-mönster, speglar VintageSphere) och registrera dem i `supabase/config.toml`.
 
-Looking at `BrandTiersSection.tsx` `handleDelete`:
-```ts
-const { error } = await supabase.from("intake_brand_tiers").delete().eq("id", b.id);
-if (error) { toast.error(error.message); return; }
-toast.success("Brand deleted");
+Ingen UI, inga DB-ändringar, inga ändringar i andra filer. Detta är endast backend-pipeline.
+
+## Filer som skapas
+
+### 1. `supabase/functions/redesignedby-search/index.ts`
+Listing-adapter mot `https://redesignedby.se/products.json`.
+- Paginering via `?limit=250&page=N`, max **5 sidor** (lägre än VS:s 20 — försiktig start)
+- 429-retry en gång efter 2s, AbortController-timeout 15s
+- Keyword-filter på title + vendor + productType + tags
+- Normalisering: `extractSize`, `extractColor`, `extractMaterial` (tag-prefix `material:`)
+- Bygger `affiliateUrl` med UTM-params (`utm_source=ancora`, `utm_medium=affiliate`, `utm_campaign=ancora_main`) — påslags-trigger
+- Hård gräns: `MAX_PER_RUN = 10` (Master Spec), klamp på inkommande `limit`
+- `dry_run`-stöd: returnerar normaliserade produkter utan DB-skrivning
+- `external_id`-mönster: `rdb_{product_id}_{variant_id}`
+- Returnerar `warnings[]` (t.ex. om ingen produkt hämtas → notis om eventuell API-token)
+
+### 2. `supabase/functions/redesignedby-item/index.ts`
+Item-adapter mot `https://redesignedby.se/products/{handle}.json`.
+- Hämtar fullt item: `images[]` (sorterade på `position`), `descriptionHtml`, `descriptionText` (HTML-strippad)
+- `extractCondition()` — tre strategier: stjärnor (⭑⭐★) → text-mönster ("Skick:", "Condition:") → tags. Mappar till Ancora-enum: `new | very_good | good | fair | poor | null`
+- `extractEra()` — regex `Era:\s*(\d{4}'?s?)` (paritet med VS, returnerar oftast null)
+- `extractSize` / `extractColor` — letar via `options[].name` (Size/Storlek, Color/Colour/Färg) och plockar rätt `optionN` från varianten
+- Returnerar `marketplace: "redesignedby"` och `status: "draft"` hårdkodat
+- 404 från Shopify → 404 från edge function
+
+### 3. `supabase/config.toml` — lägg till längst ner
+```toml
+[functions.redesignedby-search]
+verify_jwt = false
+
+[functions.redesignedby-item]
+verify_jwt = false
 ```
 
-And RLS on `intake_brand_tiers`:
-- DELETE policy: `Admins can delete intake_brand_tiers` → `has_role(auth.uid(), 'admin'::app_role)` for `{authenticated}` role.
+## Spec-validering (Master Spec v1.7)
 
-That looks fine on paper. So why would CDLP fail silently?
+| Invariant | Status |
+|---|---|
+| `marketplace` lowercase snake_case (`redesignedby`) | OK |
+| `status` alltid `"draft"` — aldrig auto-publish | OK (hårdkodat i `transformItem`) |
+| Inga editorial fields skrivs över | OK (edge functions skriver inte alls — returnerar bara JSON) |
+| Max 10 per run | OK (`MAX_PER_RUN = 10`, klamp i `searchProducts`) |
+| Isolerad från Tradera/eBay-flöden | OK (separata filer, ingen shared state) |
+| Cron oförändrat (nattlig 03:00 UTC) | OK (manuell import, ingen cron-registrering) |
+| Quota-guard | N/A (publik Shopify JSON, ingen API-nyckel, ingen delad räknare) |
+| Enum-driftsskydd | OK (`AncorCondition`-typ med endast godkända värden) |
 
-Most likely cause: **`window.confirm()` is being blocked or dismissed silently**, OR the delete request returns no error but matches 0 rows because of RLS misalignment (e.g. the row was inserted by another path), OR the toast is showing but the list isn't refreshing because the query cache key matches but `invalidateQueries` race.
+## Pending — bekräftas på mötet tisdag
 
-Actually — re-reading carefully: the most common real-world cause for "delete doesn't work, no error" with Supabase RLS is that **`.delete()` succeeds (returns no error) but affects 0 rows because RLS silently filters them**. With `{authenticated}` role + `has_role` check, this works only if the user session is fully authenticated. If session is fine for SELECT (we see the brands) and UPDATE works (edit works), DELETE should too — same predicate.
+Dessa är dokumenterade som kommentarer i koden så de inte glöms:
+- Är `redesignedby.se/products.json` publik utan token? Annars: lägg till `X-Shopify-Access-Token`-header + Vault-secret
+- Exakta UTM-param-namn för 10%-påslaget (placeholder: `utm_source=ancora`)
+- `extractCondition()` — använder ReDesignedBy stjärnor i body_html, metafield, eller tags?
+- `extractColor` / `extractMaterial` — variant title, metafield, eller tag?
 
-Let me verify by querying the actual row and checking if there's something specific about CDLP.
+## Vad som INTE ingår
 
-## Plan: Fix brand deletion in Brand tiers
+- Ingen `ReDesignedBySearchDrawer.tsx` (din tidigare meddelande-spec — nu uttryckligen exkluderad)
+- Inga ändringar i `ImportsTab.tsx`
+- Inga DB-migrationer (eftersom `marketplace` är `text`, inte enum — kontrollerat: `products.marketplace` är fritext)
+- Ingen koppling till `useImportToProduct` eller annan import-pipeline
+- Inga tester (existerande VS-funktioner har inga heller)
 
-### Investigation needed first
-Check the actual DB state for CDLP and similar entries to confirm whether:
-1. The row exists and is unique
-2. There are duplicates causing confusion
-3. The RLS DELETE policy is actually firing
+## Efter godkännande
 
-### Likely fix in `src/components/admin/BrandTiersSection.tsx`
-
-The current `handleDelete` swallows the "0 rows affected" case. Improvements:
-
-1. **Use `.select()` chained to `.delete()`** so we can verify how many rows were actually deleted:
-   ```ts
-   const { data, error } = await supabase
-     .from("intake_brand_tiers")
-     .delete()
-     .eq("id", b.id)
-     .select();
-   ```
-   If `data.length === 0` → show explicit error: "Could not delete (no permission or row not found)".
-
-2. **Replace `window.confirm()`** with the existing `AlertDialog` component for a reliable, non-blocked confirmation that works across all browsers/embedded previews (Lovable preview iframe sometimes suppresses native `confirm`).
-
-3. **Await `invalidateQueries`** so the UI reflects the deletion immediately:
-   ```ts
-   await queryClient.invalidateQueries({ queryKey: ["intake-brand-tiers"] });
-   ```
-
-4. **Surface the real error** with full detail (`error.message + error.details + error.hint`) for debugging.
-
-### Single file changed
-`src/components/admin/BrandTiersSection.tsx` — replace `handleDelete` + add `AlertDialog` for delete confirmation. No other component, table, edge function, or data flow touched.
-
-### Guarantees
-- No schema changes, no RLS changes, no enum changes
-- No changes to enrichment, scoring, fetch, or any other tab
-- Spec-aligned: read-only governance impact
+Jag deployar båda funktionerna och kör en snabb smoke-test mot `redesignedby-search` med `{ dry_run: true, limit: 3 }` för att bekräfta att Shopify-endpointen är publik. Om den returnerar 401/403 rapporterar jag det direkt så du vet att en API-token krävs innan tisdagsmötet.
