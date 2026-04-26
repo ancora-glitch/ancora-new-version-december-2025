@@ -5,6 +5,7 @@ import { NewImportDialog } from "./NewImportDialog";
 import { EbaySearchDrawer } from "./EbaySearchDrawer";
 import { TraderaSearchDrawer } from "./TraderaSearchDrawer";
 import { VintageSphereSearchDrawer } from "./VintageSphereSearchDrawer";
+import { ReDesignedBySearchDrawer } from "./ReDesignedBySearchDrawer";
 import { RetryJobsPanel } from "./RetryJobsPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +38,7 @@ export function ImportsTab() {
   const [showEbayDrawer, setShowEbayDrawer] = useState(false);
   const [showTraderaDrawer, setShowTraderaDrawer] = useState(false);
   const [showVintageSphereDrawer, setShowVintageSphereDrawer] = useState(false);
+  const [showReDesignedByDrawer, setShowReDesignedByDrawer] = useState(false);
   
   const { data: usage, isLoading: usageLoading } = useTraderaUsage();
   const { data: pendingCount } = usePendingRetryCount();
@@ -169,6 +171,10 @@ export function ImportsTab() {
             <Button variant="outline" onClick={() => setShowVintageSphereDrawer(true)}>
               <Search className="w-4 h-4 mr-2" />
               Search VintageSphere
+            </Button>
+            <Button variant="outline" onClick={() => setShowReDesignedByDrawer(true)}>
+              <Search className="w-4 h-4 mr-2" />
+              Search ReDesignedBy
             </Button>
             <Button
               variant="outline"
@@ -645,6 +651,11 @@ export function ImportsTab() {
       <VintageSphereSearchDrawer
         open={showVintageSphereDrawer}
         onOpenChange={setShowVintageSphereDrawer}
+        onImported={() => setSelectedItemId(null)}
+      />
+      <ReDesignedBySearchDrawer
+        open={showReDesignedByDrawer}
+        onOpenChange={setShowReDesignedByDrawer}
         onImported={() => setSelectedItemId(null)}
       />
       <RetryJobsPanel />
