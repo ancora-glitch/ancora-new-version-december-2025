@@ -255,7 +255,7 @@ serve(async (req) => {
   // AUTH CHECK: Require authenticated admin
   // ========================================
   const authResult = await verifyAdmin(req);
-  if (!authResult.authorized) {
+  if (authResult.authorized === false) {
     return authResult.response;
   }
 
