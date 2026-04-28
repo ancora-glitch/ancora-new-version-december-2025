@@ -27,6 +27,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { parseListingFields } from "@/lib/listingParser";
+import { translateImport } from "@/lib/translateImport";
 
 interface VintageSphereItem {
   external_id: string;
@@ -296,16 +297,29 @@ export function VintageSphereSearchDrawer({
           detail.description ||
           `${detail.title}. ${detail.vendor}${detail.size ? `, Size: ${detail.size}` : ""}${detail.material ? `, Material: ${detail.material}` : ""}${detail.condition ? `, Condition: ${detail.condition}` : ""}`;
 
+        const tx = await translateImport({
+          title: detail.title,
+          description,
+          condition: detail.condition || parsed.condition_text || undefined,
+          material: detail.material || parsed.material_text || undefined,
+          size: detail.size || parsed.size_text || undefined,
+          brand: detail.vendor !== "Vintage Sphere" ? detail.vendor : undefined,
+          sourceRef: handle,
+        });
+
         const importInput = {
           marketplace: "vintagesphere",
           source_ref: handle,
           source_url: detail.productUrl,
           affiliate_url: detail.productUrl,
           title: detail.title,
-          title_en: detail.title,
+          title_original: detail.title,
+          title_en: tx.title_en,
           description,
-          description_en: description,
-          language: "en",
+          description_original: description,
+          description_en: tx.description_en,
+          language: tx.language,
+          translated_at: tx.translated_at,
           brand: parsed.brand_text || (detail.vendor !== "Vintage Sphere" ? detail.vendor : "Unknown"),
           size: detail.size || parsed.size_text || null,
           color: detail.color || parsed.color_text || null,
