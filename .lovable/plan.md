@@ -1,70 +1,47 @@
-## Mål
+## Goal
 
-Skapa två nya isolerade Edge Functions för partner-importören **ReDesignedBy** (Shopify JSON-mönster, speglar VintageSphere) och registrera dem i `supabase/config.toml`.
+Switch ReDesignedBy integration from our own Edge Functions to ReDesignedBy's hosted endpoints, called directly from the browser via a thin client wrapper.
 
-Ingen UI, inga DB-ändringar, inga ändringar i andra filer. Detta är endast backend-pipeline.
+## Changes
 
-## Filer som skapas
+### 1. Delete our Edge Functions
+- Remove `supabase/functions/redesignedby-search/` (entire folder)
+- Remove `supabase/functions/redesignedby-item/` (entire folder)
+- Remove the two `[functions.redesignedby-*]` blocks from `supabase/config.toml`
+- Call `supabase--delete_edge_functions` for `redesignedby-search` and `redesignedby-item` to remove the deployed copies
 
-### 1. `supabase/functions/redesignedby-search/index.ts`
-Listing-adapter mot `https://redesignedby.se/products.json`.
-- Paginering via `?limit=250&page=N`, max **5 sidor** (lägre än VS:s 20 — försiktig start)
-- 429-retry en gång efter 2s, AbortController-timeout 15s
-- Keyword-filter på title + vendor + productType + tags
-- Normalisering: `extractSize`, `extractColor`, `extractMaterial` (tag-prefix `material:`)
-- Bygger `affiliateUrl` med UTM-params (`utm_source=ancora`, `utm_medium=affiliate`, `utm_campaign=ancora_main`) — påslags-trigger
-- Hård gräns: `MAX_PER_RUN = 10` (Master Spec), klamp på inkommande `limit`
-- `dry_run`-stöd: returnerar normaliserade produkter utan DB-skrivning
-- `external_id`-mönster: `rdb_{product_id}_{variant_id}`
-- Returnerar `warnings[]` (t.ex. om ingen produkt hämtas → notis om eventuell API-token)
+### 2. Create `src/lib/rdby.ts`
+Thin client exactly as specified:
+- `BASE_URL = "https://wiuiatrnvqyclntzwirz.supabase.co/functions/v1"`
+- `searchRDBY({ keywords?, cursor?, limit? })` → POST `/redesignedby-search`
+- `fetchRDBYItem(handle)` → POST `/redesignedby-item`
+- Error handling: throws on non-OK; `fetchRDBYItem` throws `"Product not found"` on 404
+- No auth header, no UTM mutation, no price math — pure pass-through
 
-### 2. `supabase/functions/redesignedby-item/index.ts`
-Item-adapter mot `https://redesignedby.se/products/{handle}.json`.
-- Hämtar fullt item: `images[]` (sorterade på `position`), `descriptionHtml`, `descriptionText` (HTML-strippad)
-- `extractCondition()` — tre strategier: stjärnor (⭑⭐★) → text-mönster ("Skick:", "Condition:") → tags. Mappar till Ancora-enum: `new | very_good | good | fair | poor | null`
-- `extractEra()` — regex `Era:\s*(\d{4}'?s?)` (paritet med VS, returnerar oftast null)
-- `extractSize` / `extractColor` — letar via `options[].name` (Size/Storlek, Color/Colour/Färg) och plockar rätt `optionN` från varianten
-- Returnerar `marketplace: "redesignedby"` och `status: "draft"` hårdkodat
-- 404 från Shopify → 404 från edge function
+### 3. Update `src/components/admin/ReDesignedBySearchDrawer.tsx`
+- Replace `supabase.functions.invoke("redesignedby-search", ...)` with `searchRDBY({ keywords, limit: MAX_RESULTS })`
+- Replace `supabase.functions.invoke("redesignedby-item", ...)` with `fetchRDBYItem(handle)`
+- Drop the `dry_run` flag (not part of the new contract)
+- `data.products` and `data.warnings` shape assumed unchanged — keep existing rendering
+- Keep `affiliateUrl` flowing untouched into `affiliate_url` on the imported product (already correct on line 206)
+- Keep `price` displayed and stored exactly as returned (already correct — no markup logic exists)
+- All other UI behavior (dedupe, importedHandles, existingRefs, warnings, retry, empty state, per-card loading) unchanged
 
-### 3. `supabase/config.toml` — lägg till längst ner
-```toml
-[functions.redesignedby-search]
-verify_jwt = false
+## Invariants preserved
+- `marketplace: "redesignedby"` — unchanged
+- `status: "draft"` — unchanged (set server-side by ReDesignedBy)
+- `affiliateUrl` never modified, never shown in UI — only stored in `affiliate_url`
+- Max 10 results — `MAX_RESULTS = 10` unchanged
+- No price markup added in client
 
-[functions.redesignedby-item]
-verify_jwt = false
-```
+## Files touched
+- delete: `supabase/functions/redesignedby-search/index.ts`
+- delete: `supabase/functions/redesignedby-item/index.ts`
+- edit:   `supabase/config.toml` (remove 2 blocks)
+- create: `src/lib/rdby.ts`
+- edit:   `src/components/admin/ReDesignedBySearchDrawer.tsx` (swap two call sites + drop unused `supabase.functions` import path if applicable; `supabase` import still needed for the existing-products query)
 
-## Spec-validering (Master Spec v1.7)
-
-| Invariant | Status |
-|---|---|
-| `marketplace` lowercase snake_case (`redesignedby`) | OK |
-| `status` alltid `"draft"` — aldrig auto-publish | OK (hårdkodat i `transformItem`) |
-| Inga editorial fields skrivs över | OK (edge functions skriver inte alls — returnerar bara JSON) |
-| Max 10 per run | OK (`MAX_PER_RUN = 10`, klamp i `searchProducts`) |
-| Isolerad från Tradera/eBay-flöden | OK (separata filer, ingen shared state) |
-| Cron oförändrat (nattlig 03:00 UTC) | OK (manuell import, ingen cron-registrering) |
-| Quota-guard | N/A (publik Shopify JSON, ingen API-nyckel, ingen delad räknare) |
-| Enum-driftsskydd | OK (`AncorCondition`-typ med endast godkända värden) |
-
-## Pending — bekräftas på mötet tisdag
-
-Dessa är dokumenterade som kommentarer i koden så de inte glöms:
-- Är `redesignedby.se/products.json` publik utan token? Annars: lägg till `X-Shopify-Access-Token`-header + Vault-secret
-- Exakta UTM-param-namn för 10%-påslaget (placeholder: `utm_source=ancora`)
-- `extractCondition()` — använder ReDesignedBy stjärnor i body_html, metafield, eller tags?
-- `extractColor` / `extractMaterial` — variant title, metafield, eller tag?
-
-## Vad som INTE ingår
-
-- Ingen `ReDesignedBySearchDrawer.tsx` (din tidigare meddelande-spec — nu uttryckligen exkluderad)
-- Inga ändringar i `ImportsTab.tsx`
-- Inga DB-migrationer (eftersom `marketplace` är `text`, inte enum — kontrollerat: `products.marketplace` är fritext)
-- Ingen koppling till `useImportToProduct` eller annan import-pipeline
-- Inga tester (existerande VS-funktioner har inga heller)
-
-## Efter godkännande
-
-Jag deployar båda funktionerna och kör en snabb smoke-test mot `redesignedby-search` med `{ dry_run: true, limit: 3 }` för att bekräfta att Shopify-endpointen är publik. Om den returnerar 401/403 rapporterar jag det direkt så du vet att en API-token krävs innan tisdagsmötet.
+## Open assumptions (will proceed unless you flag)
+- Response shape from ReDesignedBy's `/redesignedby-search` matches our existing `{ products: [...], warnings: [...] }` shape. If it differs, the drawer will need a small adapter — flag if you have the actual response schema.
+- Their `/redesignedby-item` returns the same flat object we built (root-level fields, not wrapped). Same caveat.
+- No auth header required (per the snippet you provided — fetch has no Authorization header). The previously discussed `rdby_pk_…` token is not used anywhere in this plan.
