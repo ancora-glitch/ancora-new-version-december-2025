@@ -25,6 +25,7 @@ import { Loader2, Search, Package, AlertCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { parseListingFields } from "@/lib/listingParser";
 import { buildEbayAffiliateUrl } from "@/lib/ebayAffiliate";
+import { translateImport } from "@/lib/translateImport";
 
 interface EbayItem {
   itemId: string;
@@ -256,16 +257,30 @@ export function EbaySearchDrawer({ open, onOpenChange, onImported }: EbaySearchD
           vibe: null,
         };
 
+        const ebayTitle = detail?.title || item.title;
+        const tx = await translateImport({
+          title: ebayTitle,
+          description: description ?? undefined,
+          condition: parsed.condition_text || item.conditionText || item.condition || undefined,
+          material: parsed.material_text || undefined,
+          size: parsed.size_text || undefined,
+          brand: parsed.brand_text || detail?.brand || undefined,
+          sourceRef: item.itemId,
+        });
+
         const importInput: any = {
           marketplace: "ebay",
           source_ref: item.itemId,
           source_url: detail?.itemUrl || item.itemUrl,
           affiliate_url: buildEbayAffiliateUrl(item.itemId),
-          title: detail?.title || item.title,
-          title_en: detail?.title || item.title,
+          title: ebayTitle,
+          title_original: ebayTitle,
+          title_en: tx.title_en,
           description,
-          description_en: description,
-          language: "en",
+          description_original: description,
+          description_en: tx.description_en,
+          language: tx.language,
+          translated_at: tx.translated_at,
           brand: parsed.brand_text || detail?.brand || "Unknown",
           size: parsed.size_text || null,
           color: parsed.color_text || null,
