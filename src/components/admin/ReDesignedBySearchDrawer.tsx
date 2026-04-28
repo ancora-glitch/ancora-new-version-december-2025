@@ -15,6 +15,7 @@ import {
   checkProductDuplicate,
 } from "@/hooks/useImportToProduct";
 import { searchRDBY, fetchRDBYItem } from "@/lib/rdby";
+import { translateImport } from "@/lib/translateImport";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -182,18 +183,29 @@ export function ReDesignedBySearchDrawer({
       const images = detail.images.map((i) => i.src);
       const description = detail.descriptionText || detail.title;
 
+      const tx = await translateImport({
+        title: detail.title,
+        description,
+        condition: detail.condition ?? undefined,
+        material: detail.material ?? undefined,
+        size: detail.size ?? undefined,
+        brand: detail.vendor || undefined,
+        sourceRef: detail.handle,
+      });
+
       await importMutation.mutateAsync({
         marketplace: MARKETPLACE, // invariant
         source_ref: detail.handle,
         source_url: detail.productUrl,
         affiliate_url: detail.affiliateUrl, // stored only, never shown in UI
         title: detail.title,
-        title_en: detail.title,
         title_original: detail.title,
+        title_en: tx.title_en,
         description,
-        description_en: description,
         description_original: description,
-        language: "sv",
+        description_en: tx.description_en,
+        language: tx.language,
+        translated_at: tx.translated_at,
         brand: detail.vendor || "Unknown",
         size: detail.size,
         color: detail.color,
