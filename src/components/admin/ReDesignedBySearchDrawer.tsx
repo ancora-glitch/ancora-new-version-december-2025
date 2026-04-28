@@ -14,6 +14,7 @@ import {
   useImportToProduct,
   checkProductDuplicate,
 } from "@/hooks/useImportToProduct";
+import { searchRDBY, fetchRDBYItem } from "@/lib/rdby";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -129,18 +130,11 @@ export function ReDesignedBySearchDrawer({
       }
       setExistingRefs(existingSet);
 
-      const { data, error } = await supabase.functions.invoke(
-        "redesignedby-search",
-        {
-          body: {
-            keywords: keywords.trim(),
-            dry_run: false,
-            limit: MAX_RESULTS,
-          },
-        }
-      );
+      const data = await searchRDBY({
+        keywords: keywords.trim() || undefined,
+        limit: MAX_RESULTS,
+      });
 
-      if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
       setSearchResults(data?.products || []);
@@ -159,20 +153,9 @@ export function ReDesignedBySearchDrawer({
   const fetchItemDetails = async (
     handle: string
   ): Promise<ReDesignedByItemDetail | null> => {
-    try {
-      const { data, error } = await supabase.functions.invoke(
-        "redesignedby-item",
-        { body: { handle } }
-      );
-      if (error) {
-        console.error("redesignedby-item error:", error);
-        throw new Error(error.message || "Failed to fetch item");
-      }
-      if (data?.error) throw new Error(data.error);
-      return data || null;
-    } catch (err) {
-      throw err;
-    }
+    const data = await fetchRDBYItem(handle);
+    if (data?.error) throw new Error(data.error);
+    return (data as ReDesignedByItemDetail) || null;
   };
 
   const handleImportOne = async (item: ReDesignedByItem) => {
