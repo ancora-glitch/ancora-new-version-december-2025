@@ -1,47 +1,109 @@
-## Goal
+# Enhetlig översättning för alla importflöden
 
-Switch ReDesignedBy integration from our own Edge Functions to ReDesignedBy's hosted endpoints, called directly from the browser via a thin client wrapper.
+## Mål
+Alla import-drawers ska köra samma översättningssteg som Tradera: heuristic först, sedan AI-anrop till `translate-swedish`, aldrig blockerande. Tradera-flödet rörs inte — det är referensen.
 
-## Changes
+## Filer
 
-### 1. Delete our Edge Functions
-- Remove `supabase/functions/redesignedby-search/` (entire folder)
-- Remove `supabase/functions/redesignedby-item/` (entire folder)
-- Remove the two `[functions.redesignedby-*]` blocks from `supabase/config.toml`
-- Call `supabase--delete_edge_functions` for `redesignedby-search` and `redesignedby-item` to remove the deployed copies
+### Nya filer
 
-### 2. Create `src/lib/rdby.ts`
-Thin client exactly as specified:
-- `BASE_URL = "https://wiuiatrnvqyclntzwirz.supabase.co/functions/v1"`
-- `searchRDBY({ keywords?, cursor?, limit? })` → POST `/redesignedby-search`
-- `fetchRDBYItem(handle)` → POST `/redesignedby-item`
-- Error handling: throws on non-OK; `fetchRDBYItem` throws `"Product not found"` on 404
-- No auth header, no UTM mutation, no price math — pure pass-through
+**`src/lib/languageDetect.ts`** — flytta `isLikelyEnglish` ur `TraderaSearchDrawer.tsx` (rad 112–121) ordagrant. Named export. Inga beteendeändringar.
 
-### 3. Update `src/components/admin/ReDesignedBySearchDrawer.tsx`
-- Replace `supabase.functions.invoke("redesignedby-search", ...)` with `searchRDBY({ keywords, limit: MAX_RESULTS })`
-- Replace `supabase.functions.invoke("redesignedby-item", ...)` with `fetchRDBYItem(handle)`
-- Drop the `dry_run` flag (not part of the new contract)
-- `data.products` and `data.warnings` shape assumed unchanged — keep existing rendering
-- Keep `affiliateUrl` flowing untouched into `affiliate_url` on the imported product (already correct on line 206)
-- Keep `price` displayed and stored exactly as returned (already correct — no markup logic exists)
-- All other UI behavior (dedupe, importedHandles, existingRefs, warnings, retry, empty state, per-card loading) unchanged
+**`src/lib/translateImport.ts`** — delad async helper enligt spec:
+```ts
+translateImport(opts: {
+  title: string;
+  description?: string;
+  condition?: string;
+  material?: string;
+  size?: string;
+  brand?: string;
+  sourceRef: string;
+}): Promise<{
+  title_en: string | null;
+  description_en: string | null;
+  language: "sv" | "en";
+  translated_at: string | null;
+}>
+```
+Logik kopierad 1:1 från `TraderaSearchDrawer.tsx` rad 446–486:
+1. `textToCheck = title + " " + (description ?? "")`
+2. `isLikelyEnglish(textToCheck)` → returnera `{ title_en: title, description_en, language: "en", translated_at: now() }` utan AI-anrop.
+3. Annars `supabase.functions.invoke("translate-swedish", { body: { name, description, condition, material, size, brand } })`.
+   - Vid framgång (`data.name` finns): `language: "sv"`, `translated_at: now()`.
+   - Vid fel/exception: console.warn + returnera `{ title_en: null, description_en: null, language: "sv", translated_at: null }`. Aldrig kasta vidare.
 
-## Invariants preserved
-- `marketplace: "redesignedby"` — unchanged
-- `status: "draft"` — unchanged (set server-side by ReDesignedBy)
-- `affiliateUrl` never modified, never shown in UI — only stored in `affiliate_url`
-- Max 10 results — `MAX_RESULTS = 10` unchanged
-- No price markup added in client
+Helpern skickar **bara** `name/description/condition/material/size/brand` till translatorn — `brand` används som hint men muteras inte i resultatet (translatorn returnerar brand i sin response, vi ignorerar den och behåller källans `brand` på produkten). `price`, `currency`, `affiliate_url`, `slug`, `images`, `tags` och numeriska storlekar passerar aldrig genom helpern.
 
-## Files touched
-- delete: `supabase/functions/redesignedby-search/index.ts`
-- delete: `supabase/functions/redesignedby-item/index.ts`
-- edit:   `supabase/config.toml` (remove 2 blocks)
-- create: `src/lib/rdby.ts`
-- edit:   `src/components/admin/ReDesignedBySearchDrawer.tsx` (swap two call sites + drop unused `supabase.functions` import path if applicable; `supabase` import still needed for the existing-products query)
+### Uppdaterade filer
 
-## Open assumptions (will proceed unless you flag)
-- Response shape from ReDesignedBy's `/redesignedby-search` matches our existing `{ products: [...], warnings: [...] }` shape. If it differs, the drawer will need a small adapter — flag if you have the actual response schema.
-- Their `/redesignedby-item` returns the same flat object we built (root-level fields, not wrapped). Same caveat.
-- No auth header required (per the snippet you provided — fetch has no Authorization header). The previously discussed `rdby_pk_…` token is not used anywhere in this plan.
+**`src/components/admin/TraderaSearchDrawer.tsx`**
+- Ta bort lokal `isLikelyEnglish`-funktion (rad 112–121).
+- Lägg till `import { isLikelyEnglish } from "@/lib/languageDetect";`.
+- Inget annat ändras. Tradera-importen använder fortsatt sin egna inline-logik (rad 446–486) — den rörs inte.
+
+**`src/components/admin/ReDesignedBySearchDrawer.tsx`** (rad 161–238 `handleImportOne`)
+- Före `importMutation.mutateAsync()`, anropa:
+  ```ts
+  const tx = await translateImport({
+    title: detail.title,
+    description,
+    condition: detail.condition ?? undefined,
+    material: detail.material ?? undefined,
+    size: detail.size ?? undefined,
+    brand: detail.vendor || undefined,
+    sourceRef: detail.handle,
+  });
+  ```
+- Ersätt nuvarande:
+  ```ts
+  title_en: detail.title,
+  title_original: detail.title,
+  description_en: description,
+  description_original: description,
+  language: "sv",
+  ```
+  med:
+  ```ts
+  title: detail.title,
+  title_original: detail.title,
+  title_en: tx.title_en,
+  description,
+  description_original: description,
+  description_en: tx.description_en,
+  language: tx.language,
+  translated_at: tx.translated_at,
+  ```
+
+**`src/components/admin/VintageSphereSearchDrawer.tsx`** (rad 299–329 `importInput`)
+- Anropa `translateImport()` före `importMutation.mutateAsync()` med `sourceRef: handle`, `brand: detail.vendor`.
+- Ändra `title_en: detail.title` → `title_en: tx.title_en`.
+- Ändra `description_en: description` → `description_en: tx.description_en`.
+- Ändra `language: "en"` → `language: tx.language`.
+- Lägg till `title_original: detail.title`, `description_original: description`, `translated_at: tx.translated_at`.
+
+**`src/components/admin/EbaySearchDrawer.tsx`** (rad 259–285 `importInput`)
+- Samma förändring. eBay-titlar är engelska by default → heuristic fångar det och `tx.language === "en"` utan AI-anrop. Ingen extra logik behövs, beteendet blir korrekt automatiskt.
+- Behåll fallback-beskrivnings-flaggan (`_usedFallbackDescription`).
+
+**`supabase/functions/translate-backfill/index.ts`** (rad 137–143)
+- Ta bort `.eq('marketplace', 'tradera')` på rad 140 så jobbet plockar upp alla marketplaces (tradera + ebay + vintagesphere + redesignedby).
+- Inga andra ändringar i filen — heuristic, budget, retry-logik och cron-registreringen rör jag inte.
+
+## Invarianter som upprätthålls
+- Tradera-flödet är oförändrat (importerar bara heuristic-helpern från ny fil).
+- Alla tre kolumnerna (`title`, `title_original`, `title_en`) skrivs samtidigt i samma `mutateAsync()`-anrop. Memory Core: "Both base and `_en` fields updated simultaneously" — uppfyllt.
+- Översättningsfel blockerar aldrig importen. Backfill städar.
+- Inget anrop till `translate-swedish` om heuristic säger engelska → daglig budget skyddas.
+- `brand`, `price`, `currency`, `affiliate_url`, `slug`, `images`, `tags` skickas aldrig till translatorn.
+- `translate-swedish` Edge Function rörs inte.
+
+## Filer som INTE ändras
+- `supabase/functions/translate-swedish/index.ts`
+- Tradera-importflödet i `TraderaSearchDrawer.tsx` (förutom 1 rad: ersätt lokal funktion med import).
+- `supabase/functions/tradera-retry-import/index.ts` (server-side, har redan egen översättningslogik).
+- `src/hooks/useImportToProduct.ts` (accepterar redan alla fält vi skickar).
+
+## Risker / saker att flagga
+- `translate-backfill` plockar nu även eBay-rader. eBay är på engelska — heuristic inne i backfill-jobbet (`isLikelyEnglish` på rad 170) hanterar detta och skriver `language='en'` utan att anropa AI:n. Ingen budgeteffekt förväntas.
+- Importer blir marginellt långsammare (~200–800 ms per item när AI-anrop sker). För batch-importer (eBay/VintageSphere som importerar flera samtidigt) sker anropen sekventiellt — inom befintligt mönster.
