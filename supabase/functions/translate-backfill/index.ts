@@ -137,7 +137,7 @@ serve(async (req) => {
     const { data: products, error: fetchError } = await supabase
       .from('products')
       .select('id, name, name_original, description, description_original, brand, condition, marketplace, translated_at, name_en, description_en')
-      .eq('marketplace', 'tradera')
+      // Scope: all marketplaces (tradera, ebay, vintagesphere, redesignedby).
       .is('translated_at', null)
       .or('name_en.is.null,description_en.is.null')
       .limit(BATCH_LIMIT);
