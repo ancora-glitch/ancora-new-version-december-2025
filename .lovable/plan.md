@@ -1,51 +1,35 @@
-# Enhetlig översättning för alla importflöden
+# Add new presentation penalties to intake-score-test
 
-Plan godkänd — implementation enligt `.lovable/plan.md`. Tradera-flödet rörs inte i sak (bara import-byte).
+Update the `aiEvaluate` prompt in `supabase/functions/intake-score-test/index.ts` to expand the presentation rubric with the new penalties. No other code, function, table, or component is touched.
 
-## Nya filer
+## File: `supabase/functions/intake-score-test/index.ts`
 
-**`src/lib/languageDetect.ts`**
-- Named export `isLikelyEnglish(text: string): boolean`.
-- Logik kopierad ordagrant från `TraderaSearchDrawer.tsx` rad 113–121.
+### Change 1 — Strict background instruction (line 145)
 
-**`src/lib/translateImport.ts`**
-- Named export `translateImport(opts)` med signatur enligt spec.
-- Logik kopierad 1:1 från Tradera (rad 446–486):
-  1. `textToCheck = title + " " + (description ?? "")`
-  2. `isLikelyEnglish(textToCheck)` → returnera `{ title_en: title, description_en: description ?? null, language: "en", translated_at: now() }`.
-  3. Annars `supabase.functions.invoke("translate-swedish", { body: { name, description, condition, material, size, brand } })`.
-  4. På success med `data.name`: `language: "sv"`, `translated_at: now()`.
-  5. På fel/exception: `console.warn` + returnera `{ title_en: null, description_en: null, language: "sv", translated_at: null }`. Aldrig kasta.
+Replace the single paragraph with a stricter version that explicitly calls out mirror selfies, visible phones/hands, and plastic packaging as 0–1 regardless of brand or garment quality:
 
-## Uppdaterade filer
+> Be strict about background quality. A home environment with furniture, walls, or personal items visible should score 1–2 regardless of garment quality. Mirror selfies, visible phones or hands, and items still in plastic packaging should score 0–1 regardless of brand or garment quality. Only professional or clean neutral backgrounds score above 6.
 
-**`src/components/admin/TraderaSearchDrawer.tsx`**
-- Ta bort lokal `isLikelyEnglish` (rad 112–121).
-- Lägg till `import { isLikelyEnglish } from "@/lib/languageDetect";`.
-- Inget annat ändras.
+### Change 2 — Rubric scale (lines 147–152)
 
-**`src/components/admin/ReDesignedBySearchDrawer.tsx`** (`handleImportOne`)
-- Före `importMutation.mutateAsync`, kalla `translateImport({ title: detail.title, description, condition, material, size, brand: detail.vendor || undefined, sourceRef: detail.handle })`.
-- Ersätt hårdkodade `title_en/description_en/language` med `tx.title_en`, `tx.description_en`, `tx.language` och lägg till `translated_at: tx.translated_at`. `title_original`/`description_original` behålls.
+Update the score 1 and score 0 bullets to include the new penalty cases:
 
-**`src/components/admin/VintageSphereSearchDrawer.tsx`** (`importInput`)
-- Anropa `translateImport({ ..., brand: detail.vendor, sourceRef: handle })`.
-- `title_en` → `tx.title_en`, `description_en` → `tx.description_en`, `language` → `tx.language`.
-- Lägg till `title_original: detail.title`, `description_original: description`, `translated_at: tx.translated_at`.
+- **Score 1** — adds: mirror selfie; person's arm, hand, or phone visible in image; item still in plastic bag or packaging. (Keeps existing home environment language.)
+- **Score 0** — adds: multiple items piled together. (Keeps existing on-floor / cluttered / very dark / blurry language.)
 
-**`src/components/admin/EbaySearchDrawer.tsx`** (`importInput`)
-- Samma uppdatering. eBay-titlar är engelska → heuristic skippar AI utan extra logik.
-- Behåll `_usedFallbackDescription`.
+Score 10, 6, and 3 are unchanged.
 
-**`supabase/functions/translate-backfill/index.ts`** (rad 140)
-- Ta bort `.eq('marketplace', 'tradera')`. Inga andra ändringar.
+### Out of scope (explicitly not touched)
 
-## Invarianter
-- Tradera-importflödet oförändrat i beteende.
-- `title`, `title_original`, `title_en` skrivs samtidigt i samma `mutateAsync`.
-- Översättningsfel blockerar aldrig import.
-- Heuristic skyddar daglig översättningsbudget.
-- `translate-swedish` Edge Function rörs inte.
+- Numeric scoring functions (`imageCountScore`, `metadataScore`, `materialAdjustment`, `commercialScore`, `conditionAdjustment`, `categoryScore`)
+- Decision thresholds (75 / 40)
+- Hard/soft flags
+- Guards (kill switch, feature flags, quota)
+- `intake_evaluations` / `intake_normalized_products` / `intake_run_logs` writes
+- `PROMPT_VERSION` / `RULES_VERSION` / `MODEL` constants — left as `v2` per instruction "do not modify any other logic"
 
-## Risk
-- `translate-backfill` plockar nu även eBay/VS/RDBY. Heuristic i backfill (rad 170) hanterar engelska utan AI-anrop → ingen förväntad budgeteffekt.
+## Invariants preserved
+
+- No enum drift, no schema changes, no cron changes
+- No quota or guard changes
+- Only the AI prompt text within `aiEvaluate` is modified
