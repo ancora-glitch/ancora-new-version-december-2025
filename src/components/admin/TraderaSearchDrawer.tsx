@@ -109,16 +109,7 @@ function extractKeywords(title: string): string[] {
     .slice(0, 10);
 }
 
-// Simple heuristic: is text likely already English?
-function isLikelyEnglish(text: string): boolean {
-  if (!text) return false;
-  const hasSwedishChars = /[åäöÅÄÖ]/.test(text);
-  if (hasSwedishChars) return false;
-  const swedishStopwords = ["och", "för", "med", "som", "det", "den", "ett", "att", "har", "kan", "inte", "från", "ska", "till"];
-  const lowerText = text.toLowerCase();
-  const matches = swedishStopwords.filter(w => new RegExp(`\\b${w}\\b`).test(lowerText));
-  return matches.length < 2;
-}
+// isLikelyEnglish lives in @/lib/languageDetect (shared across import flows).
 
 export function TraderaSearchDrawer({ open, onOpenChange, onImported }: TraderaSearchDrawerProps) {
   const importMutation = useImportToProduct();
