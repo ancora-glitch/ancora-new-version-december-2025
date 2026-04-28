@@ -1,6 +1,39 @@
 ANCORA — MASTER PROJECT SPECIFICATION
 Version 1.8
 
+2026-04-28 — ReDesignedBy: ny partner + full integration
+Vad: ReDesignedBy tillagd som fjärde importpartner med provisionsmodell (10% på köp, inte affiliate-klick). Deras API är egna Supabase Edge Functions, inte publik Shopify JSON.
+Filer (nya):
+
+supabase/functions/redesignedby-search/index.ts
+supabase/functions/redesignedby-item/index.ts
+supabase/functions/redesignedby-stats/index.ts (proxy, verify_jwt=true)
+src/components/admin/ReDesignedBySearchDrawer.tsx
+src/lib/rdby.ts
+src/lib/languageDetect.ts
+src/lib/translateImport.ts
+
+Filer (uppdaterade):
+
+TraderaSearchDrawer.tsx — importerar isLikelyEnglish från languageDetect.ts
+VintageSphereSearchDrawer.tsx — translateImport() inkopplad
+EbaySearchDrawer.tsx — translateImport() inkopplad
+translate-backfill/index.ts — marketplace-filter borttaget, täcker nu alla källor
+supabase/config.toml — redesignedby-search/item (verify_jwt=false), redesignedby-stats (verify_jwt=true)
+
+Viktiga beslut:
+
+BASE_URL = https://wiuiatrnvqyclntzwirz.supabase.co/functions/v1 (deras Supabase)
+Pris från API är redan +10% — visas rakt av, inget påslag i vår kod
+affiliateUrl byggs av dem — aldrig modifiera
+API-token (RDBY_API_TOKEN) används endast server-side via redesignedby-stats proxy
+Token exponerad i session — Rikard måste regenerera
+
+Pending:
+
+Ny API-token från Rikard
+Manuellt importtest: verifiera title_original (sv) + title_en (översatt) + translated_at satt
+
 ### 2026-04-19 — Intake (test): gender-filter + skärpt visuell scoring
 
 Dagens iteration på intake-test-flödet (shadow mode, ingen live-data påverkad).
@@ -15,7 +48,7 @@ Inga schema-, cron- eller UI-ändringar.
 - Tog bort tidigare " women"-suffix på brand-queryn (gav irrelevanta träffar).
 - Post-fetch säkerhetsfilter på titel (regex, case-insensitive) som
   förkastar items med: `men's`, `mens`, `man's`, `unisex`, `boys`,
-  `kids`, `children`, ` men ` (med spaces).
+  `kids`, `children`, `men` (med spaces).
 - Nytt fält i run-summary: `filtered_gender_count` (antal items
   bortfiltrerade av titel-safety-filtret).
 
@@ -27,6 +60,7 @@ Endast prompt-text inuti `aiEvaluate()` ändrad — vikter, trösklar,
 beslutslogik och DB-skrivningar oförändrade.
 
 Ny presentation_score-skala:
+
 - 10 = model/mannequin, ren/vit/neutral bakgrund, skarp och välbelyst,
   professionell styling
 - 6 = flat lay på ren yta, bra ljus
@@ -38,6 +72,7 @@ Ny presentation_score-skala:
 - 0 = golv, rörig bakgrund med många objekt, mycket mörk eller suddig
 
 Skärpt instruktion till Claude:
+
 > "Be strict about background quality. A home environment with furniture,
 > walls, or personal items visible should score 1-2 regardless of garment
 > quality. Mirror selfies (where a person or phone is visible reflecting
@@ -46,6 +81,7 @@ Skärpt instruktion till Claude:
 > professional or clean neutral backgrounds score above 6."
 
 **Spec-alignment:**
+
 - Shadow-mode pipeline, ingen påverkan på live-products eller cron.
 - Inga enum-ändringar, ingen quota-påverkan (egen Anthropic-nyckel).
 - Editorial brief-mekanismen (sedan tidigare) fortsatt aktiv:
