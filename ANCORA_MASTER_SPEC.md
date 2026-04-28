@@ -1,6 +1,72 @@
 ANCORA — MASTER PROJECT SPECIFICATION
 Version 1.8
 
+### 2026-04-28 — Intake v1: scoring-kalibrering + editorial brief
+
+**Visual quality — uppdaterad rubrik:**
+Presentation quality (0-10) nu striktare:
+10 = modell/provdocka, neutral/vit bakgrund, professionell
+6 = flat lay på ren yta, bra ljus
+3 = hängare mot plain vägg/dörr
+1 = hemmiljö med möbler/personliga föremål synliga,
+selfie i spegel, händer/telefon synliga i bild,
+plagg i plastpåse eller förpackning,
+outfit på person i hemmiljö
+0 = på golvet, rörig bakgrund med många föremål,
+flera plagg staplade, mycket mörk/suddig bild
+
+Prompt-instruktion tillagd:
+"Be strict about background quality. Mirror selfies, visible
+phones or hands, and items still in plastic packaging should
+score 0-1 regardless of brand or garment quality."
+
+**Condition-straff tillagt i commercial_quality:**
+new/very_good = ingen justering
+good = -3p
+fair = -8p
+poor = -15p + soft_flag: poor_condition
+unknown = -2p
+
+**Material-straff tillagt i metadata_quality:**
+wool/cashmere/silk/linen/leather/cotton/denim = ingen justering
+mixed/blend naturlig majoritet = -1p
+polyester/synthetic/acrylic/nylon = -4p
+unknown = -1p
+
+**Editorial brief:**
+
+- Ny tabell: intake_editorial_briefs
+  (brief_text, is_active, timestamps, admin-only RLS)
+- Aktivt brief injiceras i scoring-prompten automatiskt
+- UI: textarea + "Save brief"-knapp i Intake (test)-fliken
+  placerad mellan queue summary och review queue
+- Endast ett aktivt brief åt gången
+
+**Kön rensat:**
+
+- TRUNCATE på intake_editorial_actions, intake_evaluations,
+  intake_duplicate_candidates, intake_normalized_products,
+  intake_raw_listings
+- intake_run_logs, intake_brand_tiers och
+  intake_editorial_briefs behålls
+
+**Köns-filtrering:**
+
+- aspect_filter=categoryId:15724,Gender:{Women} tillagd
+- Post-fetch title-filter avvisar: "men's", "mens", "man's",
+  "unisex", "boys", "kids", "children", " men "
+- filtered_gender_count loggas i run summary
+
+**Pågående/nästa steg:**
+
+- Lägg till badkläder/underkläder som hard reject i regelmotor
+- Steg 3: deduplikering — samma produkt ska inte dyka upp
+  flera gånger i kön
+- Steg 4: "Run all"-knapp (fetch → enrich → score i sekvens)
+- Steg 5: Uppdatera master spec löpande
+- Steg 6: Lägg till Tradera och VintageSphere som källor
+- Steg 9: Koppla ihop intake med produktionsflödet när stabilt
+
 2026-04-28 — ReDesignedBy: ny partner + full integration
 Vad: ReDesignedBy tillagd som fjärde importpartner med provisionsmodell (10% på köp, inte affiliate-klick). Deras API är egna Supabase Edge Functions, inte publik Shopify JSON.
 Filer (nya):
