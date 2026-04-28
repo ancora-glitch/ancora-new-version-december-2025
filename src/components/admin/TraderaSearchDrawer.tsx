@@ -21,6 +21,7 @@ import { Progress } from "@/components/ui/progress";
 import { selectHeroImage } from "@/lib/heroImageSelector";
 import { parseListingFields } from "@/lib/listingParser";
 import { normalizeTraderaCondition, normalizeTraderaMaterial, normalizeTraderaColor, normalizeTraderaBrand } from "@/lib/traderaNormalization";
+import { isLikelyEnglish } from "@/lib/languageDetect";
 
 interface TraderaSearchItem {
   id: number;
