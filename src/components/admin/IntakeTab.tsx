@@ -4,7 +4,7 @@ import { IntakeReviewQueue } from "./IntakeReviewQueue";
 import { BrandTiersSection } from "./BrandTiersSection";
 import { EditorialBriefSection } from "./EditorialBriefSection";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertTriangle, RefreshCw, Play, Loader2, FlaskConical, Zap, CheckCircle2, XCircle, Sparkles } from "lucide-react";
+import { AlertTriangle, RefreshCw, Play, Loader2, FlaskConical, Zap, CheckCircle2, XCircle, Sparkles, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
