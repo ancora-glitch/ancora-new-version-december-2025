@@ -438,6 +438,75 @@ Deno.serve(async (req) => {
       const isRejected = hardFlags.length > 0;
       const queueState = isRejected ? "rules_rejected" : "normalized";
 
+      /* ── DUPLICATE CHECK (runs in dry-run too, before any writes) ── */
+      if (externalId) {
+        const { data: dupRaw } = await svc
+          .from("intake_raw_listings")
+          .select("id")
+          .eq("external_id", externalId)
+          .eq("source", "ebay")
+          .limit(1)
+          .maybeSingle();
+
+        const { data: dupNorm } = !dupRaw
+          ? await svc
+              .from("intake_normalized_products")
+              .select("id")
+              .eq("external_id", externalId)
+              .eq("source", "ebay")
+              .limit(1)
+              .maybeSingle()
+          : { data: null };
+
+        const { data: dupProd } = !dupRaw && !dupNorm && affiliateUrl
+          ? await svc
+              .from("products")
+              .select("id")
+              .eq("affiliate_url", affiliateUrl)
+              .limit(1)
+              .maybeSingle()
+          : { data: null };
+
+        if (dupRaw || dupNorm) {
+          duplicatesSkipped++;
+          results.push({
+            external_id: externalId,
+            title,
+            queue_state: "duplicate_skipped",
+            hard_flags: [],
+            soft_flags: [],
+            skipped: "duplicate_intake",
+            price,
+            raw_price: price,
+            raw_currency: currency,
+            converted_sek: priceSek,
+            category,
+            brand,
+            image_count: images.length,
+          });
+          continue;
+        }
+        if (dupProd) {
+          alreadyInProduction++;
+          results.push({
+            external_id: externalId,
+            title,
+            queue_state: "already_in_production",
+            hard_flags: [],
+            soft_flags: [],
+            skipped: "already_in_production",
+            price,
+            raw_price: price,
+            raw_currency: currency,
+            converted_sek: priceSek,
+            category,
+            brand,
+            image_count: images.length,
+          });
+          continue;
+        }
+      }
+
       const normalized = {
         source: "ebay",
         external_id: externalId,
