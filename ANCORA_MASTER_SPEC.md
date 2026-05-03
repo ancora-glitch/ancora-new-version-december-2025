@@ -570,6 +570,8 @@ eBay
 
 VintageSphere
 
+    ReDesignedBy
+
 4.2 Tradera Import
 Data Source:
 SOAP GetItem
