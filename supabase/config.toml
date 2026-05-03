@@ -66,3 +66,6 @@ verify_jwt = false
 [functions.intake-score-test]
 verify_jwt = false
 
+[functions.intake-fetch-redesignedby]
+verify_jwt = false
+
