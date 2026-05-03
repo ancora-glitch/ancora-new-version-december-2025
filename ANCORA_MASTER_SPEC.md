@@ -1,5 +1,5 @@
 ANCORA — MASTER PROJECT SPECIFICATION
-Version 1.8
+Version 1.9
 
 Changelog v1.9:
 
