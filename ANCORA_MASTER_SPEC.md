@@ -1,6 +1,18 @@
 ANCORA — MASTER PROJECT SPECIFICATION
 Version 1.8
 
+Changelog v1.9:
+
+- ReDesignedBy partner added (Section 4.5)
+- Commission-based revenue model (10% on purchase)
+- redesignedby enum added to products.marketplace (Section 17.3.2)
+- Unified translation pipeline: translateImport() now covers all
+  importers (Tradera, eBay, VintageSphere, ReDesignedBy)
+- src/lib/languageDetect.ts: isLikelyEnglish extracted as shared helper
+- src/lib/translateImport.ts: shared translation helper created
+- translate-backfill scope extended to all marketplaces
+- Centralized slug management system added (Section 3.4)
+
 ### 2026-04-28 — Intake v1: scoring-kalibrering + editorial brief
 
 **Visual quality — uppdaterad rubrik:**
