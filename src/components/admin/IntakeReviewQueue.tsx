@@ -353,7 +353,7 @@ export const IntakeReviewQueue = ({ refreshKey }: IntakeReviewQueueProps) => {
                       size="sm"
                       className="flex-1 h-7 text-xs gap-1 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
                       disabled={!!loading}
-                      onClick={() => handleAction(p.id, "approve")}
+                      onClick={() => setConfirmPromoteId(p.id)}
                     >
                       {loading === "approve" ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
                       Approve
