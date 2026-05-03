@@ -655,6 +655,8 @@ Deno.serve(async (req) => {
     review: reviewCount,
     draft_approved: approvedCount,
     errors: errorCount,
+    duplicates_skipped: duplicatesSkipped,
+    already_in_production: alreadyInProduction,
     rate_limited: rateLimited,
     results,
   }, 200, cors);
