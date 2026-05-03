@@ -116,10 +116,35 @@ interface ScoreResult {
   errors: number;
 }
 
+type SourceChoice = "auto" | "ebay" | "redesignedby";
+
+async function getNextAlternatingSource(): Promise<"ebay" | "redesignedby"> {
+  const { data } = await supabase
+    .from("intake_run_logs" as any)
+    .select("source")
+    .eq("run_type", "fetch")
+    .in("source", ["ebay", "redesignedby"])
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const last = (data as any)?.source;
+  if (last === "ebay") return "redesignedby";
+  if (last === "redesignedby") return "ebay";
+  return "ebay";
+}
+
+const fnForSource = (s: "ebay" | "redesignedby") =>
+  s === "redesignedby" ? "intake-fetch-redesignedby" : "intake-fetch-test";
+
+const bodyForSource = (s: "ebay" | "redesignedby", dryRun: boolean) =>
+  s === "redesignedby" ? { dry_run: dryRun } : { source: "ebay", dry_run: dryRun };
+
 export const IntakeTab = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [confirmMode, setConfirmMode] = useState<"dry" | "live" | null>(null);
+  const [sourceChoice, setSourceChoice] = useState<SourceChoice>("auto");
+  const [nextAutoSource, setNextAutoSource] = useState<"ebay" | "redesignedby">("ebay");
   const [isRunning, setIsRunning] = useState(false);
   const [runResult, setRunResult] = useState<RunResult | null>(null);
   const [runError, setRunError] = useState<string | null>(null);

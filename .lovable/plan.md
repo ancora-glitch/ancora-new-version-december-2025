@@ -1,141 +1,153 @@
 ## Goal
 
-Create a new isolated edge function `intake-fetch-redesignedby` that fetches up to 10 ReDesignedBy products into the intake v1 test pipeline. Fully decoupled from Tradera/eBay flows: no shared quota counters, no shared retry queues, no shared cron jobs.
+Add a source selector to the "Trigger test run" modal in the Intake (test) tab and route the call to the correct edge function. The "Run all" button uses the same alternating logic but without a UI selector.
 
-## Files
+Single file edited: `src/components/admin/IntakeTab.tsx`. No edge functions, tables, or other components touched.
 
-1. **New**: `supabase/functions/intake-fetch-redesignedby/index.ts`
-2. **Edit**: `supabase/config.toml` — append `[functions.intake-fetch-redesignedby]` block with `verify_jwt = false` (matches sibling intake test functions; auth is enforced in code via admin-or-service-role check).
+## Helpers (added at top of file, before the component)
 
-No other files touched. No DB migration. No changes to existing edge functions, tables, components, or cron jobs.
-
-## Function structure
-
-Mirrors the patterns already used in `intake-fetch-test/index.ts` (CORS, `verifyAdmin`, env guards, run-log lifecycle, dedupe, normalized write), but specialized for the ReDesignedBy public catalog API.
-
-### 1. CORS + auth
-- Reuse the same allowed-origin list and `ALLOWED_HEADERS` constant.
-- `verifyAdmin` accepts service-role token OR an admin JWT (same as sibling).
-
-### 2. Body
 ```ts
-{ dry_run?: boolean }
-```
-No `source` parameter (the function is dedicated to redesignedby).
+type SourceChoice = "auto" | "ebay" | "redesignedby";
 
-### 3. Guard rules (abort + log row, return 200)
-Checked in this order, before any catalog calls:
-- `VITE_INTAKE_V1_ENABLED !== "true"` → status `aborted_flag_disabled`
-- `VITE_INTAKE_FETCH_ENABLED !== "true"` → status `aborted_flag_disabled`
-- `VITE_INTAKE_KILL_SWITCH === "true"` → status `aborted_kill_switch`
-
-Each abort writes one row to `intake_run_logs` with `source = "redesignedby"`, `run_type = "fetch"`, the matching status, zero counters, and a small `summary.reason` string. No further work.
-
-### 4. Run log row
-On success path: insert `intake_run_logs` row with `status="started"`, `run_type="fetch"`, `source="redesignedby"`. Capture `runId`.
-
-### 5. Fetch from ReDesignedBy
-Base URL: `https://wiuiatrnvqyclntzwirz.supabase.co/functions/v1`
-
-- `POST /redesignedby-search` with `{ limit: 10 }` — returns up to 10 listing summaries.
-- Iterate items; between each `POST /redesignedby-item` call, `await delay(300)`.
-- On any non-OK response from search, mark run failed and return.
-- On any non-OK response from a single item fetch, **abort the remaining batch immediately** (per spec), record `error_count++`, mark run as `failed`, write summary, return.
-- No `Authorization` header. No `RDBY_API_TOKEN`. No quota counter increment. No retry job enqueue.
-
-### 6. Duplicate check (per item, before any writes — runs in dry_run too)
-For each item with `handle` and `affiliateUrl`:
-- `intake_raw_listings` where `external_id = handle AND source = 'redesignedby'`
-- `intake_normalized_products` where `external_id = handle AND source = 'redesignedby'`
-- `products` where `affiliate_url = item.affiliateUrl` (read-only — never written)
-
-If any match: `duplicates_skipped++` (or `already_in_production++` for the products match), push a skip result, `continue`. The detail fetch can be skipped if the search summary already has `affiliateUrl` and we hit a dedupe on the search row — do the dedupe **after the search summary is in hand and before the per-item detail call**, to avoid extra network work.
-
-### 7. Field mapping (from the detail payload)
-```
-source              = "redesignedby"
-marketplace         = "redesignedby"
-external_id         = handle
-affiliate_url       = affiliateUrl                 // never productUrl
-title_raw           = title
-description_raw     = descriptionText (fallback descriptionHtml stripped)
-brand               = vendor                       // never modified
-price               = price                        // as returned, no extra markup
-currency            = currency
-image_urls          = images.map(i => i.src)
-availability_status = available ? "available" : "unavailable"
-size                = size ?? null
-color               = color ?? null
-```
-`tags` and `slug` are stored unchanged inside `raw_payload` (the `intake_normalized_products` table has no `tags`/`slug` columns, so they live in the raw row only — which preserves them verbatim and satisfies "never modify").
-
-### 8. Translation
-For each non-rejected item:
-- Run `isLikelyEnglish` style heuristic inline (function copied locally — edge functions cannot import from `src/`). Heuristic: skip translation if neither title nor description contain `[åäöÅÄÖ]` and contain fewer than 2 Swedish stopwords (`och, för, med, som, det, den, ett, att, har, kan, inte, från, ska, till`).
-- If English-like: set `title_en = title`, `description_en = description`, `translated_at = now()`, `language = "en"`.
-- Otherwise: `supabase.functions.invoke("translate-swedish", { body: { name: title, description } })` using the service-role client. On success store translated values + `translated_at = now()` + `language = "sv"`. On error: leave `title_en`/`description_en` null, `translated_at = null`, log a warning, continue.
-
-Fields explicitly never sent to the translator: `brand, price, currency, affiliate_url, slug, images, tags, numeric sizes`.
-
-Note: `intake_normalized_products` does not currently store `title_en`/`description_en` columns; translated text is stored inside `raw_payload.translation = { title_en, description_en, language, translated_at }`. This avoids touching the schema while preserving the data. (Same pattern keeps the function fully isolated.)
-
-### 9. Deterministic rules engine
-Hard reject if any of:
-- `affiliateUrl` missing/empty
-- `price` null or 0
-- `image_urls.length === 0`
-- `title` missing or `< 3` chars
-- item marked unavailable (`available === false`)
-
-Soft flags (added to `soft_flags`, not rejected):
-- `image_urls.length < 2`
-- brand undetected (`!vendor`)
-- size missing
-- price below 500 SEK
-
-`current_queue_state = "rules_rejected"` if any hard flag, else `"normalized"`.
-
-### 10. Writes (skipped entirely in dry_run)
-Per item that survived dedupe:
-- Insert `intake_raw_listings` with full raw search+detail payload + `tags`, `slug`, `productUrl`, `affiliateUrl`, `import_run_id = runId`.
-- Insert `intake_normalized_products` with mapped fields and `raw_listing_id`.
-- Insert `intake_evaluations` with `rules_version="v1.0"`, `hard_flags`, `soft_flags`, `decision = reject | review | draft_approve`, `score_total = 0` for rejects else `100 - softFlags.length*10`.
-
-Forbidden writes (explicitly never executed):
-- `products` table (only read for dedupe)
-- `ancora_import_items`
-- `tradera_api_usage`, `tradera_retry_jobs`, `tradera_cache`
-
-### 11. Final run-log update
-```
-status = "completed" | "failed"
-completed_at = now()
-items_fetched, items_processed,
-rules_rejected_count, error_count,
-summary = {
-  dry_run,
-  total_results,
-  duplicates_skipped,
-  already_in_production,
-  rejected_reasons: [{ external_id, reasons }],
-  soft_flags_summary: { flag: count },
-  selected_source: "redesignedby"
+async function getNextAlternatingSource(): Promise<"ebay" | "redesignedby"> {
+  const { data } = await supabase
+    .from("intake_run_logs" as any)
+    .select("source")
+    .eq("run_type", "fetch")
+    .in("source", ["ebay", "redesignedby"])
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const last = (data as any)?.source;
+  if (last === "ebay") return "redesignedby";
+  if (last === "redesignedby") return "ebay";
+  return "ebay";
 }
+
+const fnForSource = (s: "ebay" | "redesignedby") =>
+  s === "redesignedby" ? "intake-fetch-redesignedby" : "intake-fetch-test";
+
+const bodyForSource = (s: "ebay" | "redesignedby", dryRun: boolean) =>
+  s === "redesignedby" ? { dry_run: dryRun } : { source: "ebay", dry_run: dryRun };
 ```
 
-Response body mirrors the summary plus `run_id`.
+## State additions
 
-## Isolation guarantees (cross-checked against spec)
+```ts
+const [sourceChoice, setSourceChoice] = useState<SourceChoice>("auto");
+const [nextAutoSource, setNextAutoSource] = useState<"ebay" | "redesignedby">("ebay");
+```
 
-- No reference to `tradera_*`, `ebay_*`, `RDBY_API_TOKEN`, retry queues, cron schedules, or shared quota functions.
-- No edits to `supabase/cron-setup` or any cron migration.
-- No edits to `intake-fetch-test`, `intake-enrich-test`, `intake-score-test`, or any other function.
-- Only `verify_jwt = false` flag added to `config.toml`; project-level settings untouched.
-- `products` table accessed via `select` only — confirmed by code-level guard (no `.insert`/`.update`/`.delete` against `products`).
+## Resolve next source when the dialog opens
+
+`handleTrigger` becomes async-ish: after resetting state, fetch `getNextAlternatingSource()` and set `nextAutoSource`. The label `Next source: eBay` / `Next source: ReDesignedBy` is rendered from this state.
+
+```ts
+const handleTrigger = async () => {
+  setRunResult(null);
+  setRunError(null);
+  setConfirmMode(null);
+  setSourceChoice("auto");
+  setDialogOpen(true);
+  const next = await getNextAlternatingSource();
+  setNextAutoSource(next);
+};
+```
+
+`handleCloseDialog` also resets `sourceChoice` back to `"auto"`.
+
+## Modal UI changes (inside the existing `dialogOpen` Dialog)
+
+Inserted directly above the existing "Dry run / Live run" selector (i.e., inside the `confirmMode === null` branch around lines 685-712), before the two mode buttons:
+
+```tsx
+<div className="space-y-2 pb-2">
+  <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+    Source
+  </label>
+  <div className="grid grid-cols-3 gap-2">
+    {(["auto", "ebay", "redesignedby"] as SourceChoice[]).map((opt) => (
+      <Button
+        key={opt}
+        type="button"
+        variant={sourceChoice === opt ? "default" : "outline"}
+        size="sm"
+        onClick={() => setSourceChoice(opt)}
+      >
+        {opt === "auto" ? "Auto (alternating)" : opt === "ebay" ? "eBay only" : "ReDesignedBy only"}
+      </Button>
+    ))}
+  </div>
+  {sourceChoice === "auto" && (
+    <p className="text-xs text-muted-foreground">
+      Next source: {nextAutoSource === "redesignedby" ? "ReDesignedBy" : "eBay"}
+    </p>
+  )}
+</div>
+```
+
+The existing two-button "Dry run / Live run" block stays exactly as is below this selector. The confirm screen (`confirmMode !== null`) also gets a one-liner showing the resolved source so the user can see what will run:
+
+```tsx
+<p className="text-sm text-muted-foreground">
+  Source: <span className="font-medium text-foreground">
+    {sourceChoice === "auto"
+      ? `Auto (next: ${nextAutoSource === "redesignedby" ? "ReDesignedBy" : "eBay"})`
+      : sourceChoice === "redesignedby" ? "ReDesignedBy only" : "eBay only"}
+  </span>
+</p>
+```
+
+The existing amber "fetch up to N items" notice stays; no copy changes there.
+
+## handleConfirmRun rewiring
+
+```ts
+const handleConfirmRun = async () => {
+  if (!confirmMode) return;
+  setIsRunning(true);
+  setRunError(null);
+  setRunResult(null);
+  try {
+    const resolvedSource: "ebay" | "redesignedby" =
+      sourceChoice === "auto" ? nextAutoSource : sourceChoice;
+    const fnName = fnForSource(resolvedSource);
+    const body = bodyForSource(resolvedSource, confirmMode === "dry");
+    const { data, error } = await supabase.functions.invoke(fnName, { body });
+    // ...existing error/result handling, unchanged shape
+  } finally {
+    setIsRunning(false);
+  }
+};
+```
+
+The result-summary mapping stays identical (both edge functions return the same shape: `items_fetched`, `items_processed`, `rules_rejected`, `review`, `draft_approved`, `errors`, `dry_run`).
+
+## Run all — alternating, no selector
+
+`handleConfirmRunAll` is updated so step 1 calls the alternating function:
+
+```ts
+const next = await getNextAlternatingSource();
+const fnName = fnForSource(next);
+const body = bodyForSource(next, false);
+const r1 = await supabase.functions.invoke(fnName, { body });
+```
+
+Steps 2 (`intake-enrich-test`) and 3 (`intake-score-test`) are unchanged. Result-summary aggregation is unchanged. No UI selector is added to the Run-all dialog. The alternating decision is resolved fresh at the moment the user confirms, so back-to-back Run-all clicks naturally toggle.
+
+## Out of scope (untouched)
+
+- No edge function changes.
+- No `Run enrichment` or `Run scoring` dialog changes.
+- No DB migration.
+- No changes to the result-summary cards, recent-runs table, queue summary, or review queue.
+- `handleSelectMode`, `handleCloseDialog` (apart from also resetting `sourceChoice`), and the existing "Back" / "Confirm & run" footer remain.
 
 ## Validation
 
-Type-check happens automatically. Manual smoke after deploy:
-1. Call with `{ dry_run: true }` — expect run-log row, no writes to `intake_raw_listings`/`intake_normalized_products`.
-2. Toggle `VITE_INTAKE_FETCH_ENABLED=false` and re-call — expect `aborted_flag_disabled` row, no catalog calls.
-3. Re-enable and call with `{ dry_run: false }` — expect new rows scoped to `source='redesignedby'` only, dedupe counters populated on a second run.
+1. Open Trigger test run → see three-button source selector, "Auto" pre-selected, "Next source: …" hint reflects the most recent fetch row in `intake_run_logs`.
+2. Pick "eBay only" + Live → invokes `intake-fetch-test` with `{ source: "ebay", dry_run: false }`.
+3. Pick "ReDesignedBy only" + Dry → invokes `intake-fetch-redesignedby` with `{ dry_run: true }`.
+4. Pick "Auto" after the latest fetch was eBay → confirm screen shows "next: ReDesignedBy", and the call goes to `intake-fetch-redesignedby`.
+5. "Run all" two times in a row → alternates eBay → ReDesignedBy → eBay automatically.
