@@ -7,6 +7,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { CheckCircle2, XCircle, Star, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const stateStyles: Record<string, string> = {
   scored_draft_approved: "bg-emerald-100 text-emerald-800",
@@ -59,7 +69,32 @@ interface IntakeReviewQueueProps {
 export const IntakeReviewQueue = ({ refreshKey }: IntakeReviewQueueProps) => {
   const [filter, setFilter] = useState<FilterState>("all");
   const [actionLoading, setActionLoading] = useState<Record<string, string>>({});
+  const [confirmPromoteId, setConfirmPromoteId] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
+  const handleConfirmPromote = async (productId: string) => {
+    setActionLoading((prev) => ({ ...prev, [productId]: "approve" }));
+    try {
+      const { data, error } = await supabase.functions.invoke("intake-promote-product", {
+        body: { normalized_product_id: productId },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Promotion failed");
+      toast.success("Draft created in Products");
+      queryClient.invalidateQueries({ queryKey: ["intake-review-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["intake-evaluations"] });
+      queryClient.invalidateQueries({ queryKey: ["intake-queue-counts"] });
+    } catch (e: any) {
+      toast.error(e?.message || "Promotion failed");
+    } finally {
+      setActionLoading((prev) => {
+        const n = { ...prev };
+        delete n[productId];
+        return n;
+      });
+      setConfirmPromoteId(null);
+    }
+  };
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["intake-review-queue", refreshKey],
@@ -318,7 +353,7 @@ export const IntakeReviewQueue = ({ refreshKey }: IntakeReviewQueueProps) => {
                       size="sm"
                       className="flex-1 h-7 text-xs gap-1 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
                       disabled={!!loading}
-                      onClick={() => handleAction(p.id, "approve")}
+                      onClick={() => setConfirmPromoteId(p.id)}
                     >
                       {loading === "approve" ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
                       Approve
@@ -350,6 +385,44 @@ export const IntakeReviewQueue = ({ refreshKey }: IntakeReviewQueueProps) => {
           })}
         </div>
       )}
+
+      <AlertDialog
+        open={!!confirmPromoteId}
+        onOpenChange={(open) => {
+          if (!open && !(confirmPromoteId && actionLoading[confirmPromoteId] === "approve")) {
+            setConfirmPromoteId(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Promote to draft product?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will create a draft product in the live products table. You can review and publish it from the Products tab.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={!!(confirmPromoteId && actionLoading[confirmPromoteId] === "approve")}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!!(confirmPromoteId && actionLoading[confirmPromoteId] === "approve")}
+              onClick={(e) => {
+                e.preventDefault();
+                if (confirmPromoteId) handleConfirmPromote(confirmPromoteId);
+              }}
+            >
+              {confirmPromoteId && actionLoading[confirmPromoteId] === "approve" ? (
+                <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Promoting…</>
+              ) : (
+                "Approve & promote"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
