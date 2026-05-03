@@ -630,6 +630,8 @@ Deno.serve(async (req) => {
       selected_brands: selectedBrands,
       total_results: results.length,
       filtered_gender_count: filteredGenderCount,
+      duplicates_skipped: duplicatesSkipped,
+      already_in_production: alreadyInProduction,
       rejected_reasons: rejectedReasons,
       soft_flags_summary: softFlagsSummary,
       categories_seen: categoriesSeen,
