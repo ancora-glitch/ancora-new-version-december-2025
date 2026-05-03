@@ -716,7 +716,31 @@ export const IntakeTab = () => {
           {!isRunning && !runResult && !runError && (
             <>
               {confirmMode === null ? (
-                <div className="space-y-2 py-2">
+                <div className="space-y-3 py-2">
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Source
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(["auto", "ebay", "redesignedby"] as SourceChoice[]).map((opt) => (
+                        <Button
+                          key={opt}
+                          type="button"
+                          variant={sourceChoice === opt ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSourceChoice(opt)}
+                          className="text-xs"
+                        >
+                          {opt === "auto" ? "Auto (alternating)" : opt === "ebay" ? "eBay only" : "ReDesignedBy only"}
+                        </Button>
+                      ))}
+                    </div>
+                    {sourceChoice === "auto" && (
+                      <p className="text-xs text-muted-foreground">
+                        Next source: {nextAutoSource === "redesignedby" ? "ReDesignedBy" : "eBay"}
+                      </p>
+                    )}
+                  </div>
                   <Button
                     variant="outline"
                     className="w-full justify-start gap-3 h-auto py-3 px-4"
@@ -748,9 +772,16 @@ export const IntakeTab = () => {
                 <div className="space-y-4 py-2">
                   <div className="rounded-md border border-amber-300 bg-amber-50 p-3">
                     <p className="text-sm text-amber-900">
-                      This will fetch up to {batchLimit || "10"} items from eBay into the test pipeline. No live data will be affected.
+                      This will fetch up to {batchLimit || "10"} items into the test pipeline. No live data will be affected.
                     </p>
                   </div>
+                  <p className="text-sm text-muted-foreground">
+                    Source: <span className="font-medium text-foreground">
+                      {sourceChoice === "auto"
+                        ? `Auto (next: ${nextAutoSource === "redesignedby" ? "ReDesignedBy" : "eBay"})`
+                        : sourceChoice === "redesignedby" ? "ReDesignedBy only" : "eBay only"}
+                    </span>
+                  </p>
                   <p className="text-sm text-muted-foreground">
                     Mode: <span className="font-medium text-foreground">
                       {confirmMode === "dry" ? "Dry run (no writes)" : "Live run (writes to intake tables)"}
