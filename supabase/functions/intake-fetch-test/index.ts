@@ -381,6 +381,8 @@ Deno.serve(async (req) => {
   let processedCount = 0;
   let rejectedCount = 0;
   let errorCount = 0;
+  let duplicatesSkipped = 0;
+  let alreadyInProduction = 0;
 
   for (let i = 0; i < ebayItems.length; i++) {
     if (rateLimited) break;
