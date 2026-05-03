@@ -1794,6 +1794,17 @@ intake-run-log
 Purpose: Write structured health log per run to intake_run_logs.
 Called by all other intake functions at start and completion.
 
+redesignedby-search
+Search endpoint for ReDesignedBy catalog (public, no token).
+
+redesignedby-item
+Fetch full item details by handle (public, no token).
+
+redesignedby-stats
+Stats proxy — requires admin JWT. Calls RDBY partner-stats
+endpoint with Bearer token server-side. Token: RDBY_API_TOKEN
+(Supabase secret, never in client code).
+
 16.5 Database Map (Tables + ownership)
 Canonical
 products — canonical inventory and editorial state
