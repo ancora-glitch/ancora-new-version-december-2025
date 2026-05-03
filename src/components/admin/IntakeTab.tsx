@@ -333,7 +333,99 @@ export const IntakeTab = () => {
     }
   };
 
-  return (
+  /* ── Run all handlers ── */
+  const handleRunAllOpen = () => {
+    setRunAllResult(null);
+    setRunAllError(null);
+    setRunAllStep(null);
+    setRunAllDialogOpen(true);
+  };
+
+  const handleCloseRunAllDialog = () => {
+    if (!isRunningAll) {
+      setRunAllDialogOpen(false);
+      setRunAllResult(null);
+      setRunAllError(null);
+      setRunAllStep(null);
+    }
+  };
+
+  const handleConfirmRunAll = async () => {
+    setIsRunningAll(true);
+    setRunAllError(null);
+    setRunAllResult(null);
+    const summary = {
+      fetched: 0,
+      enriched: 0,
+      draft_approved: 0,
+      review: 0,
+      rejected: 0,
+      duplicates_skipped: 0,
+      errors: 0,
+    };
+    let currentStep: "fetch" | "enrich" | "score" = "fetch";
+    try {
+      // Step 1: fetch
+      currentStep = "fetch";
+      setRunAllStep("fetch");
+      const r1 = await supabase.functions.invoke("intake-fetch-test", {
+        body: { source: "ebay", dry_run: false },
+      });
+      if (r1.error || (r1.data as any)?.error) {
+        setRunAllError({
+          step: "fetch",
+          message: r1.error?.message || (r1.data as any)?.error || "Unknown error in intake-fetch-test",
+        });
+        return;
+      }
+      const d1: any = r1.data ?? {};
+      summary.fetched = d1.items_fetched ?? 0;
+      summary.duplicates_skipped = (d1.duplicates_skipped ?? 0) + (d1.already_in_production ?? 0);
+      summary.errors += d1.errors ?? d1.error_count ?? 0;
+
+      // Step 2: enrich
+      currentStep = "enrich";
+      setRunAllStep("enrich");
+      const r2 = await supabase.functions.invoke("intake-enrich-test");
+      if (r2.error || (r2.data as any)?.error) {
+        setRunAllError({
+          step: "enrich",
+          message: r2.error?.message || (r2.data as any)?.error || "Unknown error in intake-enrich-test",
+        });
+        return;
+      }
+      const d2: any = r2.data ?? {};
+      summary.enriched = d2.items_processed ?? 0;
+      summary.errors += d2.error_count ?? 0;
+
+      // Step 3: score
+      currentStep = "score";
+      setRunAllStep("score");
+      const r3 = await supabase.functions.invoke("intake-score-test");
+      if (r3.error || (r3.data as any)?.error) {
+        setRunAllError({
+          step: "score",
+          message: r3.error?.message || (r3.data as any)?.error || "Unknown error in intake-score-test",
+        });
+        return;
+      }
+      const d3: any = r3.data ?? {};
+      summary.draft_approved = d3.draft_approved_count ?? 0;
+      summary.review = d3.review_count ?? 0;
+      summary.rejected = d3.rules_rejected_count ?? 0;
+      summary.errors += d3.error_count ?? 0;
+
+      setRunAllResult(summary);
+      setRunAllStep(null);
+      handleRefresh();
+    } catch (e: any) {
+      setRunAllError({ step: currentStep, message: e?.message || "Unexpected error" });
+    } finally {
+      setIsRunningAll(false);
+    }
+  };
+
+
     <div className="space-y-6">
       {/* Permanent warning banner */}
       <div className="flex items-start gap-3 rounded-md border border-amber-300 bg-amber-50 p-4 w-full">
