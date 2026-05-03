@@ -57,7 +57,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
 
   // Guard rails
-  if (Deno.env.get("INTAKE_V1_ENABLED") !== "true" || Deno.env.get("INTAKE_KILL_SWITCH") === "true") {
+  const v1Enabled = Deno.env.get("INTAKE_V1_ENABLED") ?? Deno.env.get("VITE_INTAKE_V1_ENABLED");
+  const killSwitch = Deno.env.get("INTAKE_KILL_SWITCH") ?? Deno.env.get("VITE_INTAKE_KILL_SWITCH");
+  if (v1Enabled !== "true" || killSwitch === "true") {
     return jsonRes({ success: false, error: "Intake disabled" }, 403, cors);
   }
 
