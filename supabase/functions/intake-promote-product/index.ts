@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
     image: heroImage,
     additional_images: additionalImages,
     status: "draft",
-    subcategory: intake.subcategory ?? null,
+    subcategory: ["outerwear","tops","dresses","knitwear","shirts","blazers","skirts","jeans","trousers","shorts"].includes(intake.subcategory ?? "") ? intake.subcategory : null,
     category_id: categoryId,
   };
 
