@@ -3,6 +3,78 @@ Version 1.9
 
 Changelog v1.9:
 
+### 2026-05-03 — Intake v1: ReDesignedBy-adapter + multi-source
+
+**Ny source adapter: ReDesignedBy**
+Edge function: intake-fetch-redesignedby
+Endpoints:
+POST /redesignedby-search → upp till 10 produkter per körning
+POST /redesignedby-item → enskild produkt via handle
+Base URL: https://wiuiatrnvqyclntzwirz.supabase.co/functions/v1
+Auth: katalog-endpoints publika, ingen token krävs
+
+Fältmappning:
+source/marketplace = "redesignedby"
+external_id = handle
+affiliate_url = affiliateUrl (aldrig productUrl)
+title_raw = title (svenska)
+description_raw = description (svenska)
+brand = brand (modifieras aldrig)
+price = pris från API inkl +10% påslag (lägg aldrig på mer)
+currency = currency från API
+image_urls = images array
+slug = slug (modifieras aldrig)
+tags = tags (översätts aldrig)
+
+Översättning:
+Heuristik först — skippar AI om text bedöms vara engelska
+Annars: translate-swedish edge function (icke-blockerande)
+Vid fel: translated_at = null, backfill städar upp
+Fält som aldrig översätts: brand, price, currency,
+affiliate_url, slug, images, tags, numeriska storlekar
+
+Deduplicering:
+På handle (external_id) mot intake_raw_listings och
+intake_normalized_products
+På affiliate_url mot products-tabellen (read-only)
+
+Isolation:
+Fullt isolerad från Tradera/eBay — delar inga quota-räknare,
+retry-köer eller cron-jobb
+Ingen cron i v1
+
+**Auto-alternering mellan källor**
+Trigger test run och Run all alternerar automatiskt mellan
+ebay och redesignedby baserat på senaste fetch-körning.
+UI visar "Next source: eBay" eller "Next source: ReDesignedBy".
+Manuell källväljare finns: Auto / eBay only / ReDesignedBy only.
+
+**Nya Tier A-varumärken tillagda i intake_brand_tiers:**
+ReDesignedBy-designers:
+Stina Loving, Kläder & Form, Stitch N Stones, Omgjord,
+Esfandiari, Raori, A-K Fahlgren Design, Calanthé Studio,
+Su Crochet, Idun Design och Remake, Skamlös Design,
+Threads Of Unity, Todorova Asplund, Vintage Hearted,
+Cecilia Blixt, MOR, qeenew, ADDNEWDESIGN, Röda Korset
+
+**Verifierat beteende:**
+
+- ReDesignedBy hämtar 10 produkter per körning
+- Deduplikering fungerar — 8 skippade vid andra körning
+- already_in_production: 2 — korrekt mot live-produkter
+- ADDNEWDESIGN Golden Yellow Linen Kimono Vest → Score 86,
+  draft approved — Claude identifierar artisanalt linne korrekt
+- A-K Fahlgren Design → Score 83, draft approved
+- Scoring: 8 scorade, 5 draft approved, 3 review, 0 rejected
+
+**Pågående/nästa steg:**
+
+- Lägga till fler ReDesignedBy-varumärken löpande när
+  de dyker upp som Unknown i review queue
+- Lägga till VintageSphere som tredje källa
+- Badkläder/underkläder som hard reject i regelmotor
+- Steg 9: Koppla ihop intake med produktionsflödet
+
 - ReDesignedBy partner added (Section 4.5)
 - Commission-based revenue model (10% on purchase)
 - redesignedby enum added to products.marketplace (Section 17.3.2)
