@@ -874,6 +874,69 @@ export const IntakeTab = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* ── Run all (full pipeline) dialog ── */}
+      <Dialog open={runAllDialogOpen} onOpenChange={handleCloseRunAllDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Run full pipeline</DialogTitle>
+            <DialogDescription>
+              This will run fetch, enrichment, and scoring in sequence. Results are stored in intake_* tables only. No live data will be affected.
+            </DialogDescription>
+          </DialogHeader>
+
+          {isRunningAll && (
+            <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {runAllStep === "fetch" && "Step 1/3 — Fetching from eBay..."}
+              {runAllStep === "enrich" && "Step 2/3 — Enriching with Claude..."}
+              {runAllStep === "score" && "Step 3/3 — Scoring with Claude..."}
+            </div>
+          )}
+
+          {runAllError && (
+            <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-900">
+              <p className="font-semibold">Step failed: {runAllError.step}</p>
+              <p className="mt-1 break-words">{runAllError.message}</p>
+            </div>
+          )}
+
+          {runAllResult && !runAllError && (
+            <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm">
+              <p className="font-semibold text-emerald-900 mb-2 flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4" /> Pipeline completed
+              </p>
+              <dl className="grid grid-cols-[max-content_auto] gap-x-4 gap-y-1 text-emerald-900">
+                <dt>Fetched:</dt><dd className="tabular-nums">{runAllResult.fetched}</dd>
+                <dt>Enriched:</dt><dd className="tabular-nums">{runAllResult.enriched}</dd>
+                <dt>Draft approved:</dt><dd className="tabular-nums">{runAllResult.draft_approved}</dd>
+                <dt>Review:</dt><dd className="tabular-nums">{runAllResult.review}</dd>
+                <dt>Rejected:</dt><dd className="tabular-nums">{runAllResult.rejected}</dd>
+                <dt>Duplicates skipped:</dt><dd className="tabular-nums">{runAllResult.duplicates_skipped}</dd>
+                <dt>Errors:</dt><dd className="tabular-nums">{runAllResult.errors}</dd>
+              </dl>
+            </div>
+          )}
+
+          <DialogFooter>
+            {runAllResult || runAllError ? (
+              <Button size="sm" variant="outline" onClick={handleCloseRunAllDialog} disabled={isRunningAll}>
+                Close
+              </Button>
+            ) : (
+              <>
+                <Button size="sm" variant="outline" onClick={handleCloseRunAllDialog} disabled={isRunningAll}>
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={handleConfirmRunAll} disabled={isRunningAll}>
+                  {isRunningAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                  Run all
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
