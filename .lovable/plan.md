@@ -1,35 +1,71 @@
-# Add new presentation penalties to intake-score-test
+# Add duplicate detection to intake-fetch-test
 
-Update the `aiEvaluate` prompt in `supabase/functions/intake-score-test/index.ts` to expand the presentation rubric with the new penalties. No other code, function, table, or component is touched.
+Update `supabase/functions/intake-fetch-test/index.ts` only. No other files, tables, or components touched. No writes to `products` ever.
 
-## File: `supabase/functions/intake-score-test/index.ts`
+## Changes
 
-### Change 1 — Strict background instruction (line 145)
+### 1. Counters
+Add two counters alongside existing `processedCount`/`rejectedCount`/`errorCount`:
+- `duplicatesSkipped` — matches in `intake_raw_listings` or `intake_normalized_products`
+- `alreadyInProduction` — matches in `products.affiliate_url`
 
-Replace the single paragraph with a stricter version that explicitly calls out mirror selfies, visible phones/hands, and plastic packaging as 0–1 regardless of brand or garment quality:
+### 2. Per-item duplicate check (inside the `for` loop, before any insert)
+Run after normalization (so we have `externalId` and `affiliateUrl`), but before the `if (!dryRun)` write block. Executes in **both** dry_run and live mode.
 
-> Be strict about background quality. A home environment with furniture, walls, or personal items visible should score 1–2 regardless of garment quality. Mirror selfies, visible phones or hands, and items still in plastic packaging should score 0–1 regardless of brand or garment quality. Only professional or clean neutral backgrounds score above 6.
+Sequence using the existing service-role `svc` client:
 
-### Change 2 — Rubric scale (lines 147–152)
+```ts
+// 1. raw listings
+const { data: dupRaw } = await svc
+  .from("intake_raw_listings")
+  .select("id")
+  .eq("external_id", externalId)
+  .eq("source", "ebay")
+  .limit(1)
+  .maybeSingle();
 
-Update the score 1 and score 0 bullets to include the new penalty cases:
+// 2. normalized products
+const { data: dupNorm } = !dupRaw ? await svc
+  .from("intake_normalized_products")
+  .select("id")
+  .eq("external_id", externalId)
+  .eq("source", "ebay")
+  .limit(1)
+  .maybeSingle() : { data: null };
 
-- **Score 1** — adds: mirror selfie; person's arm, hand, or phone visible in image; item still in plastic bag or packaging. (Keeps existing home environment language.)
-- **Score 0** — adds: multiple items piled together. (Keeps existing on-floor / cluttered / very dark / blurry language.)
+// 3. production products (read-only)
+const { data: dupProd } = (!dupRaw && !dupNorm && affiliateUrl) ? await svc
+  .from("products")
+  .select("id")
+  .eq("affiliate_url", affiliateUrl)
+  .limit(1)
+  .maybeSingle() : { data: null };
 
-Score 10, 6, and 3 are unchanged.
+if (dupRaw || dupNorm) {
+  duplicatesSkipped++;
+  results.push({ external_id: externalId, title, queue_state: "duplicate_skipped", hard_flags: [], soft_flags: [], skipped: "duplicate_intake" });
+  continue;
+}
+if (dupProd) {
+  alreadyInProduction++;
+  results.push({ external_id: externalId, title, queue_state: "already_in_production", hard_flags: [], soft_flags: [], skipped: "already_in_production" });
+  continue;
+}
+```
 
-### Out of scope (explicitly not touched)
+Skipped items do **not** count toward `processedCount` or `rejectedCount`, and do not write to `intake_raw_listings` / `intake_normalized_products` / `intake_evaluations`.
 
-- Numeric scoring functions (`imageCountScore`, `metadataScore`, `materialAdjustment`, `commercialScore`, `conditionAdjustment`, `categoryScore`)
-- Decision thresholds (75 / 40)
-- Hard/soft flags
-- Guards (kill switch, feature flags, quota)
-- `intake_evaluations` / `intake_normalized_products` / `intake_run_logs` writes
-- `PROMPT_VERSION` / `RULES_VERSION` / `MODEL` constants — left as `v2` per instruction "do not modify any other logic"
+### 3. Run-log summary
+Extend the `summary` jsonb passed to `intake_run_logs` update with:
+```
+duplicates_skipped: duplicatesSkipped,
+already_in_production: alreadyInProduction,
+```
+Also include both fields in the JSON response body.
 
 ## Invariants preserved
-
-- No enum drift, no schema changes, no cron changes
-- No quota or guard changes
-- Only the AI prompt text within `aiEvaluate` is modified
+- No writes to `products` (only `.select()`).
+- No schema changes, no new tables, no other functions touched.
+- Dry-run still performs checks and reports counts without writing.
+- All three queries use the existing service-role client (`svc`).
+- Existing guards (kill switch, allowed sources, rate-limit handling) untouched.
