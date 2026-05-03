@@ -1698,11 +1698,27 @@ DB: story_views
 
 Admin Statistics table shows totals + unique (7d/30d)
 
-16.4 Edge Functions Map (Supabase functions)
-Folder path depends on setup, but logically: supabase/functions/<fn>/index.ts
-Admin-only functions (JWT + admin role, plus service-role bypass for cron)
-tradera-search
-Search endpoint for Tradera (and optionally quota check)
+ReDesignedBy search/import UI
+src/components/admin/ReDesignedBySearchDrawer.tsx
+
+Responsibilities:
+
+- search ReDesignedBy via redesignedby-search edge function
+- fetch item details via redesignedby-item before creating draft
+- mapping → Product draft payload
+- translation via translateImport() before importMutation
+
+Invariants:
+
+- Always use affiliateUrl from API — never modify or reconstruct it
+- Display price as-is — already includes 10% commission markup
+- status always draft, marketplace always "redesignedby"
+
+  16.4 Edge Functions Map (Supabase functions)
+  Folder path depends on setup, but logically: supabase/functions/<fn>/index.ts
+  Admin-only functions (JWT + admin role, plus service-role bypass for cron)
+  tradera-search
+  Search endpoint for Tradera (and optionally quota check)
 
 ebay-search
 Search endpoint for eBay
