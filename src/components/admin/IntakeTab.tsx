@@ -4,7 +4,7 @@ import { IntakeReviewQueue } from "./IntakeReviewQueue";
 import { BrandTiersSection } from "./BrandTiersSection";
 import { EditorialBriefSection } from "./EditorialBriefSection";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertTriangle, RefreshCw, Play, Loader2, FlaskConical, Zap, CheckCircle2, XCircle, Sparkles } from "lucide-react";
+import { AlertTriangle, RefreshCw, Play, Loader2, FlaskConical, Zap, CheckCircle2, XCircle, Sparkles, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -131,6 +131,21 @@ export const IntakeTab = () => {
   const [isScoring, setIsScoring] = useState(false);
   const [scoreResult, setScoreResult] = useState<ScoreResult | null>(null);
   const [scoreError, setScoreError] = useState<string | null>(null);
+
+  /* ── Run all (full pipeline) state ── */
+  const [runAllDialogOpen, setRunAllDialogOpen] = useState(false);
+  const [isRunningAll, setIsRunningAll] = useState(false);
+  const [runAllStep, setRunAllStep] = useState<null | "fetch" | "enrich" | "score">(null);
+  const [runAllResult, setRunAllResult] = useState<{
+    fetched: number;
+    enriched: number;
+    draft_approved: number;
+    review: number;
+    rejected: number;
+    duplicates_skipped: number;
+    errors: number;
+  } | null>(null);
+  const [runAllError, setRunAllError] = useState<{ step: "fetch" | "enrich" | "score"; message: string } | null>(null);
 
   /* ── pipeline flags (display only, guards are server-side) ── */
   const pipelineEnabled = envFlag("VITE_INTAKE_V1_ENABLED");
@@ -318,6 +333,98 @@ export const IntakeTab = () => {
     }
   };
 
+  /* ── Run all handlers ── */
+  const handleRunAllOpen = () => {
+    setRunAllResult(null);
+    setRunAllError(null);
+    setRunAllStep(null);
+    setRunAllDialogOpen(true);
+  };
+
+  const handleCloseRunAllDialog = () => {
+    if (!isRunningAll) {
+      setRunAllDialogOpen(false);
+      setRunAllResult(null);
+      setRunAllError(null);
+      setRunAllStep(null);
+    }
+  };
+
+  const handleConfirmRunAll = async () => {
+    setIsRunningAll(true);
+    setRunAllError(null);
+    setRunAllResult(null);
+    const summary = {
+      fetched: 0,
+      enriched: 0,
+      draft_approved: 0,
+      review: 0,
+      rejected: 0,
+      duplicates_skipped: 0,
+      errors: 0,
+    };
+    let currentStep: "fetch" | "enrich" | "score" = "fetch";
+    try {
+      // Step 1: fetch
+      currentStep = "fetch";
+      setRunAllStep("fetch");
+      const r1 = await supabase.functions.invoke("intake-fetch-test", {
+        body: { source: "ebay", dry_run: false },
+      });
+      if (r1.error || (r1.data as any)?.error) {
+        setRunAllError({
+          step: "fetch",
+          message: r1.error?.message || (r1.data as any)?.error || "Unknown error in intake-fetch-test",
+        });
+        return;
+      }
+      const d1: any = r1.data ?? {};
+      summary.fetched = d1.items_fetched ?? 0;
+      summary.duplicates_skipped = (d1.duplicates_skipped ?? 0) + (d1.already_in_production ?? 0);
+      summary.errors += d1.errors ?? d1.error_count ?? 0;
+
+      // Step 2: enrich
+      currentStep = "enrich";
+      setRunAllStep("enrich");
+      const r2 = await supabase.functions.invoke("intake-enrich-test");
+      if (r2.error || (r2.data as any)?.error) {
+        setRunAllError({
+          step: "enrich",
+          message: r2.error?.message || (r2.data as any)?.error || "Unknown error in intake-enrich-test",
+        });
+        return;
+      }
+      const d2: any = r2.data ?? {};
+      summary.enriched = d2.items_processed ?? 0;
+      summary.errors += d2.error_count ?? 0;
+
+      // Step 3: score
+      currentStep = "score";
+      setRunAllStep("score");
+      const r3 = await supabase.functions.invoke("intake-score-test");
+      if (r3.error || (r3.data as any)?.error) {
+        setRunAllError({
+          step: "score",
+          message: r3.error?.message || (r3.data as any)?.error || "Unknown error in intake-score-test",
+        });
+        return;
+      }
+      const d3: any = r3.data ?? {};
+      summary.draft_approved = d3.draft_approved_count ?? 0;
+      summary.review = d3.review_count ?? 0;
+      summary.rejected = d3.rules_rejected_count ?? 0;
+      summary.errors += d3.error_count ?? 0;
+
+      setRunAllResult(summary);
+      setRunAllStep(null);
+      handleRefresh();
+    } catch (e: any) {
+      setRunAllError({ step: currentStep, message: e?.message || "Unexpected error" });
+    } finally {
+      setIsRunningAll(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Permanent warning banner */}
@@ -336,6 +443,15 @@ export const IntakeTab = () => {
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xl font-heading font-semibold text-foreground">Intake pipeline v1</h2>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRunAllOpen}
+              className="gap-1.5"
+            >
+              {isRunningAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PlayCircle className="w-3.5 h-3.5" />}
+              Run all
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -756,6 +872,69 @@ export const IntakeTab = () => {
               <Button size="sm" onClick={handleConfirmScore}>Run scoring</Button>
             </DialogFooter>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Run all (full pipeline) dialog ── */}
+      <Dialog open={runAllDialogOpen} onOpenChange={handleCloseRunAllDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Run full pipeline</DialogTitle>
+            <DialogDescription>
+              This will run fetch, enrichment, and scoring in sequence. Results are stored in intake_* tables only. No live data will be affected.
+            </DialogDescription>
+          </DialogHeader>
+
+          {isRunningAll && (
+            <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {runAllStep === "fetch" && "Step 1/3 — Fetching from eBay..."}
+              {runAllStep === "enrich" && "Step 2/3 — Enriching with Claude..."}
+              {runAllStep === "score" && "Step 3/3 — Scoring with Claude..."}
+            </div>
+          )}
+
+          {runAllError && (
+            <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-900">
+              <p className="font-semibold">Step failed: {runAllError.step}</p>
+              <p className="mt-1 break-words">{runAllError.message}</p>
+            </div>
+          )}
+
+          {runAllResult && !runAllError && (
+            <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm">
+              <p className="font-semibold text-emerald-900 mb-2 flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4" /> Pipeline completed
+              </p>
+              <dl className="grid grid-cols-[max-content_auto] gap-x-4 gap-y-1 text-emerald-900">
+                <dt>Fetched:</dt><dd className="tabular-nums">{runAllResult.fetched}</dd>
+                <dt>Enriched:</dt><dd className="tabular-nums">{runAllResult.enriched}</dd>
+                <dt>Draft approved:</dt><dd className="tabular-nums">{runAllResult.draft_approved}</dd>
+                <dt>Review:</dt><dd className="tabular-nums">{runAllResult.review}</dd>
+                <dt>Rejected:</dt><dd className="tabular-nums">{runAllResult.rejected}</dd>
+                <dt>Duplicates skipped:</dt><dd className="tabular-nums">{runAllResult.duplicates_skipped}</dd>
+                <dt>Errors:</dt><dd className="tabular-nums">{runAllResult.errors}</dd>
+              </dl>
+            </div>
+          )}
+
+          <DialogFooter>
+            {runAllResult || runAllError ? (
+              <Button size="sm" variant="outline" onClick={handleCloseRunAllDialog} disabled={isRunningAll}>
+                Close
+              </Button>
+            ) : (
+              <>
+                <Button size="sm" variant="outline" onClick={handleCloseRunAllDialog} disabled={isRunningAll}>
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={handleConfirmRunAll} disabled={isRunningAll}>
+                  {isRunningAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                  Run all
+                </Button>
+              </>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
