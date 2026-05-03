@@ -132,6 +132,21 @@ export const IntakeTab = () => {
   const [scoreResult, setScoreResult] = useState<ScoreResult | null>(null);
   const [scoreError, setScoreError] = useState<string | null>(null);
 
+  /* ── Run all (full pipeline) state ── */
+  const [runAllDialogOpen, setRunAllDialogOpen] = useState(false);
+  const [isRunningAll, setIsRunningAll] = useState(false);
+  const [runAllStep, setRunAllStep] = useState<null | "fetch" | "enrich" | "score">(null);
+  const [runAllResult, setRunAllResult] = useState<{
+    fetched: number;
+    enriched: number;
+    draft_approved: number;
+    review: number;
+    rejected: number;
+    duplicates_skipped: number;
+    errors: number;
+  } | null>(null);
+  const [runAllError, setRunAllError] = useState<{ step: "fetch" | "enrich" | "score"; message: string } | null>(null);
+
   /* ── pipeline flags (display only, guards are server-side) ── */
   const pipelineEnabled = envFlag("VITE_INTAKE_V1_ENABLED");
   const killSwitch = envFlag("VITE_INTAKE_KILL_SWITCH");
