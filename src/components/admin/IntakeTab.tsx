@@ -425,7 +425,7 @@ export const IntakeTab = () => {
     }
   };
 
-
+  return (
     <div className="space-y-6">
       {/* Permanent warning banner */}
       <div className="flex items-start gap-3 rounded-md border border-amber-300 bg-amber-50 p-4 w-full">
