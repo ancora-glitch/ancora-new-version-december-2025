@@ -69,7 +69,32 @@ interface IntakeReviewQueueProps {
 export const IntakeReviewQueue = ({ refreshKey }: IntakeReviewQueueProps) => {
   const [filter, setFilter] = useState<FilterState>("all");
   const [actionLoading, setActionLoading] = useState<Record<string, string>>({});
+  const [confirmPromoteId, setConfirmPromoteId] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
+  const handleConfirmPromote = async (productId: string) => {
+    setActionLoading((prev) => ({ ...prev, [productId]: "approve" }));
+    try {
+      const { data, error } = await supabase.functions.invoke("intake-promote-product", {
+        body: { normalized_product_id: productId },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Promotion failed");
+      toast.success("Draft created in Products");
+      queryClient.invalidateQueries({ queryKey: ["intake-review-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["intake-evaluations"] });
+      queryClient.invalidateQueries({ queryKey: ["intake-queue-counts"] });
+    } catch (e: any) {
+      toast.error(e?.message || "Promotion failed");
+    } finally {
+      setActionLoading((prev) => {
+        const n = { ...prev };
+        delete n[productId];
+        return n;
+      });
+      setConfirmPromoteId(null);
+    }
+  };
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["intake-review-queue", refreshKey],
