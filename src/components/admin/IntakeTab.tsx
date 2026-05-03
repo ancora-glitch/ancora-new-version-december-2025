@@ -446,6 +446,15 @@ export const IntakeTab = () => {
             <Button
               variant="outline"
               size="sm"
+              onClick={handleRunAllOpen}
+              className="gap-1.5"
+            >
+              {isRunningAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PlayCircle className="w-3.5 h-3.5" />}
+              Run all
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleTrigger}
               className="gap-1.5"
             >
