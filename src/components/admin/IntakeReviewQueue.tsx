@@ -385,6 +385,44 @@ export const IntakeReviewQueue = ({ refreshKey }: IntakeReviewQueueProps) => {
           })}
         </div>
       )}
+
+      <AlertDialog
+        open={!!confirmPromoteId}
+        onOpenChange={(open) => {
+          if (!open && !(confirmPromoteId && actionLoading[confirmPromoteId] === "approve")) {
+            setConfirmPromoteId(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Promote to draft product?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will create a draft product in the live products table. You can review and publish it from the Products tab.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={!!(confirmPromoteId && actionLoading[confirmPromoteId] === "approve")}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!!(confirmPromoteId && actionLoading[confirmPromoteId] === "approve")}
+              onClick={(e) => {
+                e.preventDefault();
+                if (confirmPromoteId) handleConfirmPromote(confirmPromoteId);
+              }}
+            >
+              {confirmPromoteId && actionLoading[confirmPromoteId] === "approve" ? (
+                <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Promoting…</>
+              ) : (
+                "Approve & promote"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
