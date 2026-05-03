@@ -116,10 +116,35 @@ interface ScoreResult {
   errors: number;
 }
 
+type SourceChoice = "auto" | "ebay" | "redesignedby";
+
+async function getNextAlternatingSource(): Promise<"ebay" | "redesignedby"> {
+  const { data } = await supabase
+    .from("intake_run_logs" as any)
+    .select("source")
+    .eq("run_type", "fetch")
+    .in("source", ["ebay", "redesignedby"])
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const last = (data as any)?.source;
+  if (last === "ebay") return "redesignedby";
+  if (last === "redesignedby") return "ebay";
+  return "ebay";
+}
+
+const fnForSource = (s: "ebay" | "redesignedby") =>
+  s === "redesignedby" ? "intake-fetch-redesignedby" : "intake-fetch-test";
+
+const bodyForSource = (s: "ebay" | "redesignedby", dryRun: boolean) =>
+  s === "redesignedby" ? { dry_run: dryRun } : { source: "ebay", dry_run: dryRun };
+
 export const IntakeTab = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [confirmMode, setConfirmMode] = useState<"dry" | "live" | null>(null);
+  const [sourceChoice, setSourceChoice] = useState<SourceChoice>("auto");
+  const [nextAutoSource, setNextAutoSource] = useState<"ebay" | "redesignedby">("ebay");
   const [isRunning, setIsRunning] = useState(false);
   const [runResult, setRunResult] = useState<RunResult | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
@@ -188,11 +213,14 @@ export const IntakeTab = () => {
   const totalQueue = queueCounts ? Object.values(queueCounts).reduce((a, b) => a + b, 0) : 0;
 
   /* ── Trigger run ── */
-  const handleTrigger = () => {
+  const handleTrigger = async () => {
     setRunResult(null);
     setRunError(null);
     setConfirmMode(null);
+    setSourceChoice("auto");
     setDialogOpen(true);
+    const next = await getNextAlternatingSource();
+    setNextAutoSource(next);
   };
 
   const handleSelectMode = (mode: "dry" | "live") => {
@@ -206,12 +234,15 @@ export const IntakeTab = () => {
     setRunResult(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke("intake-fetch-test", {
-        body: { source: "ebay", dry_run: confirmMode === "dry" },
-      });
+      const resolvedSource: "ebay" | "redesignedby" =
+        sourceChoice === "auto" ? nextAutoSource : sourceChoice;
+      const fnName = fnForSource(resolvedSource);
+      const body = bodyForSource(resolvedSource, confirmMode === "dry");
+
+      const { data, error } = await supabase.functions.invoke(fnName, { body });
 
       if (error) {
-        setRunError(error.message || "Unknown error calling intake-fetch-test");
+        setRunError(error.message || `Unknown error calling ${fnName}`);
         return;
       }
 
@@ -245,6 +276,7 @@ export const IntakeTab = () => {
       setConfirmMode(null);
       setRunResult(null);
       setRunError(null);
+      setSourceChoice("auto");
     }
   };
 
@@ -368,13 +400,15 @@ export const IntakeTab = () => {
       // Step 1: fetch
       currentStep = "fetch";
       setRunAllStep("fetch");
-      const r1 = await supabase.functions.invoke("intake-fetch-test", {
-        body: { source: "ebay", dry_run: false },
+      const nextSrc = await getNextAlternatingSource();
+      const fetchFn = fnForSource(nextSrc);
+      const r1 = await supabase.functions.invoke(fetchFn, {
+        body: bodyForSource(nextSrc, false),
       });
       if (r1.error || (r1.data as any)?.error) {
         setRunAllError({
           step: "fetch",
-          message: r1.error?.message || (r1.data as any)?.error || "Unknown error in intake-fetch-test",
+          message: r1.error?.message || (r1.data as any)?.error || `Unknown error in ${fetchFn}`,
         });
         return;
       }
@@ -682,7 +716,31 @@ export const IntakeTab = () => {
           {!isRunning && !runResult && !runError && (
             <>
               {confirmMode === null ? (
-                <div className="space-y-2 py-2">
+                <div className="space-y-3 py-2">
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Source
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(["auto", "ebay", "redesignedby"] as SourceChoice[]).map((opt) => (
+                        <Button
+                          key={opt}
+                          type="button"
+                          variant={sourceChoice === opt ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSourceChoice(opt)}
+                          className="text-xs"
+                        >
+                          {opt === "auto" ? "Auto (alternating)" : opt === "ebay" ? "eBay only" : "ReDesignedBy only"}
+                        </Button>
+                      ))}
+                    </div>
+                    {sourceChoice === "auto" && (
+                      <p className="text-xs text-muted-foreground">
+                        Next source: {nextAutoSource === "redesignedby" ? "ReDesignedBy" : "eBay"}
+                      </p>
+                    )}
+                  </div>
                   <Button
                     variant="outline"
                     className="w-full justify-start gap-3 h-auto py-3 px-4"
@@ -714,9 +772,16 @@ export const IntakeTab = () => {
                 <div className="space-y-4 py-2">
                   <div className="rounded-md border border-amber-300 bg-amber-50 p-3">
                     <p className="text-sm text-amber-900">
-                      This will fetch up to {batchLimit || "10"} items from eBay into the test pipeline. No live data will be affected.
+                      This will fetch up to {batchLimit || "10"} items into the test pipeline. No live data will be affected.
                     </p>
                   </div>
+                  <p className="text-sm text-muted-foreground">
+                    Source: <span className="font-medium text-foreground">
+                      {sourceChoice === "auto"
+                        ? `Auto (next: ${nextAutoSource === "redesignedby" ? "ReDesignedBy" : "eBay"})`
+                        : sourceChoice === "redesignedby" ? "ReDesignedBy only" : "eBay only"}
+                    </span>
+                  </p>
                   <p className="text-sm text-muted-foreground">
                     Mode: <span className="font-medium text-foreground">
                       {confirmMode === "dry" ? "Dry run (no writes)" : "Live run (writes to intake tables)"}
