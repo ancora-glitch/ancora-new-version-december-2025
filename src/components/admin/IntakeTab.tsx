@@ -400,8 +400,10 @@ export const IntakeTab = () => {
       // Step 1: fetch
       currentStep = "fetch";
       setRunAllStep("fetch");
-      const r1 = await supabase.functions.invoke("intake-fetch-test", {
-        body: { source: "ebay", dry_run: false },
+      const nextSrc = await getNextAlternatingSource();
+      const fetchFn = fnForSource(nextSrc);
+      const r1 = await supabase.functions.invoke(fetchFn, {
+        body: bodyForSource(nextSrc, false),
       });
       if (r1.error || (r1.data as any)?.error) {
         setRunAllError({
