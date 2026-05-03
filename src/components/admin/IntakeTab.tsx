@@ -213,11 +213,14 @@ export const IntakeTab = () => {
   const totalQueue = queueCounts ? Object.values(queueCounts).reduce((a, b) => a + b, 0) : 0;
 
   /* ── Trigger run ── */
-  const handleTrigger = () => {
+  const handleTrigger = async () => {
     setRunResult(null);
     setRunError(null);
     setConfirmMode(null);
+    setSourceChoice("auto");
     setDialogOpen(true);
+    const next = await getNextAlternatingSource();
+    setNextAutoSource(next);
   };
 
   const handleSelectMode = (mode: "dry" | "live") => {
@@ -231,12 +234,15 @@ export const IntakeTab = () => {
     setRunResult(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke("intake-fetch-test", {
-        body: { source: "ebay", dry_run: confirmMode === "dry" },
-      });
+      const resolvedSource: "ebay" | "redesignedby" =
+        sourceChoice === "auto" ? nextAutoSource : sourceChoice;
+      const fnName = fnForSource(resolvedSource);
+      const body = bodyForSource(resolvedSource, confirmMode === "dry");
+
+      const { data, error } = await supabase.functions.invoke(fnName, { body });
 
       if (error) {
-        setRunError(error.message || "Unknown error calling intake-fetch-test");
+        setRunError(error.message || `Unknown error calling ${fnName}`);
         return;
       }
 
@@ -270,6 +276,7 @@ export const IntakeTab = () => {
       setConfirmMode(null);
       setRunResult(null);
       setRunError(null);
+      setSourceChoice("auto");
     }
   };
 
