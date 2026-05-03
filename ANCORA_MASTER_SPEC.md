@@ -734,6 +734,102 @@ Rate Limiting:
 - 300ms delay between individual product imports
 - 15s timeout per API request
 
+  4.5 ReDesignedBy Import (Partner Importer)
+
+Data Source:
+Custom Supabase Edge Functions (not public Shopify JSON)
+BASE_URL: https://wiuiatrnvqyclntzwirz.supabase.co/functions/v1
+Endpoints: POST /redesignedby-search, POST /redesignedby-item
+
+Revenue Model:
+Commission on purchase (10%) — not affiliate clicks.
+The price returned by the API already includes the 10% markup.
+Display it as-is — never add additional markup.
+Designer earnings are calculated from the base price and are unaffected.
+
+Example: base price 1,000 SEK → API returns 1,100 SEK →
+Ancora displays 1,100 SEK → customer pays 1,100 SEK →
+Ancora earns 100 SEK commission.
+
+Affiliate URL:
+affiliateUrl is constructed by ReDesignedBy and contains correct
+UTM tracking. Always use affiliateUrl for outbound links — never
+modify it. Never use productUrl for clicks.
+
+Format:
+https://redesignedby.se/product/{handle}
+?utm_source=ancora&utm_medium=affiliate&utm_campaign=ancora_main
+
+Auth:
+Catalog endpoints (redesignedby-search, redesignedby-item) are
+public — no token required. Safe to call from browser.
+Stats endpoint requires Bearer token — handled server-side via
+redesignedby-stats proxy (verify_jwt=true). Token stored as
+Supabase secret (RDBY_API_TOKEN), never in client code.
+
+Import Rules:
+
+- Marketplace enum: redesignedby
+- Status on import: always draft, never auto-publish
+- Max per run: 10 (manual import, no cron)
+- No quota guard required (public API)
+- Cron jobs: not applicable in v1
+
+Field Invariants:
+Fields never modified by import:
+brand, price, currency, affiliate_url, slug, images, tags
+
+Fields always written as triplet:
+title / title_original / title_en
+description / description_original / description_en
+
+Translation:
+The ReDesignedBy catalog is in Swedish. All imports run through
+translateImport() before importMutation.mutateAsync():
+
+- Heuristic first (isLikelyEnglish) — skips AI if text is English
+- Otherwise: translate-swedish Edge Function (non-blocking)
+- On failure: translated_at = null, backfill job cleans up
+- language column reflects source language ("sv" or "en")
+
+Fields translated: title, description
+Fields never translated: brand, price, currency, affiliate_url,
+slug, images, numeric sizes, tags
+
+Commission and Reporting:
+Stats fetched via GET /partner-stats (server-side proxy).
+Commission flow: pending → approved (14 days after purchase) → paid.
+On return/cancellation: → reversed.
+Attribution cookie window: 30 days, first-touch.
+
+Isolation Rule:
+The ReDesignedBy importer is fully isolated from Tradera and eBay
+import flows. It does not share quota counters, retry queues, or
+cron jobs with other importers.
+Edge functions: redesignedby-search, redesignedby-item,
+redesignedby-stats (separate from tradera-_ and ebay-_).
+
+Deduplication:
+Products are deduplicated by handle (source_ref) and affiliate_url
+against the products table. Items already imported show
+"Already imported" in the search UI.
+
+Components:
+
+- supabase/functions/redesignedby-search/index.ts
+- supabase/functions/redesignedby-item/index.ts
+- supabase/functions/redesignedby-stats/index.ts (stats proxy)
+- src/components/admin/ReDesignedBySearchDrawer.tsx
+- src/lib/rdby.ts
+- src/lib/languageDetect.ts (shared — also used by other importers)
+- src/lib/translateImport.ts (shared — also used by other importers)
+
+Pending:
+
+- New API token from ReDesignedBy (old token exposed — must be
+  regenerated before stats endpoint is activated)
+- Manual import test: verify title_en ≠ title_original
+
 5. EDITORIAL WORKFLOW
    5.1 Products
    States:
