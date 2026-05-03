@@ -69,3 +69,6 @@ verify_jwt = false
 [functions.intake-fetch-redesignedby]
 verify_jwt = false
 
+[functions.intake-promote-product]
+verify_jwt = false
+
