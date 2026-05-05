@@ -50,7 +50,7 @@ const Terms = () => {
 
             <h2 className="article-subheader">3. Prices & Availability</h2>
             <p>
-              All prices are set by third-party sellers and may change at any time. Ancora has no control over pricing.<br />
+              All prices are set by third-party sellers and may change at any time. Ancora has no control over pricing.<br /><br />
               With some partners prices may be different depending on if you click to their product site via Ancora or on their direct site - this is because we provide a service - curating and editorial content - a slightly higher price may appear with some partners.
             </p>
             <p>
