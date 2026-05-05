@@ -556,7 +556,10 @@ Deno.serve(async (req) => {
         affiliate_url: affiliateUrl,
         title_raw: title,
         title_clean: title,
-        description_raw: item.shortDescription || null,
+        description_raw:
+          (externalId
+            ? await fetchEbayItemDescription(externalId, tokenResult.token)
+            : null) || stripHtml(item.shortDescription),
         brand,
         category,
         color: null,
