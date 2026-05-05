@@ -131,18 +131,25 @@ Deno.serve(async (req) => {
     if (cat) categoryId = cat.id;
   }
 
+  const capFirst = (s: unknown): string | null => {
+    if (typeof s !== "string") return null;
+    const t = s.trim();
+    if (!t) return null;
+    return t.charAt(0).toUpperCase() + t.slice(1);
+  };
+
   const insertRow: Record<string, unknown> = {
-    brand: intake.brand ?? "Unknown",
-    name: title,
-    name_en: intake.title_clean ?? null,
-    name_original: intake.title_raw ?? null,
-    description: intake.description_raw ?? null,
-    description_en: intake.description_raw ?? null,
+    brand: capFirst(intake.brand) ?? "Unknown",
+    name: capFirst(title) ?? "Untitled",
+    name_en: capFirst(intake.title_clean),
+    name_original: capFirst(intake.title_raw),
+    description: capFirst(intake.description_raw),
+    description_en: capFirst(intake.description_raw),
     price: priceText,
-    size: intake.size ?? null,
-    color: intake.color ?? null,
-    material: intake.material ?? null,
-    condition: intake.condition ?? null,
+    size: capFirst(intake.size),
+    color: capFirst(intake.color),
+    material: capFirst(intake.material),
+    condition: capFirst(intake.condition),
     affiliate_url: intake.affiliate_url ?? null,
     marketplace: intake.source ?? null,
     image: heroImage,
