@@ -62,6 +62,49 @@ function normalizeImageUrl(url: string): string {
   return url.replace(/s-l(64|140|225|300|400|500)\b/gi, "s-l1600");
 }
 
+function stripHtml(html: string | null | undefined): string | null {
+  if (!html) return null;
+  const cleaned = html
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&apos;/gi, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned || null;
+}
+
+async function fetchEbayItemDescription(
+  itemId: string,
+  token: string,
+): Promise<string | null> {
+  try {
+    const url = `${getEbayBaseUrl()}/buy/browse/v1/item/${encodeURIComponent(itemId)}`;
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "X-EBAY-C-MARKETPLACE-ID": "EBAY_GB",
+        "Content-Type": "application/json",
+      },
+    });
+    if (!res.ok) {
+      console.warn(`getItem failed for ${itemId}: ${res.status}`);
+      return null;
+    }
+    const data = await res.json();
+    return stripHtml(data.description) || stripHtml(data.shortDescription);
+  } catch (e: any) {
+    console.warn(`getItem error for ${itemId}:`, e.message);
+    return null;
+  }
+}
+
 /* ── eBay condition → Ancora condition ── */
 function mapCondition(cid: string | undefined): string {
   const m: Record<string, string> = {
