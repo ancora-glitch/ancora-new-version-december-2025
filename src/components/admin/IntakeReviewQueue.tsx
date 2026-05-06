@@ -192,9 +192,23 @@ export const IntakeReviewQueue = ({ refreshKey }: IntakeReviewQueueProps) => {
     return scoreB - scoreA;
   });
 
-  const filteredProducts = filter === "all"
+  const stateFiltered = filter === "all"
     ? sortedProducts
     : sortedProducts.filter((p) => p.current_queue_state === filter);
+
+  const now = Date.now();
+  const dateThreshold =
+    dateFilter === "today" ? new Date(new Date().setHours(0, 0, 0, 0)).getTime()
+    : dateFilter === "7d" ? now - 7 * 24 * 60 * 60 * 1000
+    : null;
+
+  const filteredProducts = dateThreshold == null
+    ? stateFiltered
+    : stateFiltered.filter((p) => {
+        if (!p.created_at) return false;
+        const t = new Date(p.created_at).getTime();
+        return !isNaN(t) && t >= dateThreshold;
+      });
 
   const handleAction = async (
     productId: string,
