@@ -2423,7 +2423,7 @@ Edge: getCorsHeaders(req) allows .lovable.app + .lovableproject.com, sets Vary: 
 F-19 Stories workflow (draft/published/archived)
 Owner: DB + Admin Stories UI
 
-Touches: Public stories routes
+Touches: Public stories routes, Inline product embeds (F-22) rendered via StoryBody
 
 Key paths:
 
