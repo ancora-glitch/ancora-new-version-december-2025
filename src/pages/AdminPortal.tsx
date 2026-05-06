@@ -1885,6 +1885,65 @@ const AdminPortal = () => {
                 </DialogContent>
               </Dialog>
 
+              {/* Product Picker Dialog (for inline product cards in story body) */}
+              <Dialog open={showProductPicker} onOpenChange={(open) => { setShowProductPicker(open); if (!open) setProductPickerSearch(""); }}>
+                <DialogContent className="max-w-lg max-h-[70vh] flex flex-col">
+                  <DialogHeader>
+                    <DialogTitle>Insert Product Card</DialogTitle>
+                  </DialogHeader>
+                  <Input
+                    value={productPickerSearch}
+                    onChange={(e) => setProductPickerSearch(e.target.value)}
+                    placeholder="Search by brand or name…"
+                    className="bg-background border-border"
+                  />
+                  <div className="space-y-2 overflow-y-auto flex-1">
+                    {(() => {
+                      const q = productPickerSearch.toLowerCase();
+                      const list = (products || []).filter((p: any) =>
+                        p.slug && (!q || p.brand?.toLowerCase().includes(q) || p.name?.toLowerCase().includes(q))
+                      );
+                      if (list.length === 0) {
+                        return <p className="text-sm text-muted-foreground text-center py-4">No matching products.</p>;
+                      }
+                      return list.slice(0, 50).map((product: any) => (
+                        <div
+                          key={product.id}
+                          className="flex items-center gap-3 p-2 border border-border rounded-sm hover:bg-secondary/20 cursor-pointer transition-colors"
+                          onClick={() => {
+                            const token = `[[product:${product.slug}]]`;
+                            const textarea = document.getElementById("storyBody") as HTMLTextAreaElement | null;
+                            if (textarea) {
+                              const start = textarea.selectionStart;
+                              const text = storyBody;
+                              const before = text.substring(0, start);
+                              const after = text.substring(start);
+                              const needsBefore = before.length > 0 && !before.endsWith("\n");
+                              const needsAfter = after.length > 0 && !after.startsWith("\n");
+                              setStoryBody(before + (needsBefore ? "\n\n" : "") + token + (needsAfter ? "\n\n" : "") + after);
+                            } else {
+                              setStoryBody(storyBody + "\n\n" + token + "\n\n");
+                            }
+                            setShowProductPicker(false);
+                            setProductPickerSearch("");
+                            toast.success("Product inserted");
+                          }}
+                        >
+                          {product.image && (
+                            <img src={product.image} alt={product.name} className="w-10 h-12 object-cover rounded-sm" />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs uppercase tracking-wide text-muted-foreground truncate">{product.brand}</div>
+                            <div className="text-sm truncate">{product.name}</div>
+                          </div>
+                          <span className="text-xs text-muted-foreground">{product.price}</span>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </DialogContent>
+              </Dialog>
+
               {/* Stories List */}
               <div>
                 <div className="flex items-center justify-between mb-6">
