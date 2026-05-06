@@ -1,50 +1,54 @@
-## Goal
-Allow editors to insert a link to an internal product inside a Story's body. The link renders as a small card with image and title (and price), placed inline in the article and clicking it opens the product detail page.
+# Plan: Uppdatera ANCORA_MASTER_SPEC.md med Inline product embeds
 
-## UX
+## Mål
+Dokumentera dagens leverans (inbäddade produktkort i Stories) i master spec som ny feature **F-22**, samt lägga till render-invarianten i relevant befintlig sektion.
 
-**Editor (Admin → Stories)**
-- New toolbar button next to "Insert Image" called **"Insert Product"**.
-- Opens a dialog with a search field that filters across all products (brand + name).
-- Clicking a product inserts a token at the cursor position in the body, e.g.:
+## Ändringar i `ANCORA_MASTER_SPEC.md`
 
-  ```
-  [[product:product-slug-here]]
-  ```
+### 1. Ny feature F-22 (efter F-21, runt rad 2457)
+Lägga in en ny sektion:
 
-- Same insertion logic as inline images (handles surrounding newlines).
+```
+F-22 Inline product embeds in Stories
+Owner: Stories editor + StoryBody renderer
 
-**Reader (public Story page)**
-- The token is rendered as a small inline product card:
+Touches: Story body rendering (public + preview), Admin Story editor
 
-  ```text
-  ┌──────────────────────────────────────┐
-  │ [img]  Brand Name                    │
-  │        Product name                  │
-  │        Price         →               │
-  └──────────────────────────────────────┘
-  ```
-- Whole card is a link to `/product/<slug>`.
-- Styled with existing tokens (border, bg-card, hover state matching other interactive cards per memory).
-- If product no longer exists / is unavailable → token is silently removed (no broken card).
+Key paths:
 
-## Technical Plan
+FE renderer: src/components/StoryBody.tsx (centralized body renderer)
 
-**Files touched (frontend only, presentation layer):**
-1. `src/pages/AdminPortal.tsx` — add "Insert Product" button + product picker dialog (mirrors existing inline-image dialog). Reuses `useAllProducts()`.
-2. `src/pages/StyleGuide.tsx` — body renderer: detect `[[product:<slug>]]` tokens, fetch the referenced products once via Supabase, replace tokens with React-rendered cards.
-3. `src/pages/StoryPreview.tsx` — same renderer change so preview matches public.
+FE consumers: src/pages/StyleGuide.tsx, src/pages/StoryPreview.tsx
 
-**Renderer approach**
-- Currently body is rendered with `dangerouslySetInnerHTML`. To embed real React `<Link>` cards, switch to splitting the body into segments: HTML chunks (existing markdown/image processing) and product-card chunks. Render the array as: `<div dangerouslySetInnerHTML />` for HTML segments and `<ProductInlineCard slug=… />` for tokens.
-- New small component `ProductInlineCard` (can live in `src/components/`) that accepts a slug + product object and renders the card.
-- Fetch all referenced products in one query: `supabase.from('products').select('slug,brand,name,price,image').in('slug', slugs)`.
+Admin: src/pages/AdminPortal.tsx (Story editor "Insert Product" action)
 
-**No changes to:**
-- Database schema (slug already lives in body text)
-- Edge functions
-- Data sync, intake, or any non-Stories component
+Token format: [[product:<slug>]]
+- slug matches /^[a-z0-9-]+$/
+- Resolved at render time via single Supabase query on products(slug,brand,name,price,image)
+- Missing/unpublished slug → silently omitted (no broken state)
 
-## Out of scope
-- Product picker for the homepage / weekly edit (already exists separately).
-- Updating older stories — they continue to render exactly as today; only the new token is special.
+Rendering invariant: Story body MUST be rendered through <StoryBody />.
+No direct dangerouslySetInnerHTML on story body in any view.
+StoryBody preserves existing markdown helpers (inline images ![cap](url),
+**bold**, *italic*) and sanitizes via DOMPurify.
+
+Admin UX: "Insert Product" button in Story editor opens product picker
+(search by brand/name) and inserts the token at the caret. Manual entry of
+the token is supported but discouraged.
+
+Out of scope: no schema change (body remains text), no changes to cron,
+quota, enums, or editorial-field protection.
+```
+
+### 2. Uppdatera Stories-sektionen (rad ~934, "5.2 Stories / Style Guides")
+Lägga till en kort rad under befintlig beskrivning:
+- "Body supports inline product embeds via `[[product:<slug>]]` tokens — see F-22."
+
+### 3. Uppdatera F-19 (rad 2421) "Touches"
+Lägga till: "Inline product embeds (F-22) rendered via StoryBody."
+
+## Memory-uppdatering (separat)
+Lägga till en ny minnesfil `mem://features/stories/inline-product-embeds` med token-format + render-invariant, och länka in den under "Pages & Sections" i `mem://index.md`.
+
+## Inga kodändringar
+Endast spec- och memory-dokumentation. Inga filer under `src/` eller `supabase/` rörs.
