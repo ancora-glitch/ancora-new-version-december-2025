@@ -13,7 +13,7 @@ import { useAllCategories, type Category, type CategoryStatus } from "@/hooks/us
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Trash2, Pencil, X, GripVertical, Bold, Italic, RefreshCw, Loader2, Image as ImageIcon, Eye, EyeOff, Star, Search } from "lucide-react";
+import { Trash2, Pencil, X, GripVertical, Bold, Italic, RefreshCw, Loader2, Image as ImageIcon, Eye, EyeOff, Star, Search, Plus } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StorageImagePicker } from "@/components/StorageImagePicker";
@@ -269,6 +269,8 @@ const AdminPortal = () => {
   const [showInlineImagePicker, setShowInlineImagePicker] = useState(false);
   const [inlineImageCaption, setInlineImageCaption] = useState("");
   const [selectedInlineImage, setSelectedInlineImage] = useState<string[]>([]);
+  const [showProductPicker, setShowProductPicker] = useState(false);
+  const [productPickerSearch, setProductPickerSearch] = useState("");
 
   // Product form state
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
@@ -1773,9 +1775,19 @@ const AdminPortal = () => {
                       <ImageIcon className="w-4 h-4" />
                       Insert Image
                     </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowProductPicker(true)}
+                      className="gap-1"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Insert Product
+                    </Button>
                   </div>
                   <p className="text-xs text-muted-foreground mb-2">
-                    Use **text** for bold, *text* for italic, and ![caption](url) for images
+                    Use **text** for bold, *text* for italic, ![caption](url) for images, and [[product:slug]] for product cards
                   </p>
                   <Textarea id="storyBody" value={storyBody} onChange={(e) => setStoryBody(e.target.value)} placeholder="The full story content..." className="bg-background border-border min-h-[200px] font-mono text-sm" />
                 </div>
@@ -1869,6 +1881,65 @@ const AdminPortal = () => {
                         Insert Image
                       </Button>
                     </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Product Picker Dialog (for inline product cards in story body) */}
+              <Dialog open={showProductPicker} onOpenChange={(open) => { setShowProductPicker(open); if (!open) setProductPickerSearch(""); }}>
+                <DialogContent className="max-w-lg max-h-[70vh] flex flex-col">
+                  <DialogHeader>
+                    <DialogTitle>Insert Product Card</DialogTitle>
+                  </DialogHeader>
+                  <Input
+                    value={productPickerSearch}
+                    onChange={(e) => setProductPickerSearch(e.target.value)}
+                    placeholder="Search by brand or name…"
+                    className="bg-background border-border"
+                  />
+                  <div className="space-y-2 overflow-y-auto flex-1">
+                    {(() => {
+                      const q = productPickerSearch.toLowerCase();
+                      const list = (products || []).filter((p: any) =>
+                        p.slug && (!q || p.brand?.toLowerCase().includes(q) || p.name?.toLowerCase().includes(q))
+                      );
+                      if (list.length === 0) {
+                        return <p className="text-sm text-muted-foreground text-center py-4">No matching products.</p>;
+                      }
+                      return list.slice(0, 50).map((product: any) => (
+                        <div
+                          key={product.id}
+                          className="flex items-center gap-3 p-2 border border-border rounded-sm hover:bg-secondary/20 cursor-pointer transition-colors"
+                          onClick={() => {
+                            const token = `[[product:${product.slug}]]`;
+                            const textarea = document.getElementById("storyBody") as HTMLTextAreaElement | null;
+                            if (textarea) {
+                              const start = textarea.selectionStart;
+                              const text = storyBody;
+                              const before = text.substring(0, start);
+                              const after = text.substring(start);
+                              const needsBefore = before.length > 0 && !before.endsWith("\n");
+                              const needsAfter = after.length > 0 && !after.startsWith("\n");
+                              setStoryBody(before + (needsBefore ? "\n\n" : "") + token + (needsAfter ? "\n\n" : "") + after);
+                            } else {
+                              setStoryBody(storyBody + "\n\n" + token + "\n\n");
+                            }
+                            setShowProductPicker(false);
+                            setProductPickerSearch("");
+                            toast.success("Product inserted");
+                          }}
+                        >
+                          {product.image && (
+                            <img src={product.image} alt={product.name} className="w-10 h-12 object-cover rounded-sm" />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs uppercase tracking-wide text-muted-foreground truncate">{product.brand}</div>
+                            <div className="text-sm truncate">{product.name}</div>
+                          </div>
+                          <span className="text-xs text-muted-foreground">{product.price}</span>
+                        </div>
+                      ));
+                    })()}
                   </div>
                 </DialogContent>
               </Dialog>

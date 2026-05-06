@@ -3,56 +3,9 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useStyleGuidePreview } from "@/hooks/useStyleGuides";
 import { ArrowLeft } from "lucide-react";
-import DOMPurify from "dompurify";
+import { StoryBody } from "@/components/StoryBody";
 import { SmartCropImage } from "@/components/SmartCropImage";
 import { Badge } from "@/components/ui/badge";
-
-// Reuse the same formatting logic from StyleGuide
-const convertInlineImages = (text: string): string => {
-  return text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, caption, url) => {
-    const captionHtml = caption ? `<figcaption class="article-image-caption">${caption}</figcaption>` : '';
-    return `</p><figure class="article-inline-image"><img src="${url}" alt="${caption || 'Article image'}" loading="lazy" />${captionHtml}</figure><p>`;
-  });
-};
-
-const convertMarkdownFormatting = (text: string): string => {
-  let result = convertInlineImages(text);
-  result = result.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  result = result.replace(/\*(.+?)\*/g, '<em>$1</em>');
-  return result;
-};
-
-const formatBodyContent = (body: string): string => {
-  if (/<(p|div|h[1-6]|ul|ol|li|blockquote)[^>]*>/i.test(body)) {
-    return convertMarkdownFormatting(body);
-  }
-
-  const lines = body.split(/\n/);
-  const result: string[] = [];
-  let currentParagraph: string[] = [];
-
-  const flushParagraph = () => {
-    if (currentParagraph.length > 0) {
-      const content = convertMarkdownFormatting(currentParagraph.join('<br>'));
-      result.push(`<p>${content}</p>`);
-      currentParagraph = [];
-    }
-  };
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) { flushParagraph(); continue; }
-    if (/^\d+\.\s/.test(trimmed)) {
-      flushParagraph();
-      const content = convertMarkdownFormatting(trimmed);
-      result.push(`<p>${content}</p>`);
-      continue;
-    }
-    currentParagraph.push(trimmed);
-  }
-  flushParagraph();
-  return result.join('\n');
-};
 
 const StoryPreview = () => {
   const { id } = useParams<{ id: string }>();
@@ -154,7 +107,8 @@ const StoryPreview = () => {
                 <p className="article-intro">{guide.intro_text}</p>
                 <div className="w-16 h-px bg-primary/30 mb-12" />
 
-                <div
+                <StoryBody
+                  body={guide.body}
                   className="prose prose-lg max-w-none prose-editorial
                     prose-headings:font-heading prose-headings:text-primary prose-headings:font-semibold
                     prose-h2:text-xl prose-h2:md:text-2xl prose-h2:mt-14 prose-h2:mb-8
@@ -168,7 +122,6 @@ const StoryPreview = () => {
                     prose-ol:text-foreground prose-ol:list-decimal prose-ol:pl-6 prose-ol:space-y-4 prose-ol:my-10
                     prose-li:mb-4 prose-li:pl-2 prose-li:leading-[1.8] prose-li:text-[17px] prose-li:marker:text-primary prose-li:marker:font-semibold
                     prose-img:rounded-[5px] prose-img:shadow-none prose-img:my-10"
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatBodyContent(guide.body), { ADD_TAGS: ['figure', 'figcaption'], ADD_ATTR: ['loading', 'class', 'src', 'alt'] }) }}
                 />
               </div>
             </article>
