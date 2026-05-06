@@ -269,6 +269,8 @@ const AdminPortal = () => {
   const [showInlineImagePicker, setShowInlineImagePicker] = useState(false);
   const [inlineImageCaption, setInlineImageCaption] = useState("");
   const [selectedInlineImage, setSelectedInlineImage] = useState<string[]>([]);
+  const [showProductPicker, setShowProductPicker] = useState(false);
+  const [productPickerSearch, setProductPickerSearch] = useState("");
 
   // Product form state
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
