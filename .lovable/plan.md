@@ -1,33 +1,50 @@
-## Två fixar för intake → product promotion
+## Goal
+Allow editors to insert a link to an internal product inside a Story's body. The link renders as a small card with image and title (and price), placed inline in the article and clicking it opens the product detail page.
 
-### 1. Capitalize text fields i `intake-promote-product`
-Lägg till en `capFirst()` helper i `supabase/functions/intake-promote-product/index.ts` och applicera på alla textfält innan insert i `products`:
-- `brand`, `name`, `name_en`, `name_original`
-- `description`, `description_en`
-- `color`, `material`, `condition`, `size`
+## UX
 
-Helper:
-```ts
-const capFirst = (s: string | null | undefined) =>
-  s ? s.trim().charAt(0).toUpperCase() + s.trim().slice(1) : s ?? null;
-```
+**Editor (Admin → Stories)**
+- New toolbar button next to "Insert Image" called **"Insert Product"**.
+- Opens a dialog with a search field that filters across all products (brand + name).
+- Clicking a product inserts a token at the cursor position in the body, e.g.:
 
-### 2. Hämta full description från eBay i `intake-fetch-test`
-I `supabase/functions/intake-fetch-test/index.ts`, för varje eBay-item, gör ett extra `getItem`-anrop till Browse API (`/buy/browse/v1/item/{itemId}`) för att hämta fält `description` (full HTML), eftersom search-resultat ofta saknar eller har tom `shortDescription`.
+  ```
+  [[product:product-slug-here]]
+  ```
 
-- Strippa HTML-taggar och decode entities
-- Fallback till `shortDescription` om full fetch failar
-- Skriv till `description_raw` i `intake_normalized_products`
+- Same insertion logic as inline images (handles surrounding newlines).
 
-```ts
-const itemRes = await fetch(`${ebayBase}/buy/browse/v1/item/${encodeURIComponent(externalId)}`, {
-  headers: { Authorization: `Bearer ${token}`, 'X-EBAY-C-MARKETPLACE-ID': 'EBAY_GB' }
-});
-// strip HTML + decode entities, fallback to shortDescription
-```
+**Reader (public Story page)**
+- The token is rendered as a small inline product card:
 
-### Constraints
-- Inga andra edge functions modifieras
-- Inga nya tabeller eller migrations
-- Quota/cron-invarianter oförändrade
-- Endast minimal yta i de två filerna
+  ```text
+  ┌──────────────────────────────────────┐
+  │ [img]  Brand Name                    │
+  │        Product name                  │
+  │        Price         →               │
+  └──────────────────────────────────────┘
+  ```
+- Whole card is a link to `/product/<slug>`.
+- Styled with existing tokens (border, bg-card, hover state matching other interactive cards per memory).
+- If product no longer exists / is unavailable → token is silently removed (no broken card).
+
+## Technical Plan
+
+**Files touched (frontend only, presentation layer):**
+1. `src/pages/AdminPortal.tsx` — add "Insert Product" button + product picker dialog (mirrors existing inline-image dialog). Reuses `useAllProducts()`.
+2. `src/pages/StyleGuide.tsx` — body renderer: detect `[[product:<slug>]]` tokens, fetch the referenced products once via Supabase, replace tokens with React-rendered cards.
+3. `src/pages/StoryPreview.tsx` — same renderer change so preview matches public.
+
+**Renderer approach**
+- Currently body is rendered with `dangerouslySetInnerHTML`. To embed real React `<Link>` cards, switch to splitting the body into segments: HTML chunks (existing markdown/image processing) and product-card chunks. Render the array as: `<div dangerouslySetInnerHTML />` for HTML segments and `<ProductInlineCard slug=… />` for tokens.
+- New small component `ProductInlineCard` (can live in `src/components/`) that accepts a slug + product object and renders the card.
+- Fetch all referenced products in one query: `supabase.from('products').select('slug,brand,name,price,image').in('slug', slugs)`.
+
+**No changes to:**
+- Database schema (slug already lives in body text)
+- Edge functions
+- Data sync, intake, or any non-Stories component
+
+## Out of scope
+- Product picker for the homepage / weekly edit (already exists separately).
+- Updating older stories — they continue to render exactly as today; only the new token is special.
