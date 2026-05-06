@@ -1775,9 +1775,19 @@ const AdminPortal = () => {
                       <ImageIcon className="w-4 h-4" />
                       Insert Image
                     </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowProductPicker(true)}
+                      className="gap-1"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Insert Product
+                    </Button>
                   </div>
                   <p className="text-xs text-muted-foreground mb-2">
-                    Use **text** for bold, *text* for italic, and ![caption](url) for images
+                    Use **text** for bold, *text* for italic, ![caption](url) for images, and [[product:slug]] for product cards
                   </p>
                   <Textarea id="storyBody" value={storyBody} onChange={(e) => setStoryBody(e.target.value)} placeholder="The full story content..." className="bg-background border-border min-h-[200px] font-mono text-sm" />
                 </div>
