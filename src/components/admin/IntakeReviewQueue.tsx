@@ -375,6 +375,18 @@ export const IntakeReviewQueue = ({ refreshKey }: IntakeReviewQueueProps) => {
                     </Badge>
                   </div>
 
+                  {/* Date labels */}
+                  {(p.created_at || ev?.evaluated_at) && (
+                    <div className="flex flex-wrap gap-2 text-[10px] text-muted-foreground">
+                      {formatDate(p.created_at) && (
+                        <span>Fetched: {formatDate(p.created_at)}</span>
+                      )}
+                      {formatDate(ev?.evaluated_at) && (
+                        <span>Scored: {formatDate(ev?.evaluated_at)}</span>
+                      )}
+                    </div>
+                  )}
+
                   {/* Flags */}
                   {ev && (
                     <div className="space-y-1">
