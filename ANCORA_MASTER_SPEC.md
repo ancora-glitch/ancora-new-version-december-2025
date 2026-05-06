@@ -2457,6 +2457,36 @@ DB: site_analytics (+ visitor_id)
 
 Admin: Statistics UI, intent rate formula
 
+F-22 Inline product embeds in Stories
+Owner: Stories editor + StoryBody renderer
+
+Touches: Story body rendering (public + preview), Admin Story editor
+
+Key paths:
+
+FE renderer: src/components/StoryBody.tsx (centralized body renderer)
+
+FE consumers: src/pages/StyleGuide.tsx, src/pages/StoryPreview.tsx
+
+Admin: src/pages/AdminPortal.tsx (Story editor "Insert Product" action)
+
+Token format: [[product:<slug>]]
+- slug matches /^[a-z0-9-]+$/
+- Resolved at render time via single Supabase query on products(slug,brand,name,price,image)
+- Missing/unpublished slug → silently omitted (no broken state)
+
+Rendering invariant: Story body MUST be rendered through <StoryBody />.
+No direct dangerouslySetInnerHTML on story body in any view. StoryBody
+preserves existing markdown helpers (inline images ![cap](url), **bold**,
+*italic*) and sanitizes via DOMPurify.
+
+Admin UX: "Insert Product" button in Story editor opens a product picker
+(search by brand/name) and inserts the token at the caret. Manual entry
+of the token is supported but discouraged.
+
+Out of scope: no schema change (body remains text), no changes to cron,
+quota, enums, or editorial-field protection.
+
 17.1 How to reference features in future prompts
 When you ask an AI to change something, use:
 Feature ID (e.g. F-08)
