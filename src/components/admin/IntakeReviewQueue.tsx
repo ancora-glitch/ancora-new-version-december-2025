@@ -82,6 +82,7 @@ interface IntakeReviewQueueProps {
 
 export const IntakeReviewQueue = ({ refreshKey }: IntakeReviewQueueProps) => {
   const [filter, setFilter] = useState<FilterState>("all");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [actionLoading, setActionLoading] = useState<Record<string, string>>({});
   const [confirmPromoteId, setConfirmPromoteId] = useState<string | null>(null);
   const queryClient = useQueryClient();
