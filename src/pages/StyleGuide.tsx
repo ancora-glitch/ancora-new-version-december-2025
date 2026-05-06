@@ -4,8 +4,8 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useStyleGuide } from "@/hooks/useStyleGuides";
 import { ArrowLeft } from "lucide-react";
-import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
+import { StoryBody } from "@/components/StoryBody";
 
 // Convert markdown-style image syntax to HTML figure elements
 const convertInlineImages = (text: string): string => {
