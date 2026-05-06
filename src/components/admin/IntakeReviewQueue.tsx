@@ -53,6 +53,7 @@ const flagStyle = (type: "hard" | "soft") =>
     : "bg-amber-50 text-amber-700 border-amber-200";
 
 type FilterState = "all" | "scored_draft_approved" | "scored_review" | "rejected" | "test_approved";
+type DateFilter = "all" | "today" | "7d";
 
 const FILTERS: { label: string; value: FilterState }[] = [
   { label: "All", value: "all" },
@@ -61,6 +62,19 @@ const FILTERS: { label: string; value: FilterState }[] = [
   { label: "Rejected", value: "rejected" },
   { label: "Test approved", value: "test_approved" },
 ];
+
+const DATE_FILTERS: { label: string; value: DateFilter }[] = [
+  { label: "All time", value: "all" },
+  { label: "Today", value: "today" },
+  { label: "Last 7 days", value: "7d" },
+];
+
+const formatDate = (value: unknown): string | null => {
+  if (!value || typeof value !== "string") return null;
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+};
 
 interface IntakeReviewQueueProps {
   refreshKey: number;
