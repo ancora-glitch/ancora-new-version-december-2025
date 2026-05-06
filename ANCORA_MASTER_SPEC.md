@@ -945,6 +945,8 @@ published_at
 
 Only published visible publicly.
 
+Body supports inline product embeds via `[[product:<slug>]]` tokens — see F-22.
+
 6. AVAILABILITY SYSTEM (v2 – Quota-Aware Architecture)
    6.0 Architecture Principle
    Availability accuracy must not compromise editorial control.
