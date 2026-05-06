@@ -53,6 +53,7 @@ const flagStyle = (type: "hard" | "soft") =>
     : "bg-amber-50 text-amber-700 border-amber-200";
 
 type FilterState = "all" | "scored_draft_approved" | "scored_review" | "rejected" | "test_approved";
+type DateFilter = "all" | "today" | "7d";
 
 const FILTERS: { label: string; value: FilterState }[] = [
   { label: "All", value: "all" },
@@ -62,12 +63,26 @@ const FILTERS: { label: string; value: FilterState }[] = [
   { label: "Test approved", value: "test_approved" },
 ];
 
+const DATE_FILTERS: { label: string; value: DateFilter }[] = [
+  { label: "All time", value: "all" },
+  { label: "Today", value: "today" },
+  { label: "Last 7 days", value: "7d" },
+];
+
+const formatDate = (value: unknown): string | null => {
+  if (!value || typeof value !== "string") return null;
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+};
+
 interface IntakeReviewQueueProps {
   refreshKey: number;
 }
 
 export const IntakeReviewQueue = ({ refreshKey }: IntakeReviewQueueProps) => {
   const [filter, setFilter] = useState<FilterState>("all");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [actionLoading, setActionLoading] = useState<Record<string, string>>({});
   const [confirmPromoteId, setConfirmPromoteId] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -177,9 +192,23 @@ export const IntakeReviewQueue = ({ refreshKey }: IntakeReviewQueueProps) => {
     return scoreB - scoreA;
   });
 
-  const filteredProducts = filter === "all"
+  const stateFiltered = filter === "all"
     ? sortedProducts
     : sortedProducts.filter((p) => p.current_queue_state === filter);
+
+  const now = Date.now();
+  const dateThreshold =
+    dateFilter === "today" ? new Date(new Date().setHours(0, 0, 0, 0)).getTime()
+    : dateFilter === "7d" ? now - 7 * 24 * 60 * 60 * 1000
+    : null;
+
+  const filteredProducts = dateThreshold == null
+    ? stateFiltered
+    : stateFiltered.filter((p) => {
+        if (!p.created_at) return false;
+        const t = new Date(p.created_at).getTime();
+        return !isNaN(t) && t >= dateThreshold;
+      });
 
   const handleAction = async (
     productId: string,
@@ -250,6 +279,21 @@ export const IntakeReviewQueue = ({ refreshKey }: IntakeReviewQueueProps) => {
             size="sm"
             className="text-xs h-7 px-3"
             onClick={() => setFilter(f.value)}
+          >
+            {f.label}
+          </Button>
+        ))}
+      </div>
+
+      {/* Date filter bar */}
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        {DATE_FILTERS.map((f) => (
+          <Button
+            key={f.value}
+            variant={dateFilter === f.value ? "default" : "outline"}
+            size="sm"
+            className="text-xs h-7 px-3"
+            onClick={() => setDateFilter(f.value)}
           >
             {f.label}
           </Button>
@@ -330,6 +374,18 @@ export const IntakeReviewQueue = ({ refreshKey }: IntakeReviewQueueProps) => {
                       {tierLabel[tier] ?? "Unknown"}
                     </Badge>
                   </div>
+
+                  {/* Date labels */}
+                  {(p.created_at || ev?.evaluated_at) && (
+                    <div className="flex flex-wrap gap-2 text-[10px] text-muted-foreground">
+                      {formatDate(p.created_at) && (
+                        <span>Fetched: {formatDate(p.created_at)}</span>
+                      )}
+                      {formatDate(ev?.evaluated_at) && (
+                        <span>Scored: {formatDate(ev?.evaluated_at)}</span>
+                      )}
+                    </div>
+                  )}
 
                   {/* Flags */}
                   {ev && (
