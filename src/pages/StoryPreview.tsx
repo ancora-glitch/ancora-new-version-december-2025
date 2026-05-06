@@ -7,53 +7,6 @@ import { StoryBody } from "@/components/StoryBody";
 import { SmartCropImage } from "@/components/SmartCropImage";
 import { Badge } from "@/components/ui/badge";
 
-// Reuse the same formatting logic from StyleGuide
-const convertInlineImages = (text: string): string => {
-  return text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, caption, url) => {
-    const captionHtml = caption ? `<figcaption class="article-image-caption">${caption}</figcaption>` : '';
-    return `</p><figure class="article-inline-image"><img src="${url}" alt="${caption || 'Article image'}" loading="lazy" />${captionHtml}</figure><p>`;
-  });
-};
-
-const convertMarkdownFormatting = (text: string): string => {
-  let result = convertInlineImages(text);
-  result = result.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  result = result.replace(/\*(.+?)\*/g, '<em>$1</em>');
-  return result;
-};
-
-const formatBodyContent = (body: string): string => {
-  if (/<(p|div|h[1-6]|ul|ol|li|blockquote)[^>]*>/i.test(body)) {
-    return convertMarkdownFormatting(body);
-  }
-
-  const lines = body.split(/\n/);
-  const result: string[] = [];
-  let currentParagraph: string[] = [];
-
-  const flushParagraph = () => {
-    if (currentParagraph.length > 0) {
-      const content = convertMarkdownFormatting(currentParagraph.join('<br>'));
-      result.push(`<p>${content}</p>`);
-      currentParagraph = [];
-    }
-  };
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) { flushParagraph(); continue; }
-    if (/^\d+\.\s/.test(trimmed)) {
-      flushParagraph();
-      const content = convertMarkdownFormatting(trimmed);
-      result.push(`<p>${content}</p>`);
-      continue;
-    }
-    currentParagraph.push(trimmed);
-  }
-  flushParagraph();
-  return result.join('\n');
-};
-
 const StoryPreview = () => {
   const { id } = useParams<{ id: string }>();
   const { data: guide, isLoading, error } = useStyleGuidePreview(id || "");
