@@ -517,7 +517,21 @@ Deno.serve(async (req) => {
       const externalId = item.itemId || null;
       const category = guessCategory(title);
       const brand = extractBrand(title);
-      const condition = mapCondition(item.conditionId);
+
+      // Fetch full item details once (description + condition + size aspects)
+      const details = externalId
+        ? await fetchEbayItemDetails(externalId, tokenResult.token)
+        : null;
+
+      const condition = mapCondition(
+        details?.conditionStr ?? item.condition ?? null,
+        details?.conditionId ?? item.conditionId ?? null,
+      );
+
+      const size = details?.size
+        || extractSizeFromAspects(item.localizedAspects, item.itemSpecifics)
+        || item.size
+        || null;
 
       /* ── HARD REJECT rules ── */
       const hardFlags: string[] = [];
@@ -531,7 +545,7 @@ Deno.serve(async (req) => {
       const softFlags: string[] = [];
       if (images.length < 2) softFlags.push("fewer_than_2_images");
       if (!brand) softFlags.push("brand_undetected");
-      if (!item.size) softFlags.push("size_missing");
+      if (!size) softFlags.push("size_missing");
       if (priceSek !== null && priceSek < 500) softFlags.push("price_below_500_sek");
       if (priceSek !== null && priceSek > 50000) softFlags.push("price_above_50000_sek");
 
@@ -613,14 +627,11 @@ Deno.serve(async (req) => {
         affiliate_url: affiliateUrl,
         title_raw: title,
         title_clean: title,
-        description_raw:
-          (externalId
-            ? await fetchEbayItemDescription(externalId, tokenResult.token)
-            : null) || stripHtml(item.shortDescription),
+        description_raw: details?.description || stripHtml(item.shortDescription),
         brand,
         category,
         color: null,
-        size: item.size || null,
+        size,
         material: null,
         condition,
         price: priceSek,
@@ -638,11 +649,13 @@ Deno.serve(async (req) => {
         images,
         condition,
         affiliateUrl,
-        conditionId: item.conditionId,
+        conditionId: details?.conditionId ?? item.conditionId ?? null,
+        conditionStr: details?.conditionStr ?? item.condition ?? null,
+        size,
         shortDescription: item.shortDescription,
         seller: item.seller?.username,
         itemWebUrl: item.itemWebUrl,
-        localizedAspects: item.localizedAspects,
+        localizedAspects: details?.localizedAspects ?? item.localizedAspects,
       };
 
       if (!dryRun) {
