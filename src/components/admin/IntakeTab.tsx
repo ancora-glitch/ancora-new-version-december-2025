@@ -153,6 +153,7 @@ export const IntakeTab = () => {
   const [sourceChoice, setSourceChoice] = useState<SourceChoice>("auto");
   const [nextAutoSource, setNextAutoSource] = useState<"ebay" | "redesignedby">("ebay");
   const [isRunning, setIsRunning] = useState(false);
+  const [maxItemsInput, setMaxItemsInput] = useState<string>("");
   const [runResult, setRunResult] = useState<RunResult | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
   const [enrichDialogOpen, setEnrichDialogOpen] = useState(false);
