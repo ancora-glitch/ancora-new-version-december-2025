@@ -6,6 +6,7 @@ import { EditorialBriefSection } from "./EditorialBriefSection";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertTriangle, RefreshCw, Play, Loader2, FlaskConical, Zap, CheckCircle2, XCircle, Sparkles, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
