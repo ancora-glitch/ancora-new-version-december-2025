@@ -326,6 +326,9 @@ Deno.serve(async (req) => {
 
   const maxItems = maxItemsOverride
     ?? (parseInt(env("VITE_INTAKE_MAX_ITEMS_PER_RUN") || "10", 10) || 10);
+  console.log(
+    `[intake-fetch] max_items resolved: ${maxItems} (source: ${maxItemsOverride !== null ? "body_override" : "env_default"})`,
+  );
 
   const { data: runRow, error: runErr } = await svc.from("intake_run_logs").insert({
     source, run_type: "fetch", status: "started",
