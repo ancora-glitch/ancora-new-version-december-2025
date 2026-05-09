@@ -490,6 +490,7 @@ export type Database = {
           partner_id: string | null
           price: number | null
           raw_listing_id: string | null
+          segment: Database["public"]["Enums"]["product_segment"]
           size: string | null
           source: string
           style_tags: Json | null
@@ -517,6 +518,7 @@ export type Database = {
           partner_id?: string | null
           price?: number | null
           raw_listing_id?: string | null
+          segment?: Database["public"]["Enums"]["product_segment"]
           size?: string | null
           source: string
           style_tags?: Json | null
@@ -544,6 +546,7 @@ export type Database = {
           partner_id?: string | null
           price?: number | null
           raw_listing_id?: string | null
+          segment?: Database["public"]["Enums"]["product_segment"]
           size?: string | null
           source?: string
           style_tags?: Json | null

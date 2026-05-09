@@ -350,125 +350,143 @@ Deno.serve(async (req) => {
     return jsonRes({ error: tokenResult.error }, 500, cors);
   }
 
-  // Full Tier A brand pool — each run picks 8-10 randomly
-  const allBrands = [
-    'Toteme', 'Acne Studios', 'Filippa K', 'Tiger of Sweden',
-    'Stine Goya', 'Ganni', 'By Malene Birger', 'Rodebjer',
-    'Hope Stockholm', 'Our Legacy', '3.1 Phillip Lim', 'Alaia',
-    'Alexander McQueen', 'ATP Atelier', 'APC', 'Balenciaga',
-    'Baserange', 'Baum und Pferdgarten', 'Brixtol Textiles',
-    'Bottega Veneta', 'Burberry', 'Copenhagen Studios', 'By Malina',
-    'Carhartt', 'CDLP', 'Chanel', 'Chimi', 'Chloe', 'Dagmar', 'Dior',
-    'Dr Martens', 'Eytys', 'Flattered', 'House of Dagmar', 'Gucci',
-    'Patagonia', 'Isabel Marant', 'Jacquemus', 'Jeanerica',
-    'Jil Sander', 'Lisa Yang', 'Loewe', 'Louis Vuitton',
-    'Ralph Lauren', 'Maison Margiela', 'Maria Nilsdotter',
-    'Marimekko', 'Marni', 'Miu Miu', 'Moncler', 'Mulberry', 'Prada',
-    'Pucci', 'Saint Laurent', 'Sandqvist', 'See by Chloe',
-    'Self Portrait', 'Sefr', 'Skall Studio', 'Stella McCartney',
-    'The Row', 'Sophie Billie Brahe', 'Stand Studio', 'Valentino',
-    'Veja', 'Versace', 'Wood Wood', 'Avavav', 'Soft Goat',
-    'Vivienne Westwood', 'Diesel', 'Adidas by Stella McCartney',
-    'Barbour', 'Ahlvar Gallery', 'ROTATE Birger Christensen',
-    'Stylein', 'Just Cavalli', 'Helmut Lang', 'Calvin Klein',
-    'Little Liffner', 'Paloma Wool', 'Simone Rocha',
-    'Proenza Schouler', 'Axel Arigato', 'Celine',
-  ];
+  /* ── Load active intake_configs ──
+   * Quota-guard note: eBay has NO per-day quota counter in this codebase.
+   * The Tradera-style "remaining < 30 → abort" rule applies to Tradera only.
+   * For eBay, the abort signal is HTTP 429: on any 429, log and break the
+   * outer config loop (full session abort).
+   */
+  const { data: configs, error: configsErr } = await svc
+    .from("intake_configs")
+    .select("id, name, segment, category_ids, query_terms, min_price_sek")
+    .eq("active", true)
+    .eq("marketplace", "ebay")
+    .order("run_order", { ascending: true });
 
-  // Fisher-Yates shuffle and pick 3-5 brands to search individually
-  const shuffled = [...allBrands];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  if (configsErr) {
+    console.error("Failed to load intake_configs:", configsErr);
+    await svc.from("intake_run_logs").update({
+      status: "failed", completed_at: new Date().toISOString(),
+      summary: { reason: "intake_configs query failed" },
+    }).eq("id", runId);
+    return jsonRes({ error: "Failed to load intake_configs" }, 500, cors);
   }
-  const pickCount = 3 + Math.floor(Math.random() * 3); // 3, 4, or 5
-  const selectedBrands = shuffled.slice(0, pickCount);
-  console.log(`Selected ${selectedBrands.length} brands:`, selectedBrands);
+  if (!configs || configs.length === 0) {
+    await svc.from("intake_run_logs").update({
+      status: "completed", completed_at: new Date().toISOString(),
+      items_fetched: 0, items_processed: 0,
+      summary: { reason: "No active eBay intake_configs" },
+    }).eq("id", runId);
+    return jsonRes({ run_id: runId, items_fetched: 0, configs: 0, results: [] }, 200, cors);
+  }
+
+  console.log(`Loaded ${configs.length} active eBay intake_configs`);
 
   const baseUrl = getEbayBaseUrl();
-  const filterStr = `buyingOptions:{FIXED_PRICE},price:[38.46..],priceCurrency:GBP,itemLocationCountry:GB`;
-  const perBrandLimit = Math.max(2, Math.floor(Math.min(maxItems, 50) / selectedBrands.length));
+  const SEK_RATES_GBP = 13;
 
-  let ebayItems: any[] = [];
+  // Segment-aware gender filter patterns
+  const GENDER_PATTERNS: Record<string, RegExp[]> = {
+    womenswear: [
+      /\bmen's\b/i, /\bmens\b/i, /\bman's\b/i,
+      /\bunisex\b/i, /\bboys\b/i, /\bkids\b/i, /\bchildren\b/i,
+      /\smen\s/i,
+    ],
+    menswear: [
+      /\bwomen's\b/i, /\bwomens\b/i, /\bwoman's\b/i,
+      /\bgirls\b/i, /\bkids\b/i, /\bchildren\b/i,
+    ],
+  };
+
+  type ItemWithConfig = { item: any; config: typeof configs[number] };
+  const collected: ItemWithConfig[] = [];
+  const seenIds = new Set<string>();
+  const configFetchCounts: Record<string, number> = {};
   let rateLimited = false;
   let rateLimitCount = 0;
+  let filteredGenderCount = 0;
 
-  // Search one brand at a time to stay within eBay q-param limits
-  for (const brand of selectedBrands) {
-    if (rateLimited || ebayItems.length >= maxItems) break;
+  outer: for (const config of configs) {
+    if (collected.length >= maxItems) break;
+    configFetchCounts[config.id] = 0;
 
-    const aspectFilter = encodeURIComponent("categoryId:15724,Gender:{Women}");
-    const searchUrl = `${baseUrl}/buy/browse/v1/item_summary/search?q=${encodeURIComponent(brand)}&category_ids=15724&limit=${perBrandLimit}&filter=${encodeURIComponent(filterStr)}&aspect_filter=${aspectFilter}`;
-    console.log(`Searching eBay for brand: ${brand}`);
+    const minGbp = Math.max(1, Math.round((config.min_price_sek || 500) / SEK_RATES_GBP));
+    const filterStr = `buyingOptions:{FIXED_PRICE},price:[${minGbp}..],priceCurrency:GBP,itemLocationCountry:GB`;
+    const categoryIds = (config.category_ids || []).join(",");
+    const perTermLimit = Math.max(2, Math.floor(
+      Math.min(maxItems, 50) / Math.max(1, config.query_terms.length)
+    ));
+    const rejectPatterns = GENDER_PATTERNS[config.segment] || [];
 
-    try {
-      const res = await fetch(searchUrl, {
-        headers: {
-          Authorization: `Bearer ${tokenResult.token}`,
-          "X-EBAY-C-MARKETPLACE-ID": "EBAY_GB",
-          "Content-Type": "application/json",
-        },
-      });
+    for (let ti = 0; ti < config.query_terms.length; ti++) {
+      if (collected.length >= maxItems) break;
+      const term = config.query_terms[ti];
 
-      if (res.status === 429) {
-        rateLimited = true;
-        rateLimitCount++;
-        console.warn(`Rate limited on brand: ${brand}`);
-        break;
-      } else if (!res.ok) {
-        const t = await res.text();
-        console.error(`eBay search failed for ${brand}:`, res.status, t);
-      } else {
-        const data = await res.json();
-        const items = data.itemSummaries || [];
-        console.log(`Brand "${brand}": ${items.length} results (total: ${data.total || 0})`);
-        ebayItems.push(...items);
+      const searchUrl = `${baseUrl}/buy/browse/v1/item_summary/search`
+        + `?q=${encodeURIComponent(term)}`
+        + `&category_ids=${encodeURIComponent(categoryIds)}`
+        + `&limit=${perTermLimit}`
+        + `&filter=${encodeURIComponent(filterStr)}`;
+      console.log(`[intake-fetch] config=${config.name} segment=${config.segment} term="${term}"`);
+
+      try {
+        const res = await fetch(searchUrl, {
+          headers: {
+            Authorization: `Bearer ${tokenResult.token}`,
+            "X-EBAY-C-MARKETPLACE-ID": "EBAY_GB",
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (res.status === 429) {
+          rateLimited = true;
+          rateLimitCount++;
+          console.warn(`[intake-fetch] 429 on config=${config.name} segment=${config.segment} term="${term}" — aborting session`);
+          break outer;
+        } else if (!res.ok) {
+          const t = await res.text();
+          console.error(`[intake-fetch] search failed config=${config.name} term="${term}":`, res.status, t);
+        } else {
+          const data = await res.json();
+          const items = (data.itemSummaries || []) as any[];
+
+          let kept = 0;
+          for (const item of items) {
+            if (!item.itemId || seenIds.has(item.itemId)) continue;
+            const title = item.title || "";
+            if (rejectPatterns.some((re) => re.test(title))) {
+              filteredGenderCount++;
+              continue;
+            }
+            seenIds.add(item.itemId);
+            collected.push({ item, config });
+            configFetchCounts[config.id]++;
+            kept++;
+            if (collected.length >= maxItems) break;
+          }
+          console.log(`[intake-fetch] config=${config.name} term="${term}": ${items.length} returned, ${kept} kept`);
+        }
+
+        if (ti < config.query_terms.length - 1) await delay(200);
+      } catch (e: any) {
+        console.error(`[intake-fetch] error config=${config.name} term="${term}":`, e.message);
       }
-
-      // Rate-limit courtesy delay between brand searches
-      if (selectedBrands.indexOf(brand) < selectedBrands.length - 1) {
-        await delay(200);
-      }
-    } catch (e: any) {
-      console.error(`Error searching brand ${brand}:`, e.message);
     }
   }
 
-  // Trim to maxItems and deduplicate by itemId
-  const seen = new Set<string>();
-  ebayItems = ebayItems.filter((item) => {
-    if (!item.itemId || seen.has(item.itemId)) return false;
-    seen.add(item.itemId);
-    return true;
-  });
+  let ebayItems: any[] = collected.map((c) => c.item);
+  // Map itemId → config for downstream segment lookup
+  const configByItemId = new Map<string, typeof configs[number]>();
+  for (const { item, config } of collected) {
+    if (item.itemId) configByItemId.set(item.itemId, config);
+  }
 
-  // Post-fetch gender filter — safety net in case aspect_filter is not applied
-  const GENDER_REJECT_PATTERNS = [
-    /\bmen's\b/i,
-    /\bmens\b/i,
-    /\bman's\b/i,
-    /\bunisex\b/i,
-    /\bboys\b/i,
-    /\bkids\b/i,
-    /\bchildren\b/i,
-    /\smen\s/i,
-  ];
-  const beforeGenderFilter = ebayItems.length;
-  ebayItems = ebayItems.filter((item) => {
-    const title = item.title || "";
-    return !GENDER_REJECT_PATTERNS.some((re) => re.test(title));
-  });
-  const filteredGenderCount = beforeGenderFilter - ebayItems.length;
-  console.log(`Gender filter removed ${filteredGenderCount} items`);
-
-  ebayItems = ebayItems.slice(0, maxItems);
-
-  console.log(`Total unique eBay items after all brand searches: ${ebayItems.length}`);
+  console.log(`Total unique eBay items across all configs: ${ebayItems.length}`);
 
   if (ebayItems.length === 0 && rateLimited) {
     await svc.from("intake_run_logs").update({
       status: "failed", completed_at: new Date().toISOString(),
-      summary: { reason: "Rate limited, no items fetched", selected_brands: selectedBrands },
+      summary: { reason: "Rate limited, no items fetched", configs: configs.map((c) => c.name) },
     }).eq("id", runId);
     return jsonRes({ error: "Rate limited" }, 429, cors);
   }
@@ -484,10 +502,15 @@ Deno.serve(async (req) => {
   let duplicatesSkipped = 0;
   let alreadyInProduction = 0;
 
+  // Per-config insertion tracking for the completion log
+  const configInsertCounts: Record<string, number> = {};
+  const configRejectedCounts: Record<string, number> = {};
+
   for (let i = 0; i < ebayItems.length; i++) {
     if (rateLimited) break;
 
     const item = ebayItems[i];
+    const itemConfig = item.itemId ? configByItemId.get(item.itemId) : undefined;
     try {
       // Add 300ms delay between items (skip first)
       if (i > 0) await delay(300);
@@ -639,6 +662,7 @@ Deno.serve(async (req) => {
         image_urls: images,
         availability_status: "available",
         current_queue_state: queueState,
+        segment: itemConfig?.segment || "womenswear",
       };
 
       const rawPayload = {
@@ -703,11 +727,22 @@ Deno.serve(async (req) => {
       });
 
       processedCount++;
-      if (isRejected) rejectedCount++;
+      if (isRejected) {
+        rejectedCount++;
+        if (itemConfig) configRejectedCounts[itemConfig.id] = (configRejectedCounts[itemConfig.id] || 0) + 1;
+      } else if (!dryRun && itemConfig) {
+        configInsertCounts[itemConfig.id] = (configInsertCounts[itemConfig.id] || 0) + 1;
+      }
     } catch (e: any) {
       console.error(`Error processing item ${i}:`, e.message);
       errorCount++;
     }
+  }
+
+  // Per-config completion logs
+  for (const config of configs) {
+    const inserted = configInsertCounts[config.id] || 0;
+    console.log(`Completed config: ${config.name} | segment: ${config.segment} | inserted: ${inserted} drafts`);
   }
 
   /* ════════════════════════════════════════ */
@@ -743,7 +778,13 @@ Deno.serve(async (req) => {
     rate_limit_count: rateLimitCount,
     summary: {
       dry_run: dryRun,
-      selected_brands: selectedBrands,
+      configs_run: configs.map((c) => ({
+        name: c.name,
+        segment: c.segment,
+        fetched: configFetchCounts[c.id] || 0,
+        inserted: configInsertCounts[c.id] || 0,
+        rejected: configRejectedCounts[c.id] || 0,
+      })),
       total_results: results.length,
       filtered_gender_count: filteredGenderCount,
       duplicates_skipped: duplicatesSkipped,
