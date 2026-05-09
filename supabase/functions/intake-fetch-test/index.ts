@@ -778,7 +778,13 @@ Deno.serve(async (req) => {
     rate_limit_count: rateLimitCount,
     summary: {
       dry_run: dryRun,
-      selected_brands: selectedBrands,
+      configs_run: configs.map((c) => ({
+        name: c.name,
+        segment: c.segment,
+        fetched: configFetchCounts[c.id] || 0,
+        inserted: configInsertCounts[c.id] || 0,
+        rejected: configRejectedCounts[c.id] || 0,
+      })),
       total_results: results.length,
       filtered_gender_count: filteredGenderCount,
       duplicates_skipped: duplicatesSkipped,
