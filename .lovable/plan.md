@@ -1,54 +1,42 @@
-# Plan: Uppdatera ANCORA_MASTER_SPEC.md med Inline product embeds
+## Menswear expansion — schema + intake config
 
-## Mål
-Dokumentera dagens leverans (inbäddade produktkort i Stories) i master spec som ny feature **F-22**, samt lägga till render-invarianten i relevant befintlig sektion.
+Add a `segment` dimension (womenswear/menswear) to products and introduce a configurable intake source registry so eBay (and later partners) can run targeted queries per segment.
 
-## Ändringar i `ANCORA_MASTER_SPEC.md`
+### Database changes (single migration)
 
-### 1. Ny feature F-22 (efter F-21, runt rad 2457)
-Lägga in en ny sektion:
+1. **Enum** `product_segment` with values `womenswear`, `menswear` (lowercase snake_case, per enum invariant).
+2. `**products.segment**` — `product_segment NOT NULL DEFAULT 'womenswear'`. Backfills existing rows to `womenswear` via the default; explicit `UPDATE` included for clarity.
+3. `**intake_configs**` table:
+  - `marketplace text`, `segment product_segment`, `category_ids text[]`, `query_terms text[]`, `min_price_sek int default 500`, `active bool default true`, `run_order int default 1`, timestamps.
+  - **RLS enabled** with admin-only select/insert/update/delete via `has_role(auth.uid(),'admin')` (matches existing intake_* tables).
+4. **Seed rows** for eBay womenswear (cat 15724) and menswear (cats 1059, 57988, 3002, 2517, 57991, 57989, 10158) with the listed query terms and 500 SEK floor.
 
-```
-F-22 Inline product embeds in Stories
-Owner: Stories editor + StoryBody renderer
+### Invariant validation
 
-Touches: Story body rendering (public + preview), Admin Story editor
+- Editorial fields untouched — only adds `segment` column.
+- Enum is lowercase snake_case.
+- No cron schedule changes, no quota logic touched.
+- New table follows admin-only RLS pattern from other `intake_*` tables.
+- Backwards compatible: default ensures existing inserts/imports keep working without code changes.
 
-Key paths:
+### What this plan does NOT change (yet)
 
-FE renderer: src/components/StoryBody.tsx (centralized body renderer)
+This plan only lands the **schema + seed**. It deliberately leaves out:
 
-FE consumers: src/pages/StyleGuide.tsx, src/pages/StoryPreview.tsx
+- `intake-fetch-test` reading from `intake_configs` instead of hard-coded `q`/`category_ids`/min price.
+- Admin UI to filter/toggle products by segment.
+- Shop / category page filtering by segment.
+- Navigation entries for menswear.
 
-Admin: src/pages/AdminPortal.tsx (Story editor "Insert Product" action)
+Confirm before I extend the plan to wire `intake-fetch-test` (and which loop semantics: one run = one config, or iterate all `active` configs in `run_order`?).
 
-Token format: [[product:<slug>]]
-- slug matches /^[a-z0-9-]+$/
-- Resolved at render time via single Supabase query on products(slug,brand,name,price,image)
-- Missing/unpublished slug → silently omitted (no broken state)
+### Files / artifacts
 
-Rendering invariant: Story body MUST be rendered through <StoryBody />.
-No direct dangerouslySetInnerHTML on story body in any view.
-StoryBody preserves existing markdown helpers (inline images ![cap](url),
-**bold**, *italic*) and sanitizes via DOMPurify.
+- New migration (enum + column + table + RLS + seed). Submitted via the migration tool for your approval.
+- No code, edge function, or component changes in this step.  
+  
+No unique constraint on (marketplace, segment) — allow multiple rows per segment. Add a `name text NOT NULL` column for readability in admin.
+- Yes, min_price_sek per row.
+- Seed with ON CONFLICT DO NOTHING keyed on (marketplace, segment, name).
 
-Admin UX: "Insert Product" button in Story editor opens product picker
-(search by brand/name) and inserts the token at the caret. Manual entry of
-the token is supported but discouraged.
-
-Out of scope: no schema change (body remains text), no changes to cron,
-quota, enums, or editorial-field protection.
-```
-
-### 2. Uppdatera Stories-sektionen (rad ~934, "5.2 Stories / Style Guides")
-Lägga till en kort rad under befintlig beskrivning:
-- "Body supports inline product embeds via `[[product:<slug>]]` tokens — see F-22."
-
-### 3. Uppdatera F-19 (rad 2421) "Touches"
-Lägga till: "Inline product embeds (F-22) rendered via StoryBody."
-
-## Memory-uppdatering (separat)
-Lägga till en ny minnesfil `mem://features/stories/inline-product-embeds` med token-format + render-invariant, och länka in den under "Pages & Sections" i `mem://index.md`.
-
-## Inga kodändringar
-Endast spec- och memory-dokumentation. Inga filer under `src/` eller `supabase/` rörs.
+After migration lands: wire intake-fetch-test to read from intake_configs. Loop semantics: one run = iterate all active configs in run_order order, quota-check before each iteration.

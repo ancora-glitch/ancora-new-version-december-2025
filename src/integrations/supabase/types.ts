@@ -272,6 +272,48 @@ export type Database = {
         }
         Relationships: []
       }
+      intake_configs: {
+        Row: {
+          active: boolean
+          category_ids: string[]
+          created_at: string
+          id: string
+          marketplace: string
+          min_price_sek: number
+          name: string
+          query_terms: string[]
+          run_order: number
+          segment: Database["public"]["Enums"]["product_segment"]
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category_ids: string[]
+          created_at?: string
+          id?: string
+          marketplace: string
+          min_price_sek?: number
+          name: string
+          query_terms: string[]
+          run_order?: number
+          segment: Database["public"]["Enums"]["product_segment"]
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category_ids?: string[]
+          created_at?: string
+          id?: string
+          marketplace?: string
+          min_price_sek?: number
+          name?: string
+          query_terms?: string[]
+          run_order?: number
+          segment?: Database["public"]["Enums"]["product_segment"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       intake_duplicate_candidates: {
         Row: {
           confidence_score: number | null
@@ -644,6 +686,7 @@ export type Database = {
           name_original: string | null
           name_sv: string | null
           price: string
+          segment: Database["public"]["Enums"]["product_segment"]
           size: string | null
           size_sv: string | null
           slug: string | null
@@ -694,6 +737,7 @@ export type Database = {
           name_original?: string | null
           name_sv?: string | null
           price: string
+          segment?: Database["public"]["Enums"]["product_segment"]
           size?: string | null
           size_sv?: string | null
           slug?: string | null
@@ -744,6 +788,7 @@ export type Database = {
           name_original?: string | null
           name_sv?: string | null
           price?: string
+          segment?: Database["public"]["Enums"]["product_segment"]
           size?: string | null
           size_sv?: string | null
           slug?: string | null
@@ -1186,6 +1231,7 @@ export type Database = {
       ancora_select_source: "tradera"
       app_role: "admin" | "moderator" | "user"
       category_status: "draft" | "published"
+      product_segment: "womenswear" | "menswear"
       product_status:
         | "active"
         | "sold"
@@ -1335,6 +1381,7 @@ export const Constants = {
       ancora_select_source: ["tradera"],
       app_role: ["admin", "moderator", "user"],
       category_status: ["draft", "published"],
+      product_segment: ["womenswear", "menswear"],
       product_status: [
         "active",
         "sold",
