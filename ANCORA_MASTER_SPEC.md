@@ -3,6 +3,17 @@ Version 2.0
 
 Changelog v2.0:
 
+### 2026-05-09 — Menswear pipeline verifierad end-to-end
+
+**Vad:** Testanrop bekräftar att menswear-config kör korrekt.
+max_items body_override fungerar. segment=menswear skrivs korrekt till
+intake_normalized_products. Gender-filter aktiv.
+
+**Resultat:** womenswear 8 drafts, menswear 1 draft. Totalt 20 unika items.
+
+**Nästa:** Promotion-path (intake_normalized_products → products) bär segment framåt.
+Admin UI segment-filter. Navigation för menswear.
+
 ### 2026-05-09 — intake-fetch-test config-driven + menswear
 
 **Vad:** intake-fetch-test läser nu från `intake_configs` istället för hårdkodade
