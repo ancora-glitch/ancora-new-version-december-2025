@@ -137,8 +137,14 @@ async function getNextAlternatingSource(): Promise<"ebay" | "redesignedby"> {
 const fnForSource = (s: "ebay" | "redesignedby") =>
   s === "redesignedby" ? "intake-fetch-redesignedby" : "intake-fetch-test";
 
-const bodyForSource = (s: "ebay" | "redesignedby", dryRun: boolean) =>
-  s === "redesignedby" ? { dry_run: dryRun } : { source: "ebay", dry_run: dryRun };
+const bodyForSource = (
+  s: "ebay" | "redesignedby",
+  dryRun: boolean,
+  maxItems?: number,
+) => {
+  const base = s === "redesignedby" ? { dry_run: dryRun } : { source: "ebay", dry_run: dryRun };
+  return maxItems && maxItems > 0 ? { ...base, max_items: maxItems } : base;
+};
 
 export const IntakeTab = () => {
   const [refreshKey, setRefreshKey] = useState(0);
