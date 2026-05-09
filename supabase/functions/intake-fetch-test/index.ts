@@ -502,10 +502,15 @@ Deno.serve(async (req) => {
   let duplicatesSkipped = 0;
   let alreadyInProduction = 0;
 
+  // Per-config insertion tracking for the completion log
+  const configInsertCounts: Record<string, number> = {};
+  const configRejectedCounts: Record<string, number> = {};
+
   for (let i = 0; i < ebayItems.length; i++) {
     if (rateLimited) break;
 
     const item = ebayItems[i];
+    const itemConfig = item.itemId ? configByItemId.get(item.itemId) : undefined;
     try {
       // Add 300ms delay between items (skip first)
       if (i > 0) await delay(300);
