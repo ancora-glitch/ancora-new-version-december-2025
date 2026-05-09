@@ -1171,6 +1171,10 @@ For non-quota-based integrations (such as eBay), this means defensive rate prote
 - capped batch size
 - request pacing / small delay between calls
 - graceful handling of rate-limit responses
+- **HTTP 429 is the canonical abort signal** for non-quota-based integrations
+  (no shared counter exists). On 429 the calling job must log the failing
+  config/term and `break` the outer loop — never `continue` — to avoid burning
+  further calls in the same session.
   Retry loops must include exponential backoff.
   No automatic retry on HTTP 429 without delay.
   Admin-triggered backfills must also respect quota guard unless explicitly marked 'force'.
