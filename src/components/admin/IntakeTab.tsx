@@ -6,6 +6,7 @@ import { EditorialBriefSection } from "./EditorialBriefSection";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertTriangle, RefreshCw, Play, Loader2, FlaskConical, Zap, CheckCircle2, XCircle, Sparkles, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -136,8 +137,14 @@ async function getNextAlternatingSource(): Promise<"ebay" | "redesignedby"> {
 const fnForSource = (s: "ebay" | "redesignedby") =>
   s === "redesignedby" ? "intake-fetch-redesignedby" : "intake-fetch-test";
 
-const bodyForSource = (s: "ebay" | "redesignedby", dryRun: boolean) =>
-  s === "redesignedby" ? { dry_run: dryRun } : { source: "ebay", dry_run: dryRun };
+const bodyForSource = (
+  s: "ebay" | "redesignedby",
+  dryRun: boolean,
+  maxItems?: number,
+) => {
+  const base = s === "redesignedby" ? { dry_run: dryRun } : { source: "ebay", dry_run: dryRun };
+  return maxItems && maxItems > 0 ? { ...base, max_items: maxItems } : base;
+};
 
 export const IntakeTab = () => {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -146,6 +153,7 @@ export const IntakeTab = () => {
   const [sourceChoice, setSourceChoice] = useState<SourceChoice>("auto");
   const [nextAutoSource, setNextAutoSource] = useState<"ebay" | "redesignedby">("ebay");
   const [isRunning, setIsRunning] = useState(false);
+  const [maxItemsInput, setMaxItemsInput] = useState<string>("");
   const [runResult, setRunResult] = useState<RunResult | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
   const [enrichDialogOpen, setEnrichDialogOpen] = useState(false);
@@ -237,7 +245,9 @@ export const IntakeTab = () => {
       const resolvedSource: "ebay" | "redesignedby" =
         sourceChoice === "auto" ? nextAutoSource : sourceChoice;
       const fnName = fnForSource(resolvedSource);
-      const body = bodyForSource(resolvedSource, confirmMode === "dry");
+      const parsedMax = parseInt(maxItemsInput, 10);
+      const maxItemsOverride = Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : undefined;
+      const body = bodyForSource(resolvedSource, confirmMode === "dry", maxItemsOverride);
 
       const { data, error } = await supabase.functions.invoke(fnName, { body });
 
@@ -277,6 +287,7 @@ export const IntakeTab = () => {
       setRunResult(null);
       setRunError(null);
       setSourceChoice("auto");
+      setMaxItemsInput("");
     }
   };
 
@@ -740,6 +751,19 @@ export const IntakeTab = () => {
                         Next source: {nextAutoSource === "redesignedby" ? "ReDesignedBy" : "eBay"}
                       </p>
                     )}
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Max items (override)
+                    </label>
+                    <Input
+                      type="number"
+                      min={1}
+                      placeholder={`Leave empty = default (${batchLimit || "10"})`}
+                      value={maxItemsInput}
+                      onChange={(e) => setMaxItemsInput(e.target.value)}
+                      className="h-9"
+                    />
                   </div>
                   <Button
                     variant="outline"
