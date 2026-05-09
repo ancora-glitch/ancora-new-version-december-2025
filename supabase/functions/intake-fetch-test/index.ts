@@ -80,10 +80,41 @@ function stripHtml(html: string | null | undefined): string | null {
   return cleaned || null;
 }
 
-async function fetchEbayItemDescription(
+interface EbayItemDetails {
+  description: string | null;
+  conditionStr: string | null;
+  conditionId: string | null;
+  size: string | null;
+  localizedAspects: any;
+}
+
+const SIZE_ASPECT_NAMES = new Set([
+  "size", "uk size", "eu size", "it size", "us size", "size (women's)",
+]);
+
+function extractSizeFromAspects(
+  localizedAspects: any,
+  itemSpecifics: any,
+): string | null {
+  const sources = [localizedAspects, itemSpecifics];
+  for (const src of sources) {
+    if (!Array.isArray(src)) continue;
+    for (const a of src) {
+      const name = (a?.name || a?.aspectName || "").toString().toLowerCase().trim();
+      if (SIZE_ASPECT_NAMES.has(name)) {
+        const val = a?.value || a?.aspectValue ||
+          (Array.isArray(a?.values) ? a.values[0] : null);
+        if (val) return String(val).trim();
+      }
+    }
+  }
+  return null;
+}
+
+async function fetchEbayItemDetails(
   itemId: string,
   token: string,
-): Promise<string | null> {
+): Promise<EbayItemDetails | null> {
   try {
     const url = `${getEbayBaseUrl()}/buy/browse/v1/item/${encodeURIComponent(itemId)}`;
     const res = await fetch(url, {
@@ -98,22 +129,48 @@ async function fetchEbayItemDescription(
       return null;
     }
     const data = await res.json();
-    return stripHtml(data.description) || stripHtml(data.shortDescription);
+    return {
+      description: stripHtml(data.description) || stripHtml(data.shortDescription),
+      conditionStr: data.condition || null,
+      conditionId: data.conditionId ? String(data.conditionId) : null,
+      size: extractSizeFromAspects(data.localizedAspects, data.itemSpecifics),
+      localizedAspects: data.localizedAspects || null,
+    };
   } catch (e: any) {
     console.warn(`getItem error for ${itemId}:`, e.message);
     return null;
   }
 }
 
-/* ── eBay condition → Ancora condition ── */
-function mapCondition(cid: string | undefined): string {
-  const m: Record<string, string> = {
-    "1000": "new", "1500": "new", "1750": "new",
-    "2000": "excellent", "2500": "excellent", "2750": "excellent",
-    "3000": "good", "4000": "good",
-    "5000": "fair", "6000": "fair",
-  };
-  return m[cid || ""] || "unknown";
+/* ── eBay condition → Ancora canonical condition ──
+ * Maps both conditionId (numeric) and condition string to:
+ *   "new" | "very_good" | "poor" | null
+ * Used / Pre-Owned defaults to very_good; enrichment refines later.
+ */
+function mapCondition(
+  conditionStr: string | null | undefined,
+  conditionId: string | number | null | undefined,
+): string | null {
+  const cid = conditionId != null ? String(conditionId) : "";
+  const cstr = (conditionStr || "").toLowerCase().trim();
+
+  if (cid === "1000" || cid === "1500" || cid === "1750") return "new";
+  if (cstr === "new with tags" || cstr === "new without tags" ||
+      cstr === "new" || cstr === "brand new") return "new";
+
+  if (cid === "7000") return "poor";
+  if (cstr === "for parts or not working") return "poor";
+
+  if (cid === "2000" || cid === "2500" || cid === "2750" ||
+      cid === "3000" || cid === "4000" || cid === "5000" || cid === "6000") {
+    return "very_good";
+  }
+  if (cstr === "pre-owned" || cstr === "preowned" || cstr === "used" ||
+      cstr === "very good" || cstr === "good" || cstr === "excellent") {
+    return "very_good";
+  }
+
+  return null;
 }
 
 /* ── Simple category guesser from title ── */
