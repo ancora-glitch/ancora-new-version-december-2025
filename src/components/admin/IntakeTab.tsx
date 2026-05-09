@@ -287,6 +287,7 @@ export const IntakeTab = () => {
       setRunResult(null);
       setRunError(null);
       setSourceChoice("auto");
+      setMaxItemsInput("");
     }
   };
 
