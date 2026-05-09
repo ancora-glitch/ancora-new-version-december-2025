@@ -1,42 +1,54 @@
-## Menswear expansion — schema + intake config
+## Wire intake-fetch-test to intake_configs
 
-Add a `segment` dimension (womenswear/menswear) to products and introduce a configurable intake source registry so eBay (and later partners) can run targeted queries per segment.
+Replace hard-coded eBay search params and gender filter in `intake-fetch-test` with a config-driven loop reading from `intake_configs`. Pass `segment` through to `intake_normalized_products`.
 
-### Database changes (single migration)
+### Database (single migration)
 
-1. **Enum** `product_segment` with values `womenswear`, `menswear` (lowercase snake_case, per enum invariant).
-2. `**products.segment**` — `product_segment NOT NULL DEFAULT 'womenswear'`. Backfills existing rows to `womenswear` via the default; explicit `UPDATE` included for clarity.
-3. `**intake_configs**` table:
-  - `marketplace text`, `segment product_segment`, `category_ids text[]`, `query_terms text[]`, `min_price_sek int default 500`, `active bool default true`, `run_order int default 1`, timestamps.
-  - **RLS enabled** with admin-only select/insert/update/delete via `has_role(auth.uid(),'admin')` (matches existing intake_* tables).
-4. **Seed rows** for eBay womenswear (cat 15724) and menswear (cats 1059, 57988, 3002, 2517, 57991, 57989, 10158) with the listed query terms and 500 SEK floor.
+- Add `segment product_segment NOT NULL DEFAULT 'womenswear'` to `intake_normalized_products`.
+- Backfill is implicit via the default. No changes to `intake_raw_listings` or `intake_evaluations`.
 
-### Invariant validation
+### Edge function (`supabase/functions/intake-fetch-test/index.ts`)
 
-- Editorial fields untouched — only adds `segment` column.
-- Enum is lowercase snake_case.
-- No cron schedule changes, no quota logic touched.
-- New table follows admin-only RLS pattern from other `intake_*` tables.
-- Backwards compatible: default ensures existing inserts/imports keep working without code changes.
+1. **Load configs** (after the existing guards / before the eBay search loop):
+   - Query `intake_configs` where `active = true` and `marketplace = 'ebay'`, ordered by `run_order ASC`.
+   - If empty: log, mark run `completed`, return `{ items_fetched: 0, configs: 0 }`.
 
-### What this plan does NOT change (yet)
+2. **Replace the brand-shuffle search loop** with a sequential per-config loop. For each config:
+   - **Quota guard (eBay)** — explicit comment: *eBay has no per-day quota counter; the abort signal is HTTP 429. The Tradera-style `remaining < 30` rule applies to Tradera only.*
+   - For each `query_term` in `config.query_terms`:
+     - Build `q=<term>`, `category_ids=<config.category_ids.join(',')>`, `filter=...,price:[<min_gbp>..]` where `min_gbp = round(config.min_price_sek / SEK_RATES.GBP)` (preserves the existing GBP-floor approach; currency stays GBP/EBAY_GB).
+     - Drop the hard-coded `aspect_filter` (it pinned `Gender:{Women}` to category 15724). Segmentation now comes from `category_ids` + segment-aware post-filter.
+     - On 429: log `[intake-fetch] 429 on config=<name> segment=<segment> term=<term>`, set `rateLimited = true`, `break` out of the **outer config loop** (full session abort, per brief).
+   - Deduplicate by `itemId` within the config's results, trim to a per-config slice of `maxItems`.
+   - **Segment-aware gender filter**:
+     - `womenswear` → reject titles matching `men's | mens | man's | unisex | boys | kids | children`.
+     - `menswear` → reject titles matching `women's | womens | woman's | girls | kids | children`.
+   - Process items through the existing normalize → hard/soft flag → dedupe → write pipeline, **unchanged**, except `intake_normalized_products` insert now includes `segment: config.segment`.
+   - After the config completes, log: `Completed config: <name> | segment: <segment> | inserted: <n> drafts` (where `n` = normalized rows written for this config, i.e. not duplicates / not hard-rejected / not in dry-run).
+   - Track per-config counts in a `configResults` array for the run summary.
 
-This plan only lands the **schema + seed**. It deliberately leaves out:
+3. **Run-level totals**: Aggregate `processedCount`, `rejectedCount`, etc. across all configs (existing variables stay, just accumulated). The `intake_run_logs.summary` gains `configs_run: [{ name, segment, fetched, inserted, rejected }]`.
 
-- `intake-fetch-test` reading from `intake_configs` instead of hard-coded `q`/`category_ids`/min price.
-- Admin UI to filter/toggle products by segment.
-- Shop / category page filtering by segment.
-- Navigation entries for menswear.
+4. **`maxItems` semantics**: `VITE_INTAKE_MAX_ITEMS_PER_RUN` is now a global cap across all configs in one run. Once total fetched ≥ maxItems, break out of the config loop.
 
-Confirm before I extend the plan to wire `intake-fetch-test` (and which loop semantics: one run = one config, or iterate all `active` configs in `run_order`?).
+### Invariants preserved
 
-### Files / artifacts
+- Status enum on AIS rows unchanged (`'draft'` default on `ancora_import_items`; this function writes to `intake_normalized_products` whose `current_queue_state` stays `'normalized'` / `'rules_rejected'`).
+- Affiliate URL construction unchanged (still `item.itemWebUrl`).
+- No editorial fields (name/description/brand/color/material/condition logic) modified.
+- Enums lowercase snake_case (`womenswear`, `menswear`).
+- No products-table writes from this function.
+- Tradera quota system untouched.
 
-- New migration (enum + column + table + RLS + seed). Submitted via the migration tool for your approval.
-- No code, edge function, or component changes in this step.  
-  
-No unique constraint on (marketplace, segment) — allow multiple rows per segment. Add a `name text NOT NULL` column for readability in admin.
-- Yes, min_price_sek per row.
-- Seed with ON CONFLICT DO NOTHING keyed on (marketplace, segment, name).
+### Out of scope
 
-After migration lands: wire intake-fetch-test to read from intake_configs. Loop semantics: one run = iterate all active configs in run_order order, quota-check before each iteration.
+- Admin UI for managing `intake_configs` rows.
+- Shop / navigation segment filtering.
+- Promotion path (intake_normalized_products → products) carrying `segment` forward — separate task.
+- Adding `segment` to `intake_raw_listings` or `intake_evaluations`.
+
+### Files
+
+- New migration: `intake_normalized_products.segment`.
+- Edited: `supabase/functions/intake-fetch-test/index.ts` (search loop, gender filter, normalized insert, run summary).
+- No other files touched.
