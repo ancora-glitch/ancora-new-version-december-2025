@@ -80,10 +80,41 @@ function stripHtml(html: string | null | undefined): string | null {
   return cleaned || null;
 }
 
-async function fetchEbayItemDescription(
+interface EbayItemDetails {
+  description: string | null;
+  conditionStr: string | null;
+  conditionId: string | null;
+  size: string | null;
+  localizedAspects: any;
+}
+
+const SIZE_ASPECT_NAMES = new Set([
+  "size", "uk size", "eu size", "it size", "us size", "size (women's)",
+]);
+
+function extractSizeFromAspects(
+  localizedAspects: any,
+  itemSpecifics: any,
+): string | null {
+  const sources = [localizedAspects, itemSpecifics];
+  for (const src of sources) {
+    if (!Array.isArray(src)) continue;
+    for (const a of src) {
+      const name = (a?.name || a?.aspectName || "").toString().toLowerCase().trim();
+      if (SIZE_ASPECT_NAMES.has(name)) {
+        const val = a?.value || a?.aspectValue ||
+          (Array.isArray(a?.values) ? a.values[0] : null);
+        if (val) return String(val).trim();
+      }
+    }
+  }
+  return null;
+}
+
+async function fetchEbayItemDetails(
   itemId: string,
   token: string,
-): Promise<string | null> {
+): Promise<EbayItemDetails | null> {
   try {
     const url = `${getEbayBaseUrl()}/buy/browse/v1/item/${encodeURIComponent(itemId)}`;
     const res = await fetch(url, {
@@ -98,22 +129,48 @@ async function fetchEbayItemDescription(
       return null;
     }
     const data = await res.json();
-    return stripHtml(data.description) || stripHtml(data.shortDescription);
+    return {
+      description: stripHtml(data.description) || stripHtml(data.shortDescription),
+      conditionStr: data.condition || null,
+      conditionId: data.conditionId ? String(data.conditionId) : null,
+      size: extractSizeFromAspects(data.localizedAspects, data.itemSpecifics),
+      localizedAspects: data.localizedAspects || null,
+    };
   } catch (e: any) {
     console.warn(`getItem error for ${itemId}:`, e.message);
     return null;
   }
 }
 
-/* ── eBay condition → Ancora condition ── */
-function mapCondition(cid: string | undefined): string {
-  const m: Record<string, string> = {
-    "1000": "new", "1500": "new", "1750": "new",
-    "2000": "excellent", "2500": "excellent", "2750": "excellent",
-    "3000": "good", "4000": "good",
-    "5000": "fair", "6000": "fair",
-  };
-  return m[cid || ""] || "unknown";
+/* ── eBay condition → Ancora canonical condition ──
+ * Maps both conditionId (numeric) and condition string to:
+ *   "new" | "very_good" | "poor" | null
+ * Used / Pre-Owned defaults to very_good; enrichment refines later.
+ */
+function mapCondition(
+  conditionStr: string | null | undefined,
+  conditionId: string | number | null | undefined,
+): string | null {
+  const cid = conditionId != null ? String(conditionId) : "";
+  const cstr = (conditionStr || "").toLowerCase().trim();
+
+  if (cid === "1000" || cid === "1500" || cid === "1750") return "new";
+  if (cstr === "new with tags" || cstr === "new without tags" ||
+      cstr === "new" || cstr === "brand new") return "new";
+
+  if (cid === "7000") return "poor";
+  if (cstr === "for parts or not working") return "poor";
+
+  if (cid === "2000" || cid === "2500" || cid === "2750" ||
+      cid === "3000" || cid === "4000" || cid === "5000" || cid === "6000") {
+    return "very_good";
+  }
+  if (cstr === "pre-owned" || cstr === "preowned" || cstr === "used" ||
+      cstr === "very good" || cstr === "good" || cstr === "excellent") {
+    return "very_good";
+  }
+
+  return null;
 }
 
 /* ── Simple category guesser from title ── */
@@ -460,7 +517,21 @@ Deno.serve(async (req) => {
       const externalId = item.itemId || null;
       const category = guessCategory(title);
       const brand = extractBrand(title);
-      const condition = mapCondition(item.conditionId);
+
+      // Fetch full item details once (description + condition + size aspects)
+      const details = externalId
+        ? await fetchEbayItemDetails(externalId, tokenResult.token)
+        : null;
+
+      const condition = mapCondition(
+        details?.conditionStr ?? item.condition ?? null,
+        details?.conditionId ?? item.conditionId ?? null,
+      );
+
+      const size = details?.size
+        || extractSizeFromAspects(item.localizedAspects, item.itemSpecifics)
+        || item.size
+        || null;
 
       /* ── HARD REJECT rules ── */
       const hardFlags: string[] = [];
@@ -474,7 +545,7 @@ Deno.serve(async (req) => {
       const softFlags: string[] = [];
       if (images.length < 2) softFlags.push("fewer_than_2_images");
       if (!brand) softFlags.push("brand_undetected");
-      if (!item.size) softFlags.push("size_missing");
+      if (!size) softFlags.push("size_missing");
       if (priceSek !== null && priceSek < 500) softFlags.push("price_below_500_sek");
       if (priceSek !== null && priceSek > 50000) softFlags.push("price_above_50000_sek");
 
@@ -556,14 +627,11 @@ Deno.serve(async (req) => {
         affiliate_url: affiliateUrl,
         title_raw: title,
         title_clean: title,
-        description_raw:
-          (externalId
-            ? await fetchEbayItemDescription(externalId, tokenResult.token)
-            : null) || stripHtml(item.shortDescription),
+        description_raw: details?.description || stripHtml(item.shortDescription),
         brand,
         category,
         color: null,
-        size: item.size || null,
+        size,
         material: null,
         condition,
         price: priceSek,
@@ -581,11 +649,13 @@ Deno.serve(async (req) => {
         images,
         condition,
         affiliateUrl,
-        conditionId: item.conditionId,
+        conditionId: details?.conditionId ?? item.conditionId ?? null,
+        conditionStr: details?.conditionStr ?? item.condition ?? null,
+        size,
         shortDescription: item.shortDescription,
         seller: item.seller?.username,
         itemWebUrl: item.itemWebUrl,
-        localizedAspects: item.localizedAspects,
+        localizedAspects: details?.localizedAspects ?? item.localizedAspects,
       };
 
       if (!dryRun) {
