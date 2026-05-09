@@ -752,6 +752,19 @@ export const IntakeTab = () => {
                       </p>
                     )}
                   </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Max items (override)
+                    </label>
+                    <Input
+                      type="number"
+                      min={1}
+                      placeholder={`Leave empty = default (${batchLimit || "10"})`}
+                      value={maxItemsInput}
+                      onChange={(e) => setMaxItemsInput(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
                   <Button
                     variant="outline"
                     className="w-full justify-start gap-3 h-auto py-3 px-4"
