@@ -727,11 +727,22 @@ Deno.serve(async (req) => {
       });
 
       processedCount++;
-      if (isRejected) rejectedCount++;
+      if (isRejected) {
+        rejectedCount++;
+        if (itemConfig) configRejectedCounts[itemConfig.id] = (configRejectedCounts[itemConfig.id] || 0) + 1;
+      } else if (!dryRun && itemConfig) {
+        configInsertCounts[itemConfig.id] = (configInsertCounts[itemConfig.id] || 0) + 1;
+      }
     } catch (e: any) {
       console.error(`Error processing item ${i}:`, e.message);
       errorCount++;
     }
+  }
+
+  // Per-config completion logs
+  for (const config of configs) {
+    const inserted = configInsertCounts[config.id] || 0;
+    console.log(`Completed config: ${config.name} | segment: ${config.segment} | inserted: ${inserted} drafts`);
   }
 
   /* ════════════════════════════════════════ */
