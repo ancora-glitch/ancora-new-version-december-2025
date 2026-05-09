@@ -1,7 +1,75 @@
 ANCORA — MASTER PROJECT SPECIFICATION
-Version 1.9
+Version 2.0
+
+Changelog v2.0:
+
+### 2026-05-09 — intake-fetch-test config-driven + menswear
+
+**Vad:** intake-fetch-test läser nu från `intake_configs` istället för hårdkodade
+parametrar. Segment flödar genom till `intake_normalized_products`. Menswear-spår
+aktiverat parallellt med befintligt womenswear-spår.
+
+**Ändringar:**
+
+- Ny tabell `intake_configs` styr `category_ids`, `query_terms`, `min_price_sek`,
+  `segment`, `run_order`, `active` per marketplace.
+- Sekventiell loop över `active = true AND marketplace = 'ebay'` ordnad på
+  `run_order ASC`. Standard-seed: womenswear (run_order 1) → menswear (run_order 2).
+- Per-config: en search-call per `query_term`. Hårdkodad brand-shuffle borttagen.
+  Hårdkodad `aspect_filter` (`Gender:{Women}`) borttagen — segmentering sker via
+  `category_ids` + segment-aware post-filter.
+- **Segment-aware gender filter:**
+  - `womenswear` rejectar titlar som matchar `men's | mens | man's | unisex | boys | kids | children`
+  - `menswear` rejectar `women's | womens | woman's | girls | kids | children`
+- **eBay quota-signal = HTTP 429.** På 429: log `[intake-fetch] 429 on config=<name>...`,
+  `break` ut ur hela config-loopen (full session abort, inte continue).
+- Explicit kommentar i koden: Tradera-style quota guard (`remaining < 30`) gäller
+  Tradera only. eBay har ingen per-day quota counter — abortsignalen är 429.
+- Ny kolumn: `intake_normalized_products.segment product_segment NOT NULL DEFAULT 'womenswear'`.
+  Sätts till `config.segment` på insert.
+- `VITE_INTAKE_MAX_ITEMS_PER_RUN` är global cap över alla configs i en run, inte per config.
+- `intake_run_logs.summary` har nu `configs_run: [{ name, segment, fetched, inserted, rejected }]`.
+- Per-config completion-log: `Completed config: <name> | segment: <segment> | inserted: <n> drafts`.
+
+**Nya schema-objekt (från 2026-05-09 schema-task):**
+
+- Enum `product_segment` = `womenswear | menswear` (lowercase snake_case).
+- `products.segment product_segment NOT NULL DEFAULT 'womenswear'` — backfill via default.
+- `intake_configs (id, name, marketplace, segment, category_ids[], query_terms[], min_price_sek, active, run_order)`
+  med RLS admin-only och `UNIQUE (marketplace, segment, name)`.
+- Seed: `eBay womenswear default` (cat 15724) och `eBay menswear default`
+  (cat 1059, 57988, 3002, 2517, 57991, 57989, 10158).
+
+**Filer:** `supabase/functions/intake-fetch-test/index.ts`, migrations:
+`product_segment` enum + `products.segment` + `intake_configs` + seed,
+`intake_normalized_products.segment`.
+
+**Invarianter (oförändrade):**
+
+- Inga writes mot `products`-tabellen från intake-fetch-test.
+- Draft-invariant oförändrad (AIS-rader oförändrade; normalized-rader använder
+  fortsatt `current_queue_state` = `normalized` / `rules_rejected`).
+- Affiliate URL-konstruktion oförändrad (`item.itemWebUrl`).
+- Inga editorial-fält rörda (name, description, brand, color, material, condition).
+- Enum-värden lowercase snake_case.
+- Tradera-systemet helt orört (egen quota-counter, egen cron, egen retry).
+
+**Quota-guard distinktion (Section 7.3 förtydligad):**
+
+- **Tradera (counter-baserad):** `tradera_get_usage()` RPC, abort om `remaining < 30`.
+- **eBay (response-baserad):** ingen counter. HTTP 429 → log + `break`. Defensiv
+  pacing (200ms mellan terms, 300ms mellan items) bibehållen.
+
+**Nästa (separata tasks):**
+
+- Promotion-path `intake_normalized_products → products` ska bära `segment` framåt.
+- Admin UI för segment-filtrering i shop / kategori-sidor.
+- Admin UI för att hantera `intake_configs`-rader.
+- Navigation-entries för menswear.
 
 Changelog v1.9:
+
+
 
 ### 2026-05-03 — Intake v1: ReDesignedBy-adapter + multi-source
 
@@ -1103,6 +1171,10 @@ For non-quota-based integrations (such as eBay), this means defensive rate prote
 - capped batch size
 - request pacing / small delay between calls
 - graceful handling of rate-limit responses
+- **HTTP 429 is the canonical abort signal** for non-quota-based integrations
+  (no shared counter exists). On 429 the calling job must log the failing
+  config/term and `break` the outer loop — never `continue` — to avoid burning
+  further calls in the same session.
   Retry loops must include exponential backoff.
   No automatic retry on HTTP 429 without delay.
   Admin-triggered backfills must also respect quota guard unless explicitly marked 'force'.
