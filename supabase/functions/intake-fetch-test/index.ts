@@ -662,6 +662,7 @@ Deno.serve(async (req) => {
         image_urls: images,
         availability_status: "available",
         current_queue_state: queueState,
+        segment: itemConfig?.segment || "womenswear",
       };
 
       const rawPayload = {
