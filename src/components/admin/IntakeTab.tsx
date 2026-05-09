@@ -245,7 +245,9 @@ export const IntakeTab = () => {
       const resolvedSource: "ebay" | "redesignedby" =
         sourceChoice === "auto" ? nextAutoSource : sourceChoice;
       const fnName = fnForSource(resolvedSource);
-      const body = bodyForSource(resolvedSource, confirmMode === "dry");
+      const parsedMax = parseInt(maxItemsInput, 10);
+      const maxItemsOverride = Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : undefined;
+      const body = bodyForSource(resolvedSource, confirmMode === "dry", maxItemsOverride);
 
       const { data, error } = await supabase.functions.invoke(fnName, { body });
 
