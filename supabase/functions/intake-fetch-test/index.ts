@@ -256,10 +256,14 @@ Deno.serve(async (req) => {
   // ── Parse body ──
   let source: string;
   let dryRun = false;
+  let maxItemsOverride: number | null = null;
   try {
     const body = await req.json();
     source = body.source;
     dryRun = body.dry_run === true;
+    if (Number.isInteger(body.max_items) && body.max_items > 0) {
+      maxItemsOverride = body.max_items;
+    }
     if (!source || typeof source !== "string") {
       return jsonRes({ error: "source is required" }, 400, cors);
     }
@@ -320,7 +324,8 @@ Deno.serve(async (req) => {
   /*  START RUN                              */
   /* ════════════════════════════════════════ */
 
-  const maxItems = parseInt(env("VITE_INTAKE_MAX_ITEMS_PER_RUN") || "10", 10) || 10;
+  const maxItems = maxItemsOverride
+    ?? (parseInt(env("VITE_INTAKE_MAX_ITEMS_PER_RUN") || "10", 10) || 10);
 
   const { data: runRow, error: runErr } = await svc.from("intake_run_logs").insert({
     source, run_type: "fetch", status: "started",
