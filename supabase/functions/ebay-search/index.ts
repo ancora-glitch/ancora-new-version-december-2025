@@ -421,7 +421,7 @@ serve(async (req) => {
     const searchResponse = await fetch(searchUrl, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
-        'X-EBAY-C-MARKETPLACE-ID': 'EBAY_GB',
+        'X-EBAY-C-MARKETPLACE-ID': 'EBAY_IT',
         'Content-Type': 'application/json',
       },
     });
