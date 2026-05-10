@@ -120,7 +120,7 @@ async function fetchEbayItemDetails(
     const res = await fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
-        "X-EBAY-C-MARKETPLACE-ID": "EBAY_GB",
+        "X-EBAY-C-MARKETPLACE-ID": "EBAY_IT",
         "Content-Type": "application/json",
       },
     });
