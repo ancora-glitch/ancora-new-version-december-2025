@@ -391,7 +391,7 @@ Deno.serve(async (req) => {
   console.log(`Loaded ${configs.length} active eBay intake_configs`);
 
   const baseUrl = getEbayBaseUrl();
-  const SEK_RATES_GBP = 13;
+  const SEK_RATES_EUR = 11.5;
 
   // Segment-aware gender filter patterns
   const GENDER_PATTERNS: Record<string, RegExp[]> = {
