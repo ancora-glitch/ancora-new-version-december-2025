@@ -3,6 +3,14 @@ Version 2.0
 
 Changelog v2.0:
 
+### 2026-05-10 — intake-enrich-test: engelsk översättning + description_clean
+
+**Vad:** Uppdaterade userPrompt() med instruktion att översätta alla output-fält till engelska (källtext kan vara italiensk eller annat språk). Lade till `description_clean` (2-3 meningar editorial engelska) i JSON-schemat och i `.update()`-anropet. Title_clean, style_tags, editorial_notes är nu explicit engelska.
+
+**Filer:** intake-enrich-test/index.ts (userPrompt + update-block)
+
+**DB:** Migration — `intake_normalized_products.description_clean text` tillagd.
+
 ### 2026-05-10 — extractBrand: italiensk blocklista
 
 **Vad:** Lade till ITALIAN_NON_BRANDS-set i extractBrand(). Filtrerar bort generiska italienska ord (abbigliamento, canotta, set, twin m.fl.) som feldetekterades som märken. brand returnerar nu null i stället för falskt värde.
