@@ -211,13 +211,26 @@ function guessCategory(title: string): string | null {
 }
 
 /* ── Brand extraction from title ── */
+const ITALIAN_NON_BRANDS = new Set([
+  "abbigliamento", "canotta", "canottiera", "vestito", "abito", "gonna",
+  "giacca", "cappotto", "maglietta", "maglione", "maglia", "pantaloni",
+  "pantalone", "camicia", "camicetta", "blusa", "borsa", "scarpe",
+  "stivali", "sandali", "accessori", "gioielli", "cintura", "sciarpa",
+  "donna", "uomo", "femmina", "maschio", "bambino", "bambina",
+  "set", "twin", "nuovo", "usato", "vintage", "lusso", "elegante",
+  "moda", "stile", "couture", "curvy", "taglia", "grande", "piccola",
+]);
+
 function extractBrand(title: string): string | null {
-  // Simple heuristic: first capitalized word(s) before any size / style keywords
   const words = title.split(/\s+/);
   if (words.length === 0) return null;
-  // Take first word if it looks like a brand (starts uppercase, >2 chars)
   const first = words[0];
-  if (first && first.length > 2 && /^[A-Z]/.test(first)) return first;
+  if (
+    first &&
+    first.length > 2 &&
+    /^[A-Z]/.test(first) &&
+    !ITALIAN_NON_BRANDS.has(first.toLowerCase())
+  ) return first;
   return null;
 }
 
