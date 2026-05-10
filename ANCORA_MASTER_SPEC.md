@@ -3,6 +3,16 @@ Version 2.0
 
 Changelog v2.0:
 
+### 2026-05-10 — guessCategory: italienska synonymer
+
+**Vad:** Utökade guessCategory() med italienska keywords per kategori.
+Normalisering förbättrades från 1/5 → 3/5 på italienska listings.
+2 kvarvarande unmapped_category beror på generiska titlar utan plaggsord — ej lösbart med keywords.
+
+**Filer:** intake-fetch-test/index.ts (guessCategory map)
+
+**DB:** Ingen migration.
+
 ### 2026-05-10 — eBay marknad: UK → Italien
 
 **Vad:** Bytte från EBAY_GB till EBAY_IT. Prisgräns 38.46 GBP → 44 EUR (≈500 SEK).
