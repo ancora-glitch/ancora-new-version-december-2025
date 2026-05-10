@@ -3,6 +3,19 @@ Version 2.0
 
 Changelog v2.0:
 
+### 2026-05-10 — eBay marknad: UK → Italien
+
+**Vad:** Bytte från EBAY_GB till EBAY_IT. Prisgräns 38.46 GBP → 44 EUR (≈500 SEK).
+Filter: itemLocationCountry:GB → IT, priceCurrency:GBP → EUR.
+euroCountries-variabel borttagen. campid oförändrad (5339143507).
+
+**Filer:** intake-fetch-test/index.ts (rad 123, 394, 421, 422, 444),
+ebay-search/index.ts (rad ~338–339, ~352)
+
+**DB:** Ingen migration. Befintliga UK-produkter lämnas med original-URL tills vidare.
+
+**Nästa steg:** Testköra intake-fetch-test med max_items: 5 — bekräfta italienska resultat och inga 4xx.
+
 ### 2026-05-09 — Menswear pipeline verifierad end-to-end
 
 **Vad:** Testanrop bekräftar att menswear-config kör korrekt.
