@@ -482,6 +482,7 @@ export type Database = {
           created_at: string | null
           currency: string | null
           current_queue_state: string | null
+          description_clean: string | null
           description_raw: string | null
           external_id: string | null
           id: string
@@ -510,6 +511,7 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           current_queue_state?: string | null
+          description_clean?: string | null
           description_raw?: string | null
           external_id?: string | null
           id?: string
@@ -538,6 +540,7 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           current_queue_state?: string | null
+          description_clean?: string | null
           description_raw?: string | null
           external_id?: string | null
           id?: string
