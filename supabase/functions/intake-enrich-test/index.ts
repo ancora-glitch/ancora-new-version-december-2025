@@ -24,7 +24,7 @@ function userPrompt(p: {
   brand: string;
   tier: string;
 }): string {
-  return `Enrich this product listing for Ancora.
+  return `Enrich this product listing for Ancora. The listing may be in Italian or another language — translate all output fields to English.
 
 Raw title: ${p.title_raw}
 Raw description: ${p.description_raw}
@@ -48,9 +48,10 @@ Return JSON only:
   "size_confidence": number 0-1,
   "condition": one of: new|very_good|good|fair|poor|null,
   "condition_confidence": number 0-1,
-  "title_clean": string (Ancora house style: Brand + Color + Material + Item – Size, e.g. 'Toteme Black Wool Coat – Size 38'),
-  "style_tags": array of 2-4 strings,
-  "editorial_notes": array of 1-3 strings
+  "title_clean": string in English (Ancora house style: Brand + Color + Material + Item – Size, e.g. 'Toteme Black Wool Coat – Size 38'),
+  "description_clean": string in English (2-3 sentences, editorial tone, no marketing fluff),
+  "style_tags": array of 2-4 strings in English,
+  "editorial_notes": array of 1-3 strings in English
 }`;
 }
 
@@ -243,6 +244,7 @@ serve(async (req) => {
           size: (enriched.size as string) || null,
           condition: (enriched.condition as string) || null,
           title_clean: (enriched.title_clean as string) || null,
+          description_clean: (enriched.description_clean as string) || null,
           style_tags: enriched.style_tags || null,
           confidence,
           current_queue_state: "enriched",
