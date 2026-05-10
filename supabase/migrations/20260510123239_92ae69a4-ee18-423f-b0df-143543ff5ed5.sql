@@ -1,0 +1,1 @@
+ALTER TABLE public.intake_normalized_products ADD COLUMN IF NOT EXISTS description_clean text;

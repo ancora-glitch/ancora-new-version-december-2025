@@ -1,30 +1,29 @@
-## Switch eBay intake from UK to Italy
+## Plan: English translation in intake-enrich-test
 
-Two surgical edits to two edge function files. No other logic touched.
+### 1. DB migration (required first)
+Add `description_clean text` column to `intake_normalized_products`. Without it the new `.update({ description_clean: ... })` call will fail with "column does not exist". Mirrors the existing `title_clean` pattern.
 
-### File 1: `supabase/functions/intake-fetch-test/index.ts`
+```sql
+ALTER TABLE public.intake_normalized_products
+  ADD COLUMN description_clean text;
+```
 
-1. **Line 123** — `fetchEbayItemDetails` headers: `EBAY_GB` → `EBAY_IT`
-2. **Line 394** — `const SEK_RATES_GBP = 13;` → `const SEK_RATES_EUR = 11.5;`
-3. **Line 421** — `minGbp` → `minEur` (rename + use new constant)
-4. **Line 422** — filter string: `price:[${minGbp}..],priceCurrency:GBP,itemLocationCountry:GB` → `price:[${minEur}..],priceCurrency:EUR,itemLocationCountry:IT`
-5. **Line 444** — search loop headers: `EBAY_GB` → `EBAY_IT`
+### 2. Code changes — `supabase/functions/intake-enrich-test/index.ts`
 
-### File 2: `supabase/functions/ebay-search/index.ts`
+**Change A — `userPrompt()`**
+Replace the function with the new version that:
+- Adds an instruction line telling Claude the listing may be Italian/other language and that all output fields must be translated to English
+- Adds `description_clean` (2-3 sentence editorial English description) to the JSON schema
+- Tags `title_clean`, `style_tags`, `editorial_notes` as English
 
-6. **Line ~352** — search headers: `EBAY_GB` → `EBAY_IT`
-7. **Lines ~338–339** — remove `euroCountries` variable; replace `locationFilter` with `itemLocationCountry:IT`
+**Change B — `.update({...})` call inside the product loop**
+Add `description_clean: (enriched.description_clean as string) || null,` between the existing `title_clean` and `style_tags` lines.
 
-### Out of scope (explicitly untouched)
+### 3. Out of scope (explicitly untouched)
+- No changes to guards, kill-switch, flags, auth, model, prompt_version
+- No changes to logging, brand-tier lookup, confidence handling
+- No changes to `current_queue_state` transitions
+- No edits to other functions or frontend
 
-- campid / affiliate URL values
-- enum values (`draft`, `ebay`, `very_good`, etc.)
-- quota guards, kill switch, INTAKE_* flags
-- editorial fields (name, description, brand, color, material, condition)
-- CORS, auth, rate limiting
-- `SEK_RATES` map inside item processing loop (line 542) — separate currency conversion table, not the search-filter constant
-
-### Verification after implementation
-
-- Deploy both functions
-- One test invocation of `intake-fetch-test` with `max_items: 5` to confirm Italian results return and no 4xx from eBay
+### 4. Verification
+After migration + edit, invoke `intake-enrich-test` and confirm an enriched row has English `title_clean` and `description_clean` populated.
