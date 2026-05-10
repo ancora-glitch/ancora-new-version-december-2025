@@ -3,6 +3,14 @@ Version 2.0
 
 Changelog v2.0:
 
+### 2026-05-10 — intake_configs: utökade query_terms
+
+**Vad:** Womenswear-konfigen hade bara "women's clothing" (1 term) → samma listings returnerades varje körning. Ersatte med 14 specifika termer (engelska + italienska). Fetch går nu igenom utan duplicates.
+
+**DB:** UPDATE intake_configs SET query_terms = [...14 termer...] WHERE name = 'eBay womenswear default'
+
+**Resultat:** 0 duplicates, 10/10 fetch→enrich→score i ett svep.
+
 ### 2026-05-10 — intake-enrich-test: engelsk översättning + description_clean
 
 **Vad:** Uppdaterade userPrompt() med instruktion att översätta alla output-fält till engelska (källtext kan vara italiensk eller annat språk). Lade till `description_clean` (2-3 meningar editorial engelska) i JSON-schemat och i `.update()`-anropet. Title_clean, style_tags, editorial_notes är nu explicit engelska.
