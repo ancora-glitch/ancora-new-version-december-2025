@@ -418,8 +418,8 @@ Deno.serve(async (req) => {
     if (collected.length >= maxItems) break;
     configFetchCounts[config.id] = 0;
 
-    const minGbp = Math.max(1, Math.round((config.min_price_sek || 500) / SEK_RATES_GBP));
-    const filterStr = `buyingOptions:{FIXED_PRICE},price:[${minGbp}..],priceCurrency:GBP,itemLocationCountry:GB`;
+    const minEur = Math.max(1, Math.round((config.min_price_sek || 500) / SEK_RATES_EUR));
+    const filterStr = `buyingOptions:{FIXED_PRICE},price:[${minEur}..],priceCurrency:EUR,itemLocationCountry:IT`;
     const categoryIds = (config.category_ids || []).join(",");
     const perTermLimit = Math.max(2, Math.floor(
       Math.min(maxItems, 50) / Math.max(1, config.query_terms.length)
