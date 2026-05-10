@@ -244,6 +244,7 @@ serve(async (req) => {
           size: (enriched.size as string) || null,
           condition: (enriched.condition as string) || null,
           title_clean: (enriched.title_clean as string) || null,
+          description_clean: (enriched.description_clean as string) || null,
           style_tags: enriched.style_tags || null,
           confidence,
           current_queue_state: "enriched",
