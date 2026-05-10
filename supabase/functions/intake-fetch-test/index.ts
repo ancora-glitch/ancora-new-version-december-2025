@@ -441,7 +441,7 @@ Deno.serve(async (req) => {
         const res = await fetch(searchUrl, {
           headers: {
             Authorization: `Bearer ${tokenResult.token}`,
-            "X-EBAY-C-MARKETPLACE-ID": "EBAY_GB",
+            "X-EBAY-C-MARKETPLACE-ID": "EBAY_IT",
             "Content-Type": "application/json",
           },
         });
