@@ -3,6 +3,14 @@ Version 2.0
 
 Changelog v2.0:
 
+### 2026-05-10 — extractBrand: italiensk blocklista
+
+**Vad:** Lade till ITALIAN_NON_BRANDS-set i extractBrand(). Filtrerar bort generiska italienska ord (abbigliamento, canotta, set, twin m.fl.) som feldetekterades som märken. brand returnerar nu null i stället för falskt värde.
+
+**Filer:** intake-fetch-test/index.ts (extractBrand)
+
+**DB:** Ingen migration.
+
 ### 2026-05-10 — guessCategory: italienska synonymer
 
 **Vad:** Utökade guessCategory() med italienska keywords per kategori.
