@@ -35,7 +35,7 @@ Brand tier: ${p.tier}
 
 Return JSON only:
 {
-  "brand": string,
+  "brand": string or null (identify the fashion brand from title and description — look beyond the first word, check for known brand names anywhere in the text; return null if no brand is identifiable),
   "brand_confidence": number 0-1,
   "category": one of: outerwear|tops|knitwear|shirts|blazers|dresses|skirts|jeans|trousers|shorts|bags|shoes|accessories,
   "category_confidence": number 0-1,
