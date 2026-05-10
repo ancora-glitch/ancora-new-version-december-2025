@@ -407,8 +407,7 @@ serve(async (req) => {
     }
 
     // Restrict to European item locations + delivery to SE + Fixed Price only
-    const euroCountries = 'DE|GB|FR|IT|ES|SE|NL|AT|BE|DK|FI|IE|PL|PT|CZ|GR|HU|RO|NO|CH';
-    const locationFilter = `itemLocationCountry:{${euroCountries}}`;
+    const locationFilter = `itemLocationCountry:IT`;
     const deliveryFilter = `deliveryCountry:SE`;
     const buyingOptionsFilter = `buyingOptions:{FIXED_PRICE}`;
     const existingFilter = searchParams.get('filter') || '';
@@ -422,7 +421,7 @@ serve(async (req) => {
     const searchResponse = await fetch(searchUrl, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
-        'X-EBAY-C-MARKETPLACE-ID': 'EBAY_GB',
+        'X-EBAY-C-MARKETPLACE-ID': 'EBAY_IT',
         'Content-Type': 'application/json',
       },
     });
