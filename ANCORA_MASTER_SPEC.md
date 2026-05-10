@@ -3,6 +3,12 @@ Version 2.0
 
 Changelog v2.0:
 
+### 2026-05-10 — Pipeline end-to-end verifierad
+
+**Vad:** Fetch→Enrich→Score kör utan duplicates. Tiering fungerar — Ralph Lauren (Tier A, Score 85) och Versace (Tier A, Score 73) identifierade korrekt från italienska eBay-listings. Engelska titlar och beskrivningar genereras korrekt av enrich-steget.
+
+**Status:** Pipeline produktionsklar för dagliga körningar.
+
 ### 2026-05-10 — intake_configs: utökade query_terms
 
 **Vad:** Womenswear-konfigen hade bara "women's clothing" (1 term) → samma listings returnerades varje körning. Ersatte med 14 specifika termer (engelska + italienska). Fetch går nu igenom utan duplicates.
