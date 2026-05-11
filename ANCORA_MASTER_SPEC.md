@@ -3,6 +3,14 @@ Version 2.0
 
 Changelog v2.0:
 
+### 2026-05-11 — affiliate_url: ebay.co.uk → ebay.it (bulk migration)
+
+**Vad:** 68 rader i intake_normalized_products och 177 rader i products hade kvar ebay.co.uk-URL:er från innan IT-bytet. Alla uppdaterade via SQL.
+
+**DB:** REPLACE affiliate_url ebay.co.uk → ebay.it på båda tabellerna.
+
+**Verifierat:** 0 kvarvarande ebay.co.uk i products.
+
 ### 2026-05-11 — Guards borttagna, pipeline produktionsklar
 
 **Vad:** VITE_INTAKE_V1_ENABLED, VITE_INTAKE_FETCH_ENABLED, VITE_INTAKE_AI_ENABLED, VITE_INTAKE_SCORING_ENABLED och intake-promote-product guard blockerade pipeline. Alla borttagna — pipeline kör nu utan flaggberoenden.
