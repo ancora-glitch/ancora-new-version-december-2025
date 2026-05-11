@@ -359,6 +359,14 @@ export const IntakeReviewQueue = ({ refreshKey }: IntakeReviewQueueProps) => {
                     >
                       {state.replace(/_/g, " ")}
                     </Badge>
+                    {p.segment && (
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] bg-muted text-muted-foreground"
+                      >
+                        {p.segment}
+                      </Badge>
+                    )}
                     {ev?.score_total != null && (
                       <Badge
                         variant="secondary"
