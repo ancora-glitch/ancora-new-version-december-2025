@@ -97,19 +97,6 @@ serve(async (req) => {
     return json({ status: "aborted_kill_switch" });
   }
 
-  const pipelineEnabled = envFlag("VITE_INTAKE_V1_ENABLED");
-  const aiEnabled = envFlag("VITE_INTAKE_AI_ENABLED");
-  if (!pipelineEnabled || !aiEnabled) {
-    await supabase.from("intake_run_logs").insert({
-      run_type: "enrich",
-      source: "ebay",
-      status: "aborted_flag_disabled",
-      started_at: new Date().toISOString(),
-      completed_at: new Date().toISOString(),
-    });
-    return json({ status: "aborted_flag_disabled" });
-  }
-
   if (!anthropicKey) {
     return json({ error: "ANTHROPIC_API_KEY not configured" }, 500);
   }
