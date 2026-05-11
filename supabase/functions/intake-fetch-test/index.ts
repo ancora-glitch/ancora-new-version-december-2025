@@ -303,24 +303,6 @@ Deno.serve(async (req) => {
 
   const env = (k: string) => Deno.env.get(k) ?? "";
 
-  // Guard: INTAKE_V1_ENABLED
-  if (env("VITE_INTAKE_V1_ENABLED") !== "true") {
-    await svc.from("intake_run_logs").insert({
-      source, run_type: "fetch", status: "aborted_flag_disabled",
-      items_fetched: 0, items_processed: 0,
-    });
-    return jsonRes({ error: "Pipeline disabled (INTAKE_V1_ENABLED != true)" }, 200, cors);
-  }
-
-  // Guard: INTAKE_FETCH_ENABLED
-  if (env("VITE_INTAKE_FETCH_ENABLED") !== "true") {
-    await svc.from("intake_run_logs").insert({
-      source, run_type: "fetch", status: "aborted_flag_disabled",
-      items_fetched: 0, items_processed: 0,
-    });
-    return jsonRes({ error: "Fetch disabled (INTAKE_FETCH_ENABLED != true)" }, 200, cors);
-  }
-
   // Guard: INTAKE_KILL_SWITCH
   if (env("VITE_INTAKE_KILL_SWITCH") === "true") {
     await svc.from("intake_run_logs").insert({
