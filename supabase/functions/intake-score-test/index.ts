@@ -213,14 +213,6 @@ serve(async (req) => {
     return json({ status: "aborted_kill_switch" });
   }
 
-  if (!envFlag("VITE_INTAKE_V1_ENABLED") || !envFlag("VITE_INTAKE_SCORING_ENABLED")) {
-    await supabase.from("intake_run_logs").insert({
-      run_type: "score", source: "ebay", status: "aborted_flag_disabled",
-      started_at: new Date().toISOString(), completed_at: new Date().toISOString(),
-    });
-    return json({ status: "aborted_flag_disabled" });
-  }
-
   if (!anthropicKey) {
     return json({ error: "ANTHROPIC_API_KEY not configured" }, 500);
   }
