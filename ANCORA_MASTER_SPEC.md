@@ -3,6 +3,14 @@ Version 2.0
 
 Changelog v2.0:
 
+### 2026-05-11 — Guards borttagna, pipeline produktionsklar
+
+**Vad:** VITE_INTAKE_V1_ENABLED, VITE_INTAKE_FETCH_ENABLED, VITE_INTAKE_AI_ENABLED, VITE_INTAKE_SCORING_ENABLED och intake-promote-product guard blockerade pipeline. Alla borttagna — pipeline kör nu utan flaggberoenden.
+
+**Filer:** intake-fetch-test/index.ts, intake-enrich-test/index.ts, intake-score-test/index.ts, intake-promote-product/index.ts
+
+**Status:** Run all → produkter i review-kön → Approve → draft i products. Fullt flöde verifierat.
+
 ### 2026-05-10 — Pipeline end-to-end verifierad
 
 **Vad:** Fetch→Enrich→Score kör utan duplicates. Tiering fungerar — Ralph Lauren (Tier A, Score 85) och Versace (Tier A, Score 73) identifierade korrekt från italienska eBay-listings. Engelska titlar och beskrivningar genereras korrekt av enrich-steget.
