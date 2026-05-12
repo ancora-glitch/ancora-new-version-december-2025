@@ -417,7 +417,7 @@ export const IntakeTab = () => {
       if (r1.error || (r1.data as any)?.error) {
         setRunAllError({
           step: "fetch",
-          message: r1.error?.message || (r1.data as any)?.error || `Unknown error in ${fetchFn}`,
+          message: r1.error?.message || (r1.data as any)?.error || `Unknown error in intake-fetch-test`,
         });
         return;
       }
