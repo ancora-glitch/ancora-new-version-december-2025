@@ -411,15 +411,13 @@ export const IntakeTab = () => {
       // Step 1: fetch
       currentStep = "fetch";
       setRunAllStep("fetch");
-      const nextSrc = await getNextAlternatingSource();
-      const fetchFn = fnForSource(nextSrc);
-      const r1 = await supabase.functions.invoke(fetchFn, {
-        body: bodyForSource(nextSrc, false),
+      const r1 = await supabase.functions.invoke("intake-fetch-test", {
+        body: { source: "ebay", dry_run: false },
       });
       if (r1.error || (r1.data as any)?.error) {
         setRunAllError({
           step: "fetch",
-          message: r1.error?.message || (r1.data as any)?.error || `Unknown error in ${fetchFn}`,
+          message: r1.error?.message || (r1.data as any)?.error || `Unknown error in intake-fetch-test`,
         });
         return;
       }
