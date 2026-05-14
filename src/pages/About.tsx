@@ -89,7 +89,7 @@ const About = () => {
         </section>
 
         {/* Team Image */}
-        <section ref={(el) => sectionsRef.current[6] = el} className="fade-section px-6 md:px-12 lg:px-24 py-12">
+        <section ref={(el) => sectionsRef.current[6] = el} className="fade-section px-6 md:px-12 lg:px-24 py-8 md:py-10">
           <div className="max-w-[700px] mx-auto">
             <img src={teamAncoraImage} alt="Team Ancora" className="w-full h-auto" loading="lazy" />
           </div>
