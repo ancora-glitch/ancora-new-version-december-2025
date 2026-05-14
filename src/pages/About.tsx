@@ -47,9 +47,7 @@ const About = () => {
         {/* Intro/Ingress Section */}
         <section ref={(el) => sectionsRef.current[1] = el} className="fade-section md:px-12 lg:px-24 md:py-4 px-[60px] py-[8px]">
           <div className="max-w-[700px] mx-auto">
-            <p className="article-intro">Ancora exists for the everyday style seekers and the hardcore fashion hunters — for anyone who wants to create a circular wardrobe. 
-            <em>Ancora exists for the everyday style seekers and the hardcore fashion hunters</em> — for anyone who believes that great style isn't bought, it's found.
-            </p>
+            <p className="article-intro">Ancora exists for the everyday style seekers and the hardcore fashion hunters – for anyone who wants to create a stunning circular wardrobe.</p>
           </div>
         </section>
 
