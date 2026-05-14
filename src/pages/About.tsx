@@ -45,14 +45,14 @@ const About = () => {
         </section>
 
         {/* Intro/Ingress Section */}
-        <section ref={(el) => sectionsRef.current[1] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-10 py-[10px] pt-[5px]">
+        <section ref={(el) => sectionsRef.current[1] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-10 py-[10px] pt-[5px] pb-0">
           <div className="max-w-[700px] mx-auto">
             <p className="article-intro">Ancora exists for the everyday style seekers and the hardcore fashion hunters – for anyone who wants to create a stunning circular wardrobe.</p>
           </div>
         </section>
 
         {/* Our Story Section */}
-        <section ref={(el) => sectionsRef.current[2] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-10 py-[10px] pt-[5px]">
+        <section ref={(el) => sectionsRef.current[2] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-10 py-[40px] pt-0">
           <div className="max-w-[700px] mx-auto article-body">
             <h2 className="article-subheader">Our Story</h2>
             <p className="drop-cap">
@@ -64,14 +64,14 @@ const About = () => {
         {/* Philosophy Section */}
         <section ref={(el) => sectionsRef.current[4] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-10 py-[10px] pt-[5px]">
           <div className="max-w-[700px] mx-auto article-body">
-            <h2 className="article-subheader">Our Philosophy</h2>
-            <p>
+            <h2 className="article-subheader mb-8">Our Philosophy</h2>
+            <p className="mb-8">
               Everything you could ever want already exists — humanity has made more clothes than we could wear in generations. The future of fashion is about uncovering what's already here.
             </p>
-            <p>
+            <p className="mb-8">
               We believe in the thrill of discovery, the joy of finding that perfect piece that feels like it was made for you. Every item has a story, and we're here to help you write the next chapter.
             </p>
-            <h2 className="article-subheader mt-8">What you'll find on Ancora</h2>
+            <h2 className="article-subheader mt-8 mb-8">What you'll find on Ancora</h2>
             <p>
               All pieces in our collection is either timeless or trending – that is our style guarantee to you.
             </p>
