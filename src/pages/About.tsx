@@ -96,7 +96,7 @@ const About = () => {
         </section>
 
         {/* Follow Ancora */}
-        <section ref={(el) => sectionsRef.current[7] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-8 py-[4px]">
+        <section ref={(el) => sectionsRef.current[7] = el} className="fade-section px-6 md:px-12 lg:px-24 py-8 md:py-10">
           <div className="max-w-[700px] mx-auto article-body">
             <h2 className="article-subheader">Follow Ancora</h2>
             <div className="flex flex-col gap-4 pt-2">
