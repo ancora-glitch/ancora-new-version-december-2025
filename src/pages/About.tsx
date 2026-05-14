@@ -45,14 +45,14 @@ const About = () => {
         </section>
 
         {/* Intro/Ingress Section */}
-        <section ref={(el) => sectionsRef.current[1] = el} className="fade-section px-6 md:px-12 lg:px-24 py-8 md:py-10">
+        <section ref={(el) => sectionsRef.current[1] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-10 py-[10px] pt-[5px]">
           <div className="max-w-[700px] mx-auto">
             <p className="article-intro">Ancora exists for the everyday style seekers and the hardcore fashion hunters – for anyone who wants to create a stunning circular wardrobe.</p>
           </div>
         </section>
 
         {/* Our Story Section */}
-        <section ref={(el) => sectionsRef.current[2] = el} className="fade-section px-6 md:px-12 lg:px-24 py-8 md:py-10">
+        <section ref={(el) => sectionsRef.current[2] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-10 py-[10px] pt-[5px]">
           <div className="max-w-[700px] mx-auto article-body">
             <h2 className="article-subheader">Our Story</h2>
             <p className="drop-cap">
@@ -62,7 +62,7 @@ const About = () => {
         </section>
 
         {/* Philosophy Section */}
-        <section ref={(el) => sectionsRef.current[4] = el} className="fade-section px-6 md:px-12 lg:px-24 py-8 md:py-10">
+        <section ref={(el) => sectionsRef.current[4] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-10 py-[10px] pt-[5px]">
           <div className="max-w-[700px] mx-auto article-body">
             <h2 className="article-subheader">Our Philosophy</h2>
             <p>
@@ -79,7 +79,7 @@ const About = () => {
         </section>
 
         {/* Origin Section */}
-        <section ref={(el) => sectionsRef.current[5] = el} className="fade-section px-6 md:px-12 lg:px-24 py-8 md:py-10">
+        <section ref={(el) => sectionsRef.current[5] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-10 py-[10px] pt-[5px]">
           <div className="max-w-[700px] mx-auto article-body">
             <h2 className="article-subheader">Where We Started</h2>
             <p>
@@ -89,14 +89,14 @@ const About = () => {
         </section>
 
         {/* Team Image */}
-        <section ref={(el) => sectionsRef.current[6] = el} className="fade-section px-6 md:px-12 lg:px-24 py-8 md:py-10">
+        <section ref={(el) => sectionsRef.current[6] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-10 py-[10px] pt-[5px]">
           <div className="max-w-[700px] mx-auto">
             <img src={teamAncoraImage} alt="Team Ancora" className="w-full h-auto" loading="lazy" />
           </div>
         </section>
 
         {/* Follow Ancora */}
-        <section ref={(el) => sectionsRef.current[7] = el} className="fade-section px-6 md:px-12 lg:px-24 py-8 md:py-10">
+        <section ref={(el) => sectionsRef.current[7] = el} className="fade-section px-6 md:px-12 lg:px-24 md:py-10 py-[10px] pt-[5px]">
           <div className="max-w-[700px] mx-auto article-body">
             <h2 className="article-subheader">Follow Ancora</h2>
             <div className="flex flex-col gap-4 pt-2">
