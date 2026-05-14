@@ -80,8 +80,9 @@ const About = () => {
             <p>
               We believe in the thrill of discovery, the joy of finding that perfect piece that feels like it was made for you. Every item has a story, and we're here to help you write the next chapter.
             </p>
-            <p className="mt-8 whitespace-pre-line">
-              All pieces in our collection is either timeless or trending – that is our style guarantee to you.&nbsp;
+            <h2 className="article-subheader mt-8">What you'll find on Ancora</h2>
+            <p>
+              All pieces in our collection is either timeless or trending – that is our style guarantee to you.
             </p>
           </div>
         </section>
