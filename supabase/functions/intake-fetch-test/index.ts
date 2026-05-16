@@ -552,10 +552,13 @@ Deno.serve(async (req) => {
       const priceSek = price !== null ? Math.round(price * sekRate) : null;
 
       const title = item.title || "";
-      const rawItemUrl = item.itemWebUrl || null;
-      const affiliateUrl = rawItemUrl
-        ? rawItemUrl.replace('ebay.co.uk', 'ebay.it').replace('ebay.com', 'ebay.it')
-        : null;
+        const rawItemUrl = item.itemWebUrl || null;
+        const ebayItemIdMatch = rawItemUrl?.match(/\/itm\/(?:[^/?]*\/)?(\d+)/) 
+          || rawItemUrl?.match(/v\d+\|(\d+)\|/);
+        const ebayNumericId = ebayItemIdMatch ? ebayItemIdMatch[1] : null;
+        const affiliateUrl = ebayNumericId
+          ? `https://www.ebay.it/itm/${ebayNumericId}?mkcid=1&mkrid=724-53478-19255-0&siteid=101&campid=5339143507&toolid=10001&mkevt=1`
+          : rawItemUrl?.replace('ebay.co.uk', 'ebay.it').replace('ebay.com', 'ebay.it') || null;
       const externalId = item.itemId || null;
       const category = guessCategory(title);
       const brand = extractBrand(title);
