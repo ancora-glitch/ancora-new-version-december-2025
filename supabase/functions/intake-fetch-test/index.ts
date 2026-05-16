@@ -552,7 +552,10 @@ Deno.serve(async (req) => {
       const priceSek = price !== null ? Math.round(price * sekRate) : null;
 
       const title = item.title || "";
-      const affiliateUrl = item.itemWebUrl || null;
+      const rawItemUrl = item.itemWebUrl || null;
+      const affiliateUrl = rawItemUrl
+        ? rawItemUrl.replace('ebay.co.uk', 'ebay.it').replace('ebay.com', 'ebay.it')
+        : null;
       const externalId = item.itemId || null;
       const category = guessCategory(title);
       const brand = extractBrand(title);
