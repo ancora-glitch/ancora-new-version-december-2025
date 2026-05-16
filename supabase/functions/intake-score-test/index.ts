@@ -9,7 +9,7 @@ const corsHeaders = {
 
 const PROMPT_VERSION = "v2";
 const RULES_VERSION = "v2";
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "claude-sonnet-4-6";
 
 const ANCORA_CATEGORIES = new Set([
   "outerwear", "tops", "knitwear", "shirts", "blazers", "dresses",
