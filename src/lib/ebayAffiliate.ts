@@ -8,7 +8,7 @@
 // ── EPN Configuration ──────────────────────────────────────────────
 export const EBAY_EPN_CAMP_ID = "5339143507";
 export const EBAY_EPN_TOOL_ID = "10001";
-export const EBAY_ITEM_BASE = "https://www.ebay.co.uk/itm";
+export const EBAY_ITEM_BASE = "https://www.ebay.it/itm";
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
@@ -47,8 +47,8 @@ export function buildEbayAffiliateUrl(itemId: string, customId?: string): string
   const numericId = extractEbayItemId(itemId) || itemId;
   const params = new URLSearchParams({
     mkcid: "1",
-    mkrid: "710-53481-19255-0",
-    siteid: "3",
+    mkrid: "724-53478-19255-0",
+    siteid: "101",
     campid: EBAY_EPN_CAMP_ID,
     customid: customId ?? "",
     toolid: EBAY_EPN_TOOL_ID,
@@ -79,7 +79,7 @@ export function toEbayAffiliateUrl(urlOrId: string | null | undefined): string |
  */
 export function isEbayAffiliateUrl(url: string | null | undefined): boolean {
   if (!url) return false;
-  return url.includes("ebay.co.uk/itm/") &&
+  return url.includes("ebay.it/itm/") &&
     url.includes(`campid=${EBAY_EPN_CAMP_ID}`) &&
     url.includes(`toolid=${EBAY_EPN_TOOL_ID}`) &&
     url.includes("mkevt=1");
