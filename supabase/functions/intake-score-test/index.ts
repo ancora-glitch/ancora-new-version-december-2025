@@ -302,6 +302,7 @@ serve(async (req) => {
       // Hard overrides
       const hardFlags: string[] = [];
       if (tier === "reject") hardFlags.push("tier_reject");
+      if (tier === "unknown") hardFlags.push("tier_unknown");
       if (!product.affiliate_url) hardFlags.push("no_affiliate_url");
       if (!Array.isArray(product.image_urls) || product.image_urls.length === 0) hardFlags.push("no_images");
 
