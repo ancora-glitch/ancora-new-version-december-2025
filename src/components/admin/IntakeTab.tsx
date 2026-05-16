@@ -412,7 +412,7 @@ export const IntakeTab = () => {
       currentStep = "fetch";
       setRunAllStep("fetch");
       const r1 = await supabase.functions.invoke("intake-fetch-test", {
-        body: { source: "ebay", dry_run: false },
+        body: { source: "ebay", dry_run: false, max_items: 50 },
       });
       if (r1.error || (r1.data as any)?.error) {
         setRunAllError({
