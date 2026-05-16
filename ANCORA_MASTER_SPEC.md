@@ -3,6 +3,14 @@ Version 2.0
 
 Changelog v2.0:
 
+### 2026-05-16 — eBay affiliate-URL: fullständig IT-migrering
+
+**Vad:** affiliateUrl i intake-fetch-test byggs nu direkt med korrekt IT-parametrar (ebay.it, siteid=101, mkrid=724-53478-19255-0). ebayAffiliate.ts uppdaterad: EBAY_ITEM_BASE → ebay.it, siteid 3→101, mkrid uppdaterat. isEbayAffiliateUrl kontrollerar nu ebay.it.
+
+**Filer:** intake-fetch-test/index.ts, src/lib/ebayAffiliate.ts
+
+**DB:** Verifierat att nya produkter har korrekt IT-URL i båda tabellerna.
+
 ### 2026-05-11 — affiliate_url: ebay.co.uk → ebay.it (bulk migration)
 
 **Vad:** 68 rader i intake_normalized_products och 177 rader i products hade kvar ebay.co.uk-URL:er från innan IT-bytet. Alla uppdaterade via SQL.
