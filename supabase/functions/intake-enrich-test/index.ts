@@ -9,7 +9,7 @@ const corsHeaders = {
 
 /* ── Constants ── */
 const PROMPT_VERSION = "v1";
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "claude-sonnet-4-6";
 
 const SYSTEM_PROMPT = `You are an editorial assistant for Ancora, a curated second-hand fashion storefront with a minimalist, Scandinavian aesthetic.
 Your job is to enrich product listings with structured fashion data.
