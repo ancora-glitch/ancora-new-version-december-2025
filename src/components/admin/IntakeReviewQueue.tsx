@@ -192,9 +192,14 @@ export const IntakeReviewQueue = ({ refreshKey }: IntakeReviewQueueProps) => {
     return scoreB - scoreA;
   });
 
+  const tierFiltered = sortedProducts.filter((p) => {
+    const tier = tierMap.get((p.brand ?? "").toLowerCase());
+    return tier && tier !== "unknown";
+  });
+
   const stateFiltered = filter === "all"
-    ? sortedProducts
-    : sortedProducts.filter((p) => p.current_queue_state === filter);
+    ? tierFiltered
+    : tierFiltered.filter((p) => p.current_queue_state === filter);
 
   const now = Date.now();
   const dateThreshold =
