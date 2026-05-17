@@ -474,7 +474,14 @@ serve(async (req) => {
         conditionText: item.condition || null,
         seller: item.seller?.username || null,
         itemUrl: item.itemWebUrl || null,
-        affiliateUrl: item.itemWebUrl || null,
+        affiliateUrl: (() => {
+          const rawUrl = item.itemWebUrl || null;
+          const idMatch = rawUrl?.match(/\/itm\/(?:[^/?]*\/)?(\d+)/);
+          const numericId = idMatch ? idMatch[1] : null;
+          return numericId
+            ? `https://www.ebay.it/itm/${numericId}?mkcid=1&mkrid=724-53478-19255-0&siteid=101&campid=5339143507&toolid=10001&mkevt=1`
+            : rawUrl?.replace('ebay.co.uk', 'ebay.it') || null;
+        })(),
         keywords: extractKeywords(item.title),
       };
     });
