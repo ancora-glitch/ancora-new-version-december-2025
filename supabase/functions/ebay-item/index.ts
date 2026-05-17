@@ -124,7 +124,7 @@ serve(async (req) => {
     const response = await fetch(itemUrl, {
       headers: {
         'Authorization': `Bearer ${tokenResult.token}`,
-        'X-EBAY-C-MARKETPLACE-ID': 'EBAY_GB',
+        'X-EBAY-C-MARKETPLACE-ID': 'EBAY_IT',
         'Content-Type': 'application/json',
       },
     });
@@ -178,7 +178,7 @@ serve(async (req) => {
       description: cleanDescription,
       shortDescription: data.shortDescription || null,
       price: data.price?.value ? parseFloat(data.price.value) : null,
-      currency: data.price?.currency || 'USD',
+      currency: data.price?.currency || 'EUR',
       condition: data.conditionId,
       conditionText: data.condition || null,
       brand: data.brand || null,
@@ -187,7 +187,14 @@ serve(async (req) => {
       material: data.material || null,
       seller: data.seller?.username || null,
       itemUrl: data.itemWebUrl || null,
-      affiliateUrl: data.itemAffiliateWebUrl || data.itemWebUrl || null,
+      affiliateUrl: (() => {
+        const rawUrl = data.itemAffiliateWebUrl || data.itemWebUrl || null;
+        const idMatch = rawUrl?.match(/\/itm\/(?:[^/?]*\/)?(\d+)/);
+        const numericId = idMatch ? idMatch[1] : null;
+        return numericId
+          ? `https://www.ebay.it/itm/${numericId}?mkcid=1&mkrid=724-53478-19255-0&siteid=101&campid=5339143507&toolid=10001&mkevt=1`
+          : rawUrl?.replace('ebay.co.uk', 'ebay.it') || null;
+      })(),
       images,
       categoryPath: data.categoryPath || null,
       itemLocation: data.itemLocation ? `${data.itemLocation.city || ''}, ${data.itemLocation.country || ''}`.replace(/^, |, $/, '') : null,
