@@ -124,7 +124,7 @@ serve(async (req) => {
     const response = await fetch(itemUrl, {
       headers: {
         'Authorization': `Bearer ${tokenResult.token}`,
-        'X-EBAY-C-MARKETPLACE-ID': 'EBAY_GB',
+        'X-EBAY-C-MARKETPLACE-ID': 'EBAY_IT',
         'Content-Type': 'application/json',
       },
     });
