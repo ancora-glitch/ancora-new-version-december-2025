@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { isLikelyEnglish } from "@/lib/languageDetect";
+
 
 export interface TranslateImportInput {
   title: string;
@@ -29,19 +29,6 @@ export async function translateImport(
   const desc = description ?? "";
   const textToCheck = `${title} ${desc}`.trim();
 
-  if (isLikelyEnglish(textToCheck)) {
-    console.info(`[translateImport] Skipping translation (already English): ${sourceRef}`);
-    return {
-      title_en: title,
-      description_en: desc ? desc : null,
-      condition_en: condition || null,
-      material_en: material || null,
-      size_en: size || null,
-      brand_en: brand || null,
-      language: "en",
-      translated_at: new Date().toISOString(),
-    };
-  }
 
   try {
     const { data, error } = await supabase.functions.invoke("translate-swedish", {
