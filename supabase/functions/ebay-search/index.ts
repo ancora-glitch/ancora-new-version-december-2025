@@ -391,11 +391,11 @@ serve(async (req) => {
     // Add price filter if provided
     if (minPrice !== undefined || maxPrice !== undefined) {
       if (minPrice !== undefined && maxPrice !== undefined) {
-        searchParams.set('filter', `price:[${minPrice}..${maxPrice}],priceCurrency:USD`);
+        searchParams.set('filter', `price:[${minPrice}..${maxPrice}],priceCurrency:EUR`);
       } else if (minPrice !== undefined) {
-        searchParams.set('filter', `price:[${minPrice}..],priceCurrency:USD`);
+        searchParams.set('filter', `price:[${minPrice}..],priceCurrency:EUR`);
       } else if (maxPrice !== undefined) {
-        searchParams.set('filter', `price:[..${maxPrice}],priceCurrency:USD`);
+        searchParams.set('filter', `price:[..${maxPrice}],priceCurrency:EUR`);
       }
     }
 
