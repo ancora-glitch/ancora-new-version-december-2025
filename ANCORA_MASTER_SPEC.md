@@ -3,6 +3,19 @@ Version 2.0
 
 Changelog v2.0:
 
+### 2026-05-16 — Manuell import: fullständig IT-migrering + översättning
+
+**Vad:**
+- ebay-item: EBAY_GB→EBAY_IT, currency GBP→EUR, affiliate_url IT-format
+- ebay-search: priceCurrency USD→EUR
+- translateImport: returnerar nu condition_en, material_en, size_en, brand_en
+- isLikelyEnglish short-circuit borttagen — alla importer kör AI-översättning
+- EbaySearchDrawer: använder tx.*_en för condition, material, size, brand
+
+**Filer:** supabase/functions/ebay-item/index.ts, supabase/functions/ebay-search/index.ts, src/lib/translateImport.ts, src/components/admin/EbaySearchDrawer.tsx, src/lib/languageDetect.ts (import borttagen)
+
+**Status:** Manuell import från eBay IT ger korrekt EUR, ebay.it-URL och engelska fält.
+
 ### 2026-05-16 — ebay-item edge function: UK → Italien
 
 **Vad:** ebay-item använde fortfarande EBAY_GB vilket orsakade GBP-valuta vid manuell import. Fixat: EBAY_GB→EBAY_IT, currency fallback USD→EUR, affiliateUrl byggs nu med korrekt IT-parametrar.
