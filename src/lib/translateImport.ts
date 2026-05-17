@@ -8,23 +8,20 @@ export interface TranslateImportInput {
   material?: string;
   size?: string;
   brand?: string;
-  /** Identifier for log lines (e.g. handle, item id). */
   sourceRef: string;
 }
 
 export interface TranslateImportResult {
   title_en: string | null;
   description_en: string | null;
-  language: "sv" | "en";
+  condition_en: string | null;
+  material_en: string | null;
+  size_en: string | null;
+  brand_en: string | null;
+  language: "sv" | "en" | "it" | "other";
   translated_at: string | null;
 }
 
-/**
- * Shared translation helper for all import flows.
- * - Heuristic-first: skips AI call when source already looks English.
- * - Non-blocking: any failure logs a warning and returns nulls so the
- *   import still succeeds; the translate-backfill cron will fill it in.
- */
 export async function translateImport(
   opts: TranslateImportInput
 ): Promise<TranslateImportResult> {
@@ -37,6 +34,10 @@ export async function translateImport(
     return {
       title_en: title,
       description_en: desc ? desc : null,
+      condition_en: condition || null,
+      material_en: material || null,
+      size_en: size || null,
+      brand_en: brand || null,
       language: "en",
       translated_at: new Date().toISOString(),
     };
@@ -58,25 +59,27 @@ export async function translateImport(
       return {
         title_en: data.name,
         description_en: data.description || null,
-        language: "sv",
+        condition_en: data.condition || null,
+        material_en: data.material || null,
+        size_en: data.size || null,
+        brand_en: data.brand || null,
+        language: "other",
         translated_at: new Date().toISOString(),
       };
     }
-    console.warn(
-      `[translateImport] Translation failed (non-blocking): ${sourceRef}`,
-      error
-    );
+    console.warn(`[translateImport] Translation failed (non-blocking): ${sourceRef}`, error);
   } catch (err) {
-    console.warn(
-      `[translateImport] Translation exception (non-blocking): ${sourceRef}`,
-      err
-    );
+    console.warn(`[translateImport] Translation exception (non-blocking): ${sourceRef}`, err);
   }
 
   return {
     title_en: null,
     description_en: null,
-    language: "sv",
+    condition_en: null,
+    material_en: null,
+    size_en: null,
+    brand_en: null,
+    language: "other",
     translated_at: null,
   };
 }
