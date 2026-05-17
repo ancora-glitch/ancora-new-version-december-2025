@@ -469,7 +469,7 @@ serve(async (req) => {
         title: item.title,
         images,
         price: item.price?.value ? parseFloat(item.price.value) : null,
-        currency: item.price?.currency || 'USD',
+        currency: 'EUR',
         condition: mapCondition(item.conditionId),
         conditionText: item.condition || null,
         seller: item.seller?.username || null,
