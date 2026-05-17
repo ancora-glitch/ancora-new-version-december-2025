@@ -194,7 +194,9 @@ export const IntakeReviewQueue = ({ refreshKey }: IntakeReviewQueueProps) => {
 
   const tierFiltered = sortedProducts.filter((p) => {
     const tier = tierMap.get((p.brand ?? "").toLowerCase());
-    return tier && tier !== "unknown";
+    if (tier === "reject") return false;
+    if (tier === "unknown") return false;
+    return true;
   });
 
   const stateFiltered = filter === "all"
