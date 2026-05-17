@@ -3,6 +3,14 @@ Version 2.0
 
 Changelog v2.0:
 
+### 2026-05-16 — ebay-item edge function: UK → Italien
+
+**Vad:** ebay-item använde fortfarande EBAY_GB vilket orsakade GBP-valuta vid manuell import. Fixat: EBAY_GB→EBAY_IT, currency fallback USD→EUR, affiliateUrl byggs nu med korrekt IT-parametrar.
+
+**Filer:** supabase/functions/ebay-item/index.ts (rad 127, 181, 190)
+
+**Resultat:** Manuell import visar nu korrekt EUR och ebay.it-URL.
+
 ### 2026-05-16 — Pipeline och URL-fix komplett
 
 **Vad:** affiliate_url byggs nu korrekt med ebay.it + siteid=101 + mkrid=724-53478-19255-0 direkt i intake-fetch-test. ebayAffiliate.ts uppdaterad till IT-parametrar. tier_unknown hard reject borttagen — unknown märken går till review baserat på score. query_terms utökade för båda konfigerna med italienska termer. Run all kör alltid eBay utan alternering.
