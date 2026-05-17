@@ -118,7 +118,7 @@ export const IntakeReviewQueue = ({ refreshKey }: IntakeReviewQueueProps) => {
         .from("intake_normalized_products")
         .select("*")
         .order("updated_at", { ascending: false })
-        .limit(100);
+        .limit(500);
       if (error) throw error;
       return data ?? [];
     },
