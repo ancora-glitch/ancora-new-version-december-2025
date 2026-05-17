@@ -3,6 +3,14 @@ Version 2.0
 
 Changelog v2.0:
 
+### 2026-05-16 — Pipeline och URL-fix komplett
+
+**Vad:** affiliate_url byggs nu korrekt med ebay.it + siteid=101 + mkrid=724-53478-19255-0 direkt i intake-fetch-test. ebayAffiliate.ts uppdaterad till IT-parametrar. tier_unknown hard reject borttagen — unknown märken går till review baserat på score. query_terms utökade för båda konfigerna med italienska termer. Run all kör alltid eBay utan alternering.
+
+**Filer:** intake-fetch-test/index.ts, src/lib/ebayAffiliate.ts, src/components/admin/IntakeTab.tsx
+
+**DB:** intake_configs query_terms uppdaterade för womenswear och menswear.
+
 ### 2026-05-16 — eBay affiliate-URL: fullständig IT-migrering
 
 **Vad:** affiliateUrl i intake-fetch-test byggs nu direkt med korrekt IT-parametrar (ebay.it, siteid=101, mkrid=724-53478-19255-0). ebayAffiliate.ts uppdaterad: EBAY_ITEM_BASE → ebay.it, siteid 3→101, mkrid uppdaterat. isEbayAffiliateUrl kontrollerar nu ebay.it.
