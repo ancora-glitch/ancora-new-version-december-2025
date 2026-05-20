@@ -3,6 +3,16 @@ Version 2.0
 
 Changelog v2.0:
 
+### 2026-05-20 — Pure Effect, Care-kategori, UI-fixes
+
+**Vad:** Pure Effect Sweden tillagd som manuell partner. Care tillagd som top-level kategori. condition/material/color döljs för Care i både admin och publika sajten. Marketplace-labels komplettterade för alla partners. Pure Effect tillagd som statistikfilter i AnalyticsDashboard.
+
+**Filer:** supabase/functions/pureeffect-search/index.ts (ny), supabase/functions/pureeffect-item/index.ts (ny), src/components/PureEffectSearchDrawer.tsx (ny), src/components/AnalyticsDashboard.tsx, src/pages/ProductDetail.tsx, src/pages/AdminPortal.tsx, src/components/Header.tsx
+
+**DB:** INSERT categories (Care, care, published). Ingen enum-migration (marketplace är plain text).
+
+**Notering:** categories-relation från Supabase returneras som array — slug-check måste hantera båda formaten.
+
 ### 2026-05-16 — Manuell import: fullständig IT-migrering + översättning
 
 **Vad:**
