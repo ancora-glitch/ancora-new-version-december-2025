@@ -2858,24 +2858,22 @@ Public site visar endast published
 
 17.3.2 products.marketplace
 Column: products.marketplace
-Type: string enum
-Allowed values (MVP):
+Type: plain text (not ENUM)
+Allowed values:
 tradera
 ebay
+vintagesphere
+redesignedby
+pure_effect
 manual
-Future extension pattern
-För Shopify-partners:
-shopify:<partner_slug>
-Ex:
-shopify:vintagesphere
 Invariants
-Alltid lowercase
+All values lowercase
 
-Aldrig "Tradera" eller "Ebay"
+UI-labels mapped separately (see F-05)
+
+Used in availability cron and source filtering
 
 Används i availability cron
-
-UI-label mappas separat
 
 17.3.3 products.unpublished_reason
 Column: products.unpublished_reason
