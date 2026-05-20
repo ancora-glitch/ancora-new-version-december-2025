@@ -262,7 +262,6 @@ const ProductDetail = () => {
     ? categoryRel[0]?.slug
     : categoryRel?.slug;
   const isCare = categorySlug === "care";
-  console.debug("[ProductDetail] categorySlug:", categorySlug, "raw:", categoryRel);
 
   if (isLoading) {
     return (
