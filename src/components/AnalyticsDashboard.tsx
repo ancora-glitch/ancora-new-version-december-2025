@@ -402,7 +402,7 @@ export const AnalyticsDashboard = () => {
           <div className="flex items-center gap-2">
             <Store size={16} className="text-muted-foreground" />
             <div className="flex rounded-md border border-border overflow-hidden">
-              {(["all", "tradera", "ebay", "vintagesphere"] as SourceFilter[]).map((source) => (
+              {(["all", "tradera", "ebay", "vintagesphere", "pure_effect"] as SourceFilter[]).map((source) => (
                 <Button
                   key={source}
                   variant="ghost"
@@ -414,7 +414,7 @@ export const AnalyticsDashboard = () => {
                       : "hover:bg-secondary"
                   }`}
                 >
-                  {source === "all" ? "All Sources" : source === "tradera" ? "Tradera" : source === "ebay" ? "eBay" : "VintageSphere"}
+                  {source === "all" ? "All Sources" : source === "tradera" ? "Tradera" : source === "ebay" ? "eBay" : source === "pure_effect" ? "Pure Effect" : "VintageSphere"}
                 </Button>
               ))}
             </div>
