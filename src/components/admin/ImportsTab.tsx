@@ -5,6 +5,7 @@ import { NewImportDialog } from "./NewImportDialog";
 import { EbaySearchDrawer } from "./EbaySearchDrawer";
 import { TraderaSearchDrawer } from "./TraderaSearchDrawer";
 import { VintageSphereSearchDrawer } from "./VintageSphereSearchDrawer";
+import { PureEffectSearchDrawer } from "./PureEffectSearchDrawer";
 import { ReDesignedBySearchDrawer } from "./ReDesignedBySearchDrawer";
 import { RetryJobsPanel } from "./RetryJobsPanel";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ export function ImportsTab() {
   const [showEbayDrawer, setShowEbayDrawer] = useState(false);
   const [showTraderaDrawer, setShowTraderaDrawer] = useState(false);
   const [showVintageSphereDrawer, setShowVintageSphereDrawer] = useState(false);
+  const [showPureEffectDrawer, setShowPureEffectDrawer] = useState(false);
   const [showReDesignedByDrawer, setShowReDesignedByDrawer] = useState(false);
   
   const { data: usage, isLoading: usageLoading } = useTraderaUsage();
@@ -156,7 +158,7 @@ export function ImportsTab() {
             </div>
           )}
           <p className="text-sm text-muted-foreground leading-relaxed whitespace-normal break-words">
-            Search and import items from Tradera/eBay/VintageSphere — they become draft Products directly.
+            Search and import items from Tradera/eBay/VintageSphere/Pure Effect — they become draft Products directly.
             This log tracks import provenance and deduplication.
           </p>
           <div className="flex gap-2 flex-wrap">
@@ -171,6 +173,10 @@ export function ImportsTab() {
             <Button variant="outline" onClick={() => setShowVintageSphereDrawer(true)}>
               <Search className="w-4 h-4 mr-2" />
               Search VintageSphere
+            </Button>
+            <Button variant="outline" onClick={() => setShowPureEffectDrawer(true)}>
+              <Search className="w-4 h-4 mr-2" />
+              Search Pure Effect
             </Button>
             <Button variant="outline" onClick={() => setShowReDesignedByDrawer(true)}>
               <Search className="w-4 h-4 mr-2" />
@@ -651,6 +657,11 @@ export function ImportsTab() {
       <VintageSphereSearchDrawer
         open={showVintageSphereDrawer}
         onOpenChange={setShowVintageSphereDrawer}
+        onImported={() => setSelectedItemId(null)}
+      />
+      <PureEffectSearchDrawer
+        open={showPureEffectDrawer}
+        onOpenChange={setShowPureEffectDrawer}
         onImported={() => setSelectedItemId(null)}
       />
       <ReDesignedBySearchDrawer
