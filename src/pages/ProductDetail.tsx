@@ -420,21 +420,25 @@ const ProductDetail = () => {
                     <span className="text-sm text-muted-foreground uppercase tracking-wide flex-shrink-0">Size</span>
                     <span className="text-foreground text-right">{product.size || "—"}</span>
                   </div>
-                  
-                  <div className="flex justify-between items-baseline gap-4">
-                    <span className="text-sm text-muted-foreground uppercase tracking-wide flex-shrink-0">Condition</span>
-                    <span className="text-foreground text-right">{product.condition || "—"}</span>
-                  </div>
-                  
-                  <div className="flex justify-between items-baseline gap-4">
-                    <span className="text-sm text-muted-foreground uppercase tracking-wide flex-shrink-0">Material</span>
-                   <span className="text-foreground text-right">{product.material || "—"}</span>
-                 </div>
-                 
-                 <div className="flex justify-between items-baseline gap-4">
-                   <span className="text-sm text-muted-foreground uppercase tracking-wide flex-shrink-0">Color</span>
-                   <span className="text-foreground text-right">{(product as any).color || "—"}</span>
-                 </div>
+
+                  {(product as any).categories?.slug !== "care" && (
+                    <>
+                      <div className="flex justify-between items-baseline gap-4">
+                        <span className="text-sm text-muted-foreground uppercase tracking-wide flex-shrink-0">Condition</span>
+                        <span className="text-foreground text-right">{product.condition || "—"}</span>
+                      </div>
+
+                      <div className="flex justify-between items-baseline gap-4">
+                        <span className="text-sm text-muted-foreground uppercase tracking-wide flex-shrink-0">Material</span>
+                        <span className="text-foreground text-right">{product.material || "—"}</span>
+                      </div>
+
+                      <div className="flex justify-between items-baseline gap-4">
+                        <span className="text-sm text-muted-foreground uppercase tracking-wide flex-shrink-0">Color</span>
+                        <span className="text-foreground text-right">{(product as any).color || "—"}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Description */}
