@@ -22,6 +22,7 @@ const shopCategories = [
   { label: "Bags", href: "/category/bags" },
   { label: "Shoes", href: "/category/shoes" },
   { label: "Accessories", href: "/category/accessories" },
+  { label: "Care", href: "/category/care" },
 ];
 
 const navItems = [
