@@ -257,6 +257,13 @@ const ProductDetail = () => {
     setCurrentImageIndex((prev) => (prev === allImages.length - 1 ? 0 : prev + 1));
   };
 
+  const categoryRel = (product as any)?.categories;
+  const categorySlug = Array.isArray(categoryRel)
+    ? categoryRel[0]?.slug
+    : categoryRel?.slug;
+  const isCare = categorySlug === "care";
+  console.debug("[ProductDetail] categorySlug:", categorySlug, "raw:", categoryRel);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -421,7 +428,7 @@ const ProductDetail = () => {
                     <span className="text-foreground text-right">{product.size || "—"}</span>
                   </div>
 
-                  {(product as any).categories?.slug !== "care" && (
+                  {!isCare && (
                     <>
                       <div className="flex justify-between items-baseline gap-4">
                         <span className="text-sm text-muted-foreground uppercase tracking-wide flex-shrink-0">Condition</span>
