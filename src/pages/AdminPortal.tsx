@@ -249,6 +249,7 @@ const AdminPortal = () => {
   const { data: products, isLoading: productsLoading } = useAllProducts();
   const { data: soldProducts, isLoading: soldProductsLoading } = useSoldProducts();
   const { data: categories, isLoading: categoriesLoading } = useAllCategories();
+  const { data: publishedCategories } = useCategories();
   const queryClient = useQueryClient();
   const [isSyncingPrices, setIsSyncingPrices] = useState(false);
   const [isRecheckingProduct, setIsRecheckingProduct] = useState(false);
