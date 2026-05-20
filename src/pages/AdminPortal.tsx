@@ -1222,20 +1222,22 @@ const AdminPortal = () => {
                   <Textarea id="productDescription" value={productDescription} onChange={(e) => setProductDescription(e.target.value)} placeholder="Product description..." className="bg-background border-border min-h-[80px]" />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="productCondition">Condition</Label>
-                    <Input id="productCondition" value={productCondition} onChange={(e) => setProductCondition(e.target.value)} placeholder="e.g. Good, Excellent" className="bg-background border-border" />
+                {publishedCategories?.find(c => c.id === productCategoryId)?.slug !== "care" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="productCondition">Condition</Label>
+                      <Input id="productCondition" value={productCondition} onChange={(e) => setProductCondition(e.target.value)} placeholder="e.g. Good, Excellent" className="bg-background border-border" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="productMaterial">Material</Label>
+                      <Input id="productMaterial" value={productMaterial} onChange={(e) => setProductMaterial(e.target.value)} placeholder="e.g. Cotton, Leather" className="bg-background border-border" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="productColor">Color</Label>
+                      <Input id="productColor" value={productColor} onChange={(e) => setProductColor(e.target.value)} placeholder="e.g. Black, Beige, Navy" className="bg-background border-border" />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="productMaterial">Material</Label>
-                    <Input id="productMaterial" value={productMaterial} onChange={(e) => setProductMaterial(e.target.value)} placeholder="e.g. Cotton, Leather" className="bg-background border-border" />
-                  </div>
-                 <div className="space-y-2">
-                   <Label htmlFor="productColor">Color</Label>
-                   <Input id="productColor" value={productColor} onChange={(e) => setProductColor(e.target.value)} placeholder="e.g. Black, Beige, Navy" className="bg-background border-border" />
-                 </div>
-                </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
