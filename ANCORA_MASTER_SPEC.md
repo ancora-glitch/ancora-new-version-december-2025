@@ -2756,16 +2756,22 @@ DB: story_views (ip_hash + dedup window)
 
 Admin: Statistics "Story Views" table
 
-F-21 Statistics: product clicks / intent rate / unique visitors
+F-21 Statistics: product clicks / intent rate / unique visitors + source filtering
 Owner: Analytics pipeline
 
-Touches: admin exclusion, date filters
+Touches: admin exclusion, date filters, source filter buttons
 
 Key paths:
 
 DB: site_analytics (+ visitor_id)
 
-Admin: Statistics UI, intent rate formula
+Admin: Statistics UI, intent rate formula, source filter row
+
+Source filter:
+All Sources | Tradera | eBay | VintageSphere | Pure Effect
+Product Clicks, Purchase Intent, Intent Rate, trend chart, and Top Products are filtered by selected source.
+Page Views and Unique Visitors remain global (not source-specific), consistent across all filters.
+matchesSource helper compares sourceFilter against product.marketplace dynamically — new partners require only type + UI label additions.
 
 F-22 Inline product embeds in Stories
 Owner: Stories editor + StoryBody renderer
