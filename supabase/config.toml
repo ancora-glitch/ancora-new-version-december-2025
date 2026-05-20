@@ -72,3 +72,9 @@ verify_jwt = false
 [functions.intake-promote-product]
 verify_jwt = false
 
+[functions.pureeffect-search]
+verify_jwt = false
+
+[functions.pureeffect-item]
+verify_jwt = false
+
