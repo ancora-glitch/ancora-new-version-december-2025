@@ -1717,7 +1717,7 @@ Rules for future reclassifications:
 - Desktop: left-aligned nav with hover-triggered Shop dropdown
 - Mobile: hamburger menu with slide-in panel, accordion Shop submenu
 - Logo link requires z-10 to remain clickable above mobile menu elements
-- Navigation items: Shop (with category dropdown), This Week's Edit, Stories, About
+- Navigation items: Shop (with category dropdown: Clothing, Shoes, Bags, Accessories, Care), This Week's Edit, Stories, About
 
   9.9 Empty State Copy
   When a category or shop view has no products to display:
@@ -1739,6 +1739,12 @@ Imports:
 Search Tradera
 
 Search eBay
+
+Search VintageSphere
+
+Search ReDesignedBy
+
+Search Pure Effect
 
 Backfill buttons
 
