@@ -713,7 +713,7 @@ additional_images[]
 
 affiliate_url
 
-marketplace (tradera | ebay | vintagesphere | manual)
+marketplace (tradera | ebay | vintagesphere | redesignedby | pure_effect | manual)
 
 tradera_item_id (nullable)
 external_listing_id (nullable)
