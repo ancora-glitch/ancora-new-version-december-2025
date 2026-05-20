@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAllStyleGuides, type StoryStatus } from "@/hooks/useStyleGuides";
 import { useAllProducts, useSoldProducts, type ProductStatus } from "@/hooks/useProducts";
-import { useAllCategories, type Category, type CategoryStatus } from "@/hooks/useCategories";
+import { useAllCategories, useCategories, type Category, type CategoryStatus } from "@/hooks/useCategories";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -249,6 +249,7 @@ const AdminPortal = () => {
   const { data: products, isLoading: productsLoading } = useAllProducts();
   const { data: soldProducts, isLoading: soldProductsLoading } = useSoldProducts();
   const { data: categories, isLoading: categoriesLoading } = useAllCategories();
+  const { data: publishedCategories } = useCategories();
   const queryClient = useQueryClient();
   const [isSyncingPrices, setIsSyncingPrices] = useState(false);
   const [isRecheckingProduct, setIsRecheckingProduct] = useState(false);
@@ -1256,7 +1257,7 @@ const AdminPortal = () => {
                         const newCatId = v === "none" ? null : v;
                         setProductCategoryId(newCatId);
                         // Reset subcategory when category changes away from Clothing
-                        const selectedCat = categories?.find(c => c.id === newCatId);
+                        const selectedCat = publishedCategories?.find(c => c.id === newCatId);
                         if (!selectedCat || selectedCat.slug !== "clothing") {
                           setProductSubcategory(null);
                         }
@@ -1267,15 +1268,15 @@ const AdminPortal = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">No category</SelectItem>
-                        {categories?.map((cat) => (
+                        {publishedCategories?.map((cat) => (
                           <SelectItem key={cat.id} value={cat.id}>
-                            {cat.name} {cat.status === "draft" && "(Draft)"}
+                            {cat.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                  {categories?.find(c => c.id === productCategoryId)?.slug === "clothing" ? (
+                  {publishedCategories?.find(c => c.id === productCategoryId)?.slug === "clothing" ? (
                     <div className="space-y-2" key="subcategory-field">
                       <Label htmlFor="productSubcategory">Subcategory *</Label>
                       <Select
