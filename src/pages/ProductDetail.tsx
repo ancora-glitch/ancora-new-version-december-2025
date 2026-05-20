@@ -110,7 +110,7 @@ const ProductDetail = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-       .select("id, name, name_en, name_original, brand, price, image, additional_images, description, description_en, description_original, size, color, condition, material, affiliate_url, marketplace, slug, status, ancora_select_source, updated_at, category_id, language, translated_at")
+        .select("id, name, name_en, name_original, brand, price, image, additional_images, description, description_en, description_original, size, color, condition, material, affiliate_url, marketplace, slug, status, ancora_select_source, updated_at, category_id, language, translated_at, categories(slug)")
         .eq("slug", slug)
         // Include sold products to preserve editorial value and SEO
         .in("status", ["active", "published", "sold"])
