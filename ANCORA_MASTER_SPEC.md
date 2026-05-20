@@ -2546,7 +2546,7 @@ Hook: src/hooks/useImportToProduct.ts
 
 Logic: Tradera by tradera_item_id, eBay by affiliate_url
 
-F-05 Source label ("Source Tradera", "Source eBay")
+F-05 Source label ("Source Tradera", "Source eBay", etc.)
 Owner: Frontend ProductDetail
 
 Touches: Product fields mapping
@@ -2560,7 +2560,13 @@ DB fields: products.marketplace, products.ancora_select_source
 Display rules:
 
 - Rendered as plain bold text (p with font-bold text-muted-foreground), NOT as a badge or button
-- Text: "Source Tradera" when source is tradera, "Source eBay" when source is ebay
+- Complete label mapping:
+  tradera → "Tradera"
+  ebay → "eBay"
+  vintagesphere → "VintageSphere"
+  pure_effect → "Pure Effect"
+  redesignedby → "AddNewDesign"
+  manual → "Manual"
 - Priority: ancora_select_source, then marketplace (lowercase fallback)
 - Only shown for active/published products (hidden when sold)
 - Positioned between description and Buy Now CTA
