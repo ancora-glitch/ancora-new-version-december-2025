@@ -472,6 +472,7 @@ const ProductDetail = () => {
                     ebay: "eBay",
                     vintagesphere: "VintageSphere",
                     pure_effect: "Pure Effect",
+                    manual: "Manual",
                   };
                   
                   const label = sourceLabels[source ?? ""];
