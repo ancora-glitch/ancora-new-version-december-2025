@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAllStyleGuides, type StoryStatus } from "@/hooks/useStyleGuides";
 import { useAllProducts, useSoldProducts, type ProductStatus } from "@/hooks/useProducts";
-import { useAllCategories, type Category, type CategoryStatus } from "@/hooks/useCategories";
+import { useAllCategories, useCategories, type Category, type CategoryStatus } from "@/hooks/useCategories";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
