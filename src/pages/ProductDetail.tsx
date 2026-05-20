@@ -471,6 +471,7 @@ const ProductDetail = () => {
                     tradera: "Tradera",
                     ebay: "eBay",
                     vintagesphere: "VintageSphere",
+                    pure_effect: "Pure Effect",
                   };
                   
                   const label = sourceLabels[source ?? ""];
