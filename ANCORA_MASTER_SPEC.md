@@ -842,14 +842,16 @@ Schema-Controlled Tables with slug:
    4.1 Design Principle
    Adapter Pattern.
    Varje källa mappar till Product Model direkt.
-   Current Adapters:
-   Tradera
+Current Adapters:
+Tradera
 
 eBay
 
 VintageSphere
 
-    ReDesignedBy
+ReDesignedBy
+
+Pure Effect Sweden
 
 4.2 Tradera Import
 Data Source:
@@ -1005,7 +1007,7 @@ Products with marketplace = "vintagesphere" display "Source VintageSphere" on th
 using the same styling and logic as Tradera and eBay source badges.
 
 Analytics:
-The admin Statistics dashboard supports filtering by source/partner (All Sources, Tradera, eBay, VintageSphere).
+The admin Statistics dashboard supports filtering by source/partner (All Sources, Tradera, eBay, VintageSphere, Pure Effect).
 The filter applies to Product Clicks, Purchase Intent, Intent Rate, trend chart, and Top Products.
 Page Views and Unique Visitors remain unfiltered (not source-specific).
 
@@ -1014,6 +1016,73 @@ Rate Limiting:
 - 500ms delay between search pagination pages
 - 300ms delay between individual product imports
 - 15s timeout per API request
+
+  4.6 Pure Effect Sweden Import (Partner Importer)
+
+Data Source:
+Shopify JSON endpoint (/collections/kladvard/products.json)
+
+Import Method:
+Admin-driven curated search + select (Admin → Imports → Search Pure Effect)
+Not automated — all imports are manually initiated by the editorial team.
+
+Endpoint:
+https://www.pureeffectsweden.com/collections/kladvard/products.json
+
+Auth:
+No authentication required. Shopify public JSON API.
+
+External Identifier:
+Shopify product handle (used as source_ref and slug)
+
+Currency: SEK
+
+Field Mapping:
+
+- title → products.name / name_en
+- body_html (stripped) → products.description / description_en
+- vendor → products.brand
+- variants[0].option1 (Size) → products.size
+- tags → products.tags (comma-separated)
+- images[] → products.image + additional_images
+- product URL → products.affiliate_url
+
+Invariants:
+
+- condition: always null (Care products have no garment condition)
+- status: always draft on import
+- marketplace: always "pure_effect"
+- Max per run: 10
+- No cron jobs
+- No sold detection
+- No editorial overwrite
+
+Isolation Rule:
+The Pure Effect importer is fully isolated from Tradera, eBay, and other import flows.
+It does not share quota counters, retry queues, or cron jobs with other importers.
+Edge functions: pureeffect-search, pureeffect-item (separate from tradera-_, ebay-_, redesignedby-_).
+
+Deduplication:
+Products are deduplicated by handle (source_ref) and affiliate_url against the products table.
+Items already imported show "Already imported" in the search UI.
+
+Logging Requirement:
+Every import run produces a structured health log with:
+
+- importer_name: pure_effect
+- endpoint_status
+- pages_fetched
+- products_returned
+- products_imported
+- duration_ms
+- error_count
+- run_limit_reached
+
+Components:
+
+- supabase/functions/pureeffect-search/index.ts
+- supabase/functions/pureeffect-item/index.ts
+- src/components/PureEffectSearchDrawer.tsx
 
   4.5 ReDesignedBy Import (Partner Importer)
 
@@ -1579,6 +1648,20 @@ Architecture designed to scale deliberately — not accidentally.
 Categories are managed in the categories table (DB).
 Products reference a category via products.category_id and may have a products.subcategory string.
 
+Top-level categories (canonical list):
+
+- Clothing
+- Shoes
+- Bags
+- Accessories
+- Care
+
+Rules:
+
+- Top-level categories are managed in the categories table with status draft/published.
+- Care has no subcategories.
+- New top-level categories must be added to this list and to Header.tsx shopCategories before implementation.
+
 Clothing subcategories (canonical list):
 
 - outerwear
@@ -1999,6 +2082,22 @@ Invariants:
 - Display price as-is — already includes 10% commission markup
 - status always draft, marketplace always "redesignedby"
 
+Pure Effect Sweden search/import UI
+src/components/PureEffectSearchDrawer.tsx
+
+Responsibilities:
+
+- search Pure Effect via pureeffect-search edge function
+- fetch item details via pureeffect-item before creating draft
+- mapping → Product draft payload
+
+Invariants:
+
+- condition always null
+- status always draft, marketplace always "pure_effect"
+- Max per run: 10
+- No cron jobs, no sold detection, no editorial overwrite
+
   16.4 Edge Functions Map (Supabase functions)
   Folder path depends on setup, but logically: supabase/functions/<fn>/index.ts
   Admin-only functions (JWT + admin role, plus service-role bypass for cron)
@@ -2105,6 +2204,12 @@ redesignedby-stats
 Stats proxy — requires admin JWT. Calls RDBY partner-stats
 endpoint with Bearer token server-side. Token: RDBY_API_TOKEN
 (Supabase secret, never in client code).
+
+pureeffect-search
+Search endpoint for Pure Effect Sweden catalog (public, no token).
+
+pureeffect-item
+Fetch full item details by handle (public, no token).
 
 16.5 Database Map (Tables + ownership)
 Canonical
