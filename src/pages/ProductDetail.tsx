@@ -473,6 +473,7 @@ const ProductDetail = () => {
                     vintagesphere: "VintageSphere",
                     pure_effect: "Pure Effect",
                     manual: "Manual",
+                    redesignedby: "AddNewDesign",
                   };
                   
                   const label = sourceLabels[source ?? ""];
