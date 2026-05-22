@@ -112,6 +112,19 @@ const sourceLabel: Record<string, string> = {
 
 ## Aktiv logg — klistra in i ANCORA Context
 
+### 2026-05-22 — Swimwear subkategori under Clothing
+**Vad:** Swimwear tillagd som ny subkategori under Clothing. Följer samma mönster som övriga Clothing-subkategorier.
+
+**Filer:**
+- `src/components/Header.tsx`
+- `src/pages/Shop.tsx`
+- `src/pages/CategoryPage.tsx`
+- `src/pages/AdminPortal.tsx`
+
+**DB:** Migration — `validate_product_subcategory()` trigger uppdaterad med `'swimwear'`.
+
+**Notering:** Subkategorier är hardcoded i fyra filer + DB-trigger. Alla platser uppdaterade.
+
 ### 2026-05-20 — Pure Effect, Care-kategori, UI-fixes
 **Vad:** Pure Effect Sweden tillagd som manuell partner. Care tillagd som top-level kategori. condition/material/color döljs för Care i både admin och publika sajten. Marketplace-labels komplettterade för alla partners. Pure Effect tillagd som statistikfilter i AnalyticsDashboard.
 
