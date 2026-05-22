@@ -15,6 +15,7 @@ const clothingSubcategories = [
   { label: "Jeans", href: "/category/clothing?sub=jeans" },
   { label: "Trousers", href: "/category/clothing?sub=trousers" },
   { label: "Shorts", href: "/category/clothing?sub=shorts" },
+  { label: "Swimwear", href: "/category/clothing?sub=swimwear" },
 ];
 
 const shopCategories = [
