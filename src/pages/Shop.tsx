@@ -18,6 +18,7 @@ const CLOTHING_SUBCATEGORIES = [
   { value: "jeans", label: "Jeans" },
   { value: "trousers", label: "Trousers" },
   { value: "shorts", label: "Shorts" },
+  { value: "swimwear", label: "Swimwear" },
 ];
 
 const Shop = () => {
