@@ -91,6 +91,24 @@ const Index = () => {
             {guidesLoading ? <p className="col-span-full text-center text-primary-foreground/70">Loading guides...</p> : styleGuides && styleGuides.length > 0 ? styleGuides.slice(0, 6).map(guide => <GuideCard key={guide.id} image={guide.image} title={guide.title} href={`/style-guides/${guide.slug}`} focalPoint={guide.focal_point} />) : <p className="col-span-full text-center text-primary-foreground/70">No style guides available</p>}
           </div>
         </section>
+
+        {/* Sourcing Teaser */}
+        <section className="px-6 md:px-12 lg:px-24 py-20 md:py-28 bg-secondary/40">
+          <div className="max-w-[700px] mx-auto text-center">
+            <h2 className="font-serif text-primary text-3xl md:text-4xl lg:text-5xl leading-tight mb-6">
+              Can't find it? We'll find it for you.
+            </h2>
+            <p className="text-base md:text-lg leading-relaxed text-foreground/80 mb-10 max-w-[520px] mx-auto">
+              Our sourcing service tracks down the pieces you can't stop thinking about — from private sellers, archives, and platforms around the world.
+            </p>
+            <Link
+              to="/sourcing"
+              className="inline-block text-sm font-medium uppercase tracking-[0.12em] text-primary border border-primary px-8 py-3.5 hover:bg-primary hover:text-primary-foreground transition-colors duration-200"
+            >
+              Tell us what you're looking for
+            </Link>
+          </div>
+        </section>
       </main>
 
       <Footer />
