@@ -18,6 +18,7 @@ import Edits from "./pages/Edits";
 import Shop from "./pages/Shop";
 import CategoryPage from "./pages/CategoryPage";
 import StyleGuarantee from "./pages/StyleGuarantee";
+import AdminPortal from "./pages/AdminPortal";
 import Auth from "./pages/Auth";
 import RequireAdmin from "./components/RequireAdmin";
 import ScrollToTop from "./components/ScrollToTop";
