@@ -48,6 +48,7 @@ const App = () => (
             <Route path="/edits" element={<Navigate to="/this-weeks-edit" replace />} />
             <Route path="/shop" element={<Shop />} />
             <Route path="/category/:slug" element={<CategoryPage />} />
+            <Route path="/style-guarantee" element={<StyleGuarantee />} />
             <Route
               path="/stories/preview/:id"
               element={
