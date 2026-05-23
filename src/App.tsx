@@ -17,6 +17,7 @@ import ProductDetail from "./pages/ProductDetail";
 import Edits from "./pages/Edits";
 import Shop from "./pages/Shop";
 import CategoryPage from "./pages/CategoryPage";
+import StyleGuarantee from "./pages/StyleGuarantee";
 import AdminPortal from "./pages/AdminPortal";
 import Auth from "./pages/Auth";
 import RequireAdmin from "./components/RequireAdmin";
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/edits" element={<Navigate to="/this-weeks-edit" replace />} />
             <Route path="/shop" element={<Shop />} />
             <Route path="/category/:slug" element={<CategoryPage />} />
+            <Route path="/style-guarantee" element={<StyleGuarantee />} />
             <Route
               path="/stories/preview/:id"
               element={
