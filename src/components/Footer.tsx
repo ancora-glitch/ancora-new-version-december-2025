@@ -39,9 +39,6 @@ export const Footer = () => {
             <Link to="/partners" className="text-sm tracking-wide hover:opacity-70 transition-opacity duration-200">
               Partners
             </Link>
-            <Link to="/style-guarantee" className="text-sm tracking-wide hover:opacity-70 transition-opacity duration-200">
-              Style Guarantee
-            </Link>
             <Link to="/terms" className="text-sm tracking-wide hover:opacity-70 transition-opacity duration-200">
               Terms & Conditions
             </Link>
