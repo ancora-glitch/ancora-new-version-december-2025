@@ -97,7 +97,7 @@ const Sourcing = () => {
               Tell us what you're dreaming of. We'll take it from there.
             </p>
             <a
-              href="mailto:hello@ancoraedit.com?subject=Sourcing%20Brief"
+              href="mailto:carin@ancoraedit.com?subject=Sourcing%20Brief"
               className="inline-block text-sm font-medium uppercase tracking-[0.12em] text-primary border border-primary px-8 py-3.5 hover:bg-primary hover:text-primary-foreground transition-colors duration-200"
             >
               Send a sourcing brief
