@@ -50,11 +50,14 @@ const StyleGuarantee = () => {
 
         {/* Closing Statement */}
         <section className="px-6 md:px-12 lg:px-24 pb-24">
-          <div className="max-w-[700px] mx-auto">
+          <div className="max-w-[700px] mx-auto text-center">
             <div className="h-px w-full bg-border mb-12" />
-            <blockquote className="pull-quote text-center">
-              That&apos;s our promise: whether you&apos;re looking for something to wear for ten years or something to wear next month — what you find on Ancora is worth finding.
-            </blockquote>
+            <span className="text-xs tracking-widest uppercase text-muted-foreground font-sans">
+              Our promise
+            </span>
+            <p className="text-base leading-relaxed text-foreground/80 mt-6 max-w-[540px] mx-auto">
+              Whether you&apos;re building a wardrobe to last or chasing something for right now — everything on Ancora is worth finding.
+            </p>
           </div>
         </section>
       </main>
