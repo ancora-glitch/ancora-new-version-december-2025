@@ -166,16 +166,18 @@ export function Header() {
             </div>
           </div>
 
-          {/* Other nav items */}
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              to={item.href}
-              className="px-4 py-2 text-[11px] font-medium uppercase tracking-[0.14em] text-foreground/80 hover:text-primary transition-colors duration-200"
-            >
-              {item.label}
-            </Link>
-          ))}
+          {/* Other nav items (desktop left) */}
+          {navItems
+            .filter((item) => item.label !== "About")
+            .map((item) => (
+              <Link
+                key={item.href}
+                to={item.href}
+                className="px-4 py-2 text-[11px] font-medium uppercase tracking-[0.14em] text-foreground/80 hover:text-primary transition-colors duration-200"
+              >
+                {item.label}
+              </Link>
+            ))}
         </nav>
 
         {/* Logo — centered */}
@@ -188,8 +190,16 @@ export function Header() {
           </h1>
         </Link>
 
-        {/* Spacer for balance */}
-        <div className="w-[38px] md:w-0" />
+        {/* Right side: About (desktop) + spacer (mobile) */}
+        <div className="flex items-center">
+          <Link
+            to="/about"
+            className="hidden md:block px-4 py-2 text-[11px] font-medium uppercase tracking-[0.14em] text-foreground/80 hover:text-primary transition-colors duration-200"
+          >
+            About
+          </Link>
+          <div className="w-[38px] md:hidden" />
+        </div>
       </div>
 
       {/* ====== Mobile menu ====== */}
