@@ -29,6 +29,7 @@ const shopCategories = [
 const navItems = [
   { label: "This Week's Edit", href: "/this-weeks-edit" },
   { label: "Stories", href: "/stories" },
+  { label: "Style Guarantee", href: "/style-guarantee" },
   { label: "About", href: "/about" },
 ];
 
