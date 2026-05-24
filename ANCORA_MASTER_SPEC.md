@@ -15,6 +15,14 @@ Changelog v2.0:
 
 **DB:** `intake_editorial_briefs` uppdaterad via Admin UI.
 
+### 2026-05-24 — title_clean: märke borttaget från produktnamn
+
+**Vad:** `title_clean` genererades med "Brand + Color + Material + Item – Size". Ändrat till "Color + Material + Item – Size" utan märkesnamn. Brand finns separat i Brand-fältet.
+
+**Filer:** `supabase/functions/intake-enrich-test/index.ts` (rad 51)
+
+**Påverkar:** Nya produkter som går genom enrich. Befintliga opåverkade.
+
 **Vad:** Swimwear tillagd som ny subkategori under Clothing. Följer samma mönster som övriga Clothing-subkategorier (Tops, Dresses, Jeans, etc.).
 
 **Filer:** src/components/Header.tsx, src/pages/Shop.tsx, src/pages/CategoryPage.tsx, src/pages/AdminPortal.tsx
