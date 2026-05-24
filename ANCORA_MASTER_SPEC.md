@@ -9,7 +9,11 @@ Changelog v2.0:
 
 **Filer:** `supabase/functions/intake-promote-product/index.ts` (rad 139–140)
 
-### 2026-05-22 — Swimwear subkategori under Clothing
+### 2026-05-24 — Editorial brief uppdaterad
+
+**Vad:** Brief var på svenska och vag. Ersatt med engelska brief med specifika riktlinjer: neutrala toner, naturliga material, minimalistisk estetik, inga starka tryck eller färger. Märkbar förbättring i scoring-kvalitet direkt.
+
+**DB:** `intake_editorial_briefs` uppdaterad via Admin UI.
 
 **Vad:** Swimwear tillagd som ny subkategori under Clothing. Följer samma mönster som övriga Clothing-subkategorier (Tops, Dresses, Jeans, etc.).
 
