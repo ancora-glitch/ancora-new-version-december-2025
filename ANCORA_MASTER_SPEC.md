@@ -3,6 +3,12 @@ Version 2.0
 
 Changelog v2.0:
 
+### 2026-05-24 — intake-promote-product: engelska beskrivningar
+
+**Vad:** `description` och `description_en` skrevs med `description_raw` (italienska). Fixat: använder nu `description_clean` (engelska) med fallback till `description_raw`.
+
+**Filer:** `supabase/functions/intake-promote-product/index.ts` (rad 139–140)
+
 ### 2026-05-22 — Swimwear subkategori under Clothing
 
 **Vad:** Swimwear tillagd som ny subkategori under Clothing. Följer samma mönster som övriga Clothing-subkategorier (Tops, Dresses, Jeans, etc.).
