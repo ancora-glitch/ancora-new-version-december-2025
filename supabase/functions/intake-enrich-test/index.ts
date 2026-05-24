@@ -48,7 +48,7 @@ Return JSON only:
   "size_confidence": number 0-1,
   "condition": one of: new|very_good|good|fair|poor|null,
   "condition_confidence": number 0-1,
-  "title_clean": string in English (Ancora house style: Brand + Color + Material + Item – Size, e.g. 'Toteme Black Wool Coat – Size 38'),
+  "title_clean": string in English (Ancora house style: Color + Material + Item – Size, WITHOUT the brand name, e.g. 'Black Wool Coat – Size 38', 'Ecru Silk Chiffon Midi Dress – Size 36'),
   "description_clean": string in English (2-3 sentences, editorial tone, no marketing fluff),
   "style_tags": array of 2-4 strings in English,
   "editorial_notes": array of 1-3 strings in English
