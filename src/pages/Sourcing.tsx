@@ -136,6 +136,85 @@ const Sourcing = () => {
           </div>
         </section>
 
+        {/* Pricing */}
+        <section className="px-6 md:px-12 lg:px-24 pb-24">
+          <div className="max-w-[700px] mx-auto">
+            <div className="h-px w-full bg-border mb-12" />
+            <span className="text-xs tracking-widest uppercase text-muted-foreground font-sans">
+              Pricing
+            </span>
+            <h2 className="font-serif text-primary text-3xl md:text-4xl leading-tight mt-4 mb-6">
+              How our pricing works
+            </h2>
+            <p className="text-base md:text-lg leading-relaxed text-foreground/80 mb-12">
+              We charge a sourcing fee based on the value of the item or items you're looking for.
+            </p>
+
+            <div className="space-y-12">
+              <div>
+                <h3 className="text-lg font-sans font-medium text-foreground leading-snug mb-4">
+                  Single item
+                </h3>
+                <ul className="space-y-3">
+                  {pricingTiers.single.map((tier, i) => (
+                    <li key={i} className="flex items-start gap-4">
+                      <span className="text-sm font-medium text-muted-foreground font-sans tabular-nums mt-0.5">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <p className="text-base leading-relaxed text-foreground/80">
+                        {tier}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-sans font-medium text-foreground leading-snug mb-4">
+                  Multiple items
+                </h3>
+                <p className="text-base leading-relaxed text-foreground/80">
+                  {pricingTiers.multiple}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-12 pt-8 border-t border-border space-y-4">
+              <p className="text-sm leading-relaxed text-foreground/70">
+                All fees are based on the actual purchase price of the item. Shipping and handling costs from the seller are not included.
+              </p>
+              <p className="text-sm leading-relaxed text-foreground/70">
+                If we're unable to find the item you're looking for, no sourcing fee is charged. For multiple-item searches, the upfront fee of 600 SEK covers our time and is non-refundable.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ */}
+        <section className="px-6 md:px-12 lg:px-24 pb-24">
+          <div className="max-w-[700px] mx-auto">
+            <div className="h-px w-full bg-border mb-12" />
+            <span className="text-xs tracking-widest uppercase text-muted-foreground font-sans">
+              FAQ
+            </span>
+            <h2 className="font-serif text-primary text-3xl md:text-4xl leading-tight mt-4 mb-10">
+              Frequently asked questions
+            </h2>
+            <Accordion type="single" collapsible className="w-full">
+              {faqs.map((faq, i) => (
+                <AccordionItem key={i} value={`faq-${i}`}>
+                  <AccordionTrigger className="text-left text-base font-sans font-medium text-foreground hover:no-underline">
+                    {faq.q}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-base leading-relaxed text-foreground/80">
+                    {faq.a}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        </section>
+
         {/* Closing CTA */}
         <section className="px-6 md:px-12 lg:px-24 pb-24">
           <div className="max-w-[700px] mx-auto text-center">
