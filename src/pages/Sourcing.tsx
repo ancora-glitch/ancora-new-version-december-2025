@@ -1,6 +1,53 @@
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Link } from "react-router-dom";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+
+const pricingTiers = {
+  single: [
+    "Purchase price up to 2,000 SEK — 25% of purchase price (minimum 300 SEK)",
+    "2,000–8,000 SEK — 20% of purchase price",
+    "8,000 SEK and above — 15% of purchase price",
+  ],
+  multiple:
+    "A flat fee of 600 SEK is charged upfront to start the search, plus a percentage of the total purchase value using the same scale above. The upfront fee is deducted from your final invoice.",
+};
+
+const faqs = [
+  {
+    q: "How does the sourcing process work?",
+    a: "You tell us what you're looking for — either with a moodboard/vision or the item, brand, size, condition, and any other details that matter to you. We search across our network of vintage markets, resellers, and platforms and come back to you with options. If we find something you want to buy, we handle the purchase and shipping on your behalf.",
+  },
+  {
+    q: "How long does it take?",
+    a: "It depends on the item. Common pieces can turn up within a few days. Rarer or more specific items may take longer. We'll always give you a realistic timeframe when you submit your request.",
+  },
+  {
+    q: "What if you don't find anything?",
+    a: "If we can't find the item, you pay nothing. For multiple-item searches, the upfront fee of 600 SEK is non-refundable as it covers our time regardless of outcome.",
+  },
+  {
+    q: "How do I pay the sourcing fee?",
+    a: "The fee is invoiced once the item is found and you've confirmed you want to proceed. For multiple-item searches, the upfront fee is charged at the start and deducted from your final invoice.",
+  },
+  {
+    q: "Do you authenticate items?",
+    a: "We do basic condition and authenticity checks as part of our sourcing process. For high-value items we recommend independent authentication.",
+  },
+  {
+    q: "What platforms and markets do you search?",
+    a: "We search across a wide range of Swedish and international secondhand platforms, vintage dealers, and private sellers. We don't limit ourselves to one source.",
+  },
+  {
+    q: "Can I change my mind after you've found something?",
+    a: "Yes. You're never obligated to buy. If you decide not to proceed after we've found an item, no sourcing fee is charged.",
+  },
+];
 
 const useCases = [
   {
