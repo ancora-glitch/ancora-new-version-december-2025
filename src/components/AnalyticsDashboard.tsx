@@ -13,7 +13,10 @@ import {
 } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 
-type DateRange = "7days" | "30days" | "all";
+type RollingValue = "7days" | "30days" | "all";
+type DateRange =
+  | { kind: "rolling"; value: RollingValue }
+  | { kind: "month"; year: number; month: number };
 type SourceFilter = "all" | "tradera" | "ebay" | "vintagesphere" | "pure_effect";
 
 interface TopProduct {
