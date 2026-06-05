@@ -136,7 +136,13 @@ export const AnalyticsDashboard = () => {
   const { data: analytics, isLoading } = useQuery<AnalyticsSummary>({
     queryKey: ["site-analytics", dateRange, sourceFilter, productMarketplaceMap],
     queryFn: async () => {
-      const rangeStart = getDateRangeStart(dateRange);
+      const { start: rangeStart, end: rangeEnd } = getDateRangeBounds(dateRange);
+      const applyRange = <T,>(q: T): T => {
+        let r: any = q;
+        if (rangeStart) r = r.gte("created_at", rangeStart.toISOString());
+        if (rangeEnd) r = r.lt("created_at", rangeEnd.toISOString());
+        return r as T;
+      };
       const mpMap = productMarketplaceMap || {};
 
       // Helper: check if a product_id matches the source filter
