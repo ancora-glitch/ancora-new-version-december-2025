@@ -182,9 +182,7 @@ export const AnalyticsDashboard = () => {
         .select("metadata")
         .eq("event_type", "buy_now_click");
       
-      if (rangeStart) {
-        buyNowQuery = buyNowQuery.gte("created_at", rangeStart.toISOString());
-      }
+      buyNowQuery = applyRange(buyNowQuery);
       
       const { data: buyNowData } = await buyNowQuery;
       const filteredBuyNow = buyNowData?.filter((e) => {
@@ -209,9 +207,7 @@ export const AnalyticsDashboard = () => {
         .select("page_path")
         .eq("event_type", "page_view");
       
-      if (rangeStart) {
-        pagesQuery = pagesQuery.gte("created_at", rangeStart.toISOString());
-      }
+      pagesQuery = applyRange(pagesQuery);
       
       const { data: pageViews } = await pagesQuery;
 
@@ -318,9 +314,7 @@ export const AnalyticsDashboard = () => {
         .select("metadata, visitor_id")
         .eq("event_type", "product_click");
       
-      if (rangeStart) {
-        productClicksQuery = productClicksQuery.gte("created_at", rangeStart.toISOString());
-      }
+      productClicksQuery = applyRange(productClicksQuery);
       
       const { data: productClicks } = await productClicksQuery;
 
@@ -329,9 +323,7 @@ export const AnalyticsDashboard = () => {
         .select("metadata")
         .eq("event_type", "buy_now_click");
       
-      if (rangeStart) {
-        purchaseClicksQuery = purchaseClicksQuery.gte("created_at", rangeStart.toISOString());
-      }
+      purchaseClicksQuery = applyRange(purchaseClicksQuery);
       
       const { data: purchaseClicks } = await purchaseClicksQuery;
 
