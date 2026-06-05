@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { ImportsTab } from "@/components/admin/ImportsTab";
 import { WeeklyEditsTab } from "@/components/admin/WeeklyEditsTab";
 import { IntakeTab } from "@/components/admin/IntakeTab";
+import { SourcingTool } from "@/components/admin/SourcingTool";
 import { slugify } from "@/utils/slugify";
 import {
   DndContext,
@@ -944,7 +945,7 @@ const AdminPortal = () => {
           </p>
 
           <Tabs defaultValue="statistics" className="w-full">
-             <TabsList className="grid w-full grid-cols-7 mb-8">
+             <TabsList className="grid w-full grid-cols-8 mb-8">
               <TabsTrigger value="statistics">Statistics</TabsTrigger>
               <TabsTrigger value="imports">Imports</TabsTrigger>
               <TabsTrigger value="weekly-edits">Edits</TabsTrigger>
@@ -952,6 +953,7 @@ const AdminPortal = () => {
               <TabsTrigger value="products">Products</TabsTrigger>
               <TabsTrigger value="stories">Stories</TabsTrigger>
               <TabsTrigger value="intake-test">Intake (test)</TabsTrigger>
+              <TabsTrigger value="sourcing">Sourcing</TabsTrigger>
             </TabsList>
 
             {/* STATISTICS TAB */}
@@ -2059,6 +2061,10 @@ const AdminPortal = () => {
 
             <TabsContent value="intake-test">
               <IntakeTab />
+            </TabsContent>
+
+            <TabsContent value="sourcing">
+              <SourcingTool />
             </TabsContent>
           </Tabs>
         </div>
