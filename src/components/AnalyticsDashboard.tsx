@@ -13,7 +13,10 @@ import {
 } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 
-type DateRange = "7days" | "30days" | "all";
+type RollingValue = "7days" | "30days" | "all";
+type DateRange =
+  | { kind: "rolling"; value: RollingValue }
+  | { kind: "month"; year: number; month: number };
 type SourceFilter = "all" | "tradera" | "ebay" | "vintagesphere" | "pure_effect";
 
 interface TopProduct {
@@ -43,20 +46,31 @@ interface AnalyticsSummary {
   topProducts: TopProduct[];
 }
 
-const getDateRangeStart = (range: DateRange): Date | null => {
-  if (range === "all") return null;
-  
-  const date = new Date();
-  if (range === "7days") {
-    date.setDate(date.getDate() - 7);
-  } else if (range === "30days") {
-    date.setDate(date.getDate() - 30);
+const getDateRangeBounds = (range: DateRange): { start: Date | null; end: Date | null } => {
+  if (range.kind === "month") {
+    return {
+      start: new Date(range.year, range.month, 1),
+      end: new Date(range.year, range.month + 1, 1),
+    };
   }
-  return date;
+  if (range.value === "all") return { start: null, end: null };
+  const d = new Date();
+  if (range.value === "7days") {
+    d.setDate(d.getDate() - 7);
+  } else if (range.value === "30days") {
+    d.setDate(d.getDate() - 30);
+  }
+  return { start: d, end: null };
 };
 
 const getDateRangeLabel = (range: DateRange): string => {
-  switch (range) {
+  if (range.kind === "month") {
+    return new Date(range.year, range.month, 1).toLocaleDateString("sv-SE", {
+      month: "long",
+      year: "numeric",
+    });
+  }
+  switch (range.value) {
     case "7days":
       return "Last 7 days";
     case "30days":
@@ -64,6 +78,27 @@ const getDateRangeLabel = (range: DateRange): string => {
     case "all":
       return "All time";
   }
+};
+
+const buildMonthOptions = (): { year: number; month: number; label: string; value: string }[] => {
+  const opts: { year: number; month: number; label: string; value: string }[] = [];
+  const now = new Date();
+  let y = now.getFullYear();
+  let m = now.getMonth();
+  // iterate back to March 2026 (year=2026, month=2)
+  while (y > 2026 || (y === 2026 && m >= 2)) {
+    const label = new Date(y, m, 1).toLocaleDateString("sv-SE", {
+      month: "long",
+      year: "numeric",
+    });
+    opts.push({ year: y, month: m, label, value: `${y}-${m}` });
+    m -= 1;
+    if (m < 0) {
+      m = 11;
+      y -= 1;
+    }
+  }
+  return opts;
 };
 
 const chartConfig: ChartConfig = {
@@ -78,7 +113,8 @@ const chartConfig: ChartConfig = {
 };
 
 export const AnalyticsDashboard = () => {
-  const [dateRange, setDateRange] = useState<DateRange>("7days");
+  const [dateRange, setDateRange] = useState<DateRange>({ kind: "rolling", value: "7days" });
+  const monthOptions = buildMonthOptions();
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
 
   // Fetch product marketplace map for source filtering
@@ -100,7 +136,13 @@ export const AnalyticsDashboard = () => {
   const { data: analytics, isLoading } = useQuery<AnalyticsSummary>({
     queryKey: ["site-analytics", dateRange, sourceFilter, productMarketplaceMap],
     queryFn: async () => {
-      const rangeStart = getDateRangeStart(dateRange);
+      const { start: rangeStart, end: rangeEnd } = getDateRangeBounds(dateRange);
+      const applyRange = <T,>(q: T): T => {
+        let r: any = q;
+        if (rangeStart) r = r.gte("created_at", rangeStart.toISOString());
+        if (rangeEnd) r = r.lt("created_at", rangeEnd.toISOString());
+        return r as T;
+      };
       const mpMap = productMarketplaceMap || {};
 
       // Helper: check if a product_id matches the source filter
@@ -115,9 +157,7 @@ export const AnalyticsDashboard = () => {
         .select("*", { count: "exact", head: true })
         .eq("event_type", "page_view");
       
-      if (rangeStart) {
-        viewsQuery = viewsQuery.gte("created_at", rangeStart.toISOString());
-      }
+      viewsQuery = applyRange(viewsQuery);
       
       const { count: totalViews } = await viewsQuery;
 
@@ -127,9 +167,7 @@ export const AnalyticsDashboard = () => {
         .select("metadata")
         .eq("event_type", "product_click");
       
-      if (rangeStart) {
-        clicksQuery = clicksQuery.gte("created_at", rangeStart.toISOString());
-      }
+      clicksQuery = applyRange(clicksQuery);
       
       const { data: clicksData } = await clicksQuery;
       const filteredClicks = clicksData?.filter((e) => {
@@ -144,9 +182,7 @@ export const AnalyticsDashboard = () => {
         .select("metadata")
         .eq("event_type", "buy_now_click");
       
-      if (rangeStart) {
-        buyNowQuery = buyNowQuery.gte("created_at", rangeStart.toISOString());
-      }
+      buyNowQuery = applyRange(buyNowQuery);
       
       const { data: buyNowData } = await buyNowQuery;
       const filteredBuyNow = buyNowData?.filter((e) => {
@@ -160,7 +196,7 @@ export const AnalyticsDashboard = () => {
       // A person who visits multiple days is still counted once.
       const { data: uvTotal } = await supabase.rpc("get_unique_visitors_total", {
         p_start: rangeStart ? rangeStart.toISOString() : null,
-        p_end: null,
+        p_end: rangeEnd ? rangeEnd.toISOString() : null,
         p_bot_threshold: 200,
       });
       const uniqueVisitors = Number(uvTotal ?? 0);
@@ -171,9 +207,7 @@ export const AnalyticsDashboard = () => {
         .select("page_path")
         .eq("event_type", "page_view");
       
-      if (rangeStart) {
-        pagesQuery = pagesQuery.gte("created_at", rangeStart.toISOString());
-      }
+      pagesQuery = applyRange(pagesQuery);
       
       const { data: pageViews } = await pagesQuery;
 
@@ -189,22 +223,36 @@ export const AnalyticsDashboard = () => {
         .slice(0, 5);
 
       // Get activity for the chart
-      const chartDays = dateRange === "7days" ? 7 : dateRange === "30days" ? 30 : 30;
-      const chartStart = new Date();
-      chartStart.setDate(chartStart.getDate() - chartDays);
+      let chartStart: Date;
+      let chartEnd: Date | null;
+      let chartDays: number;
+      if (dateRange.kind === "month") {
+        chartStart = new Date(dateRange.year, dateRange.month, 1);
+        chartEnd = new Date(dateRange.year, dateRange.month + 1, 1);
+        chartDays = Math.round((chartEnd.getTime() - chartStart.getTime()) / 86400000);
+      } else {
+        chartDays = dateRange.value === "7days" ? 7 : 30;
+        chartStart = new Date();
+        chartStart.setDate(chartStart.getDate() - chartDays);
+        chartEnd = null;
+      }
 
-      const { data: recentEvents } = await supabase
+      let recentEventsQuery = supabase
         .from("site_analytics")
         .select("event_type, page_path, created_at, visitor_id, metadata")
         .gte("created_at", chartStart.toISOString());
+      if (chartEnd) {
+        recentEventsQuery = recentEventsQuery.lt("created_at", chartEnd.toISOString());
+      }
+      const { data: recentEvents } = await recentEventsQuery;
 
       // Group by date
       const activityByDate: Record<string, { views: number; clicks: number; buyNow: number; visitors: Set<string> }> = {};
-      
+
       // Initialize all dates in range
       for (let i = 0; i < chartDays; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() - (chartDays - 1 - i));
+        const d = new Date(chartStart);
+        d.setDate(d.getDate() + i);
         const dateKey = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
         activityByDate[dateKey] = { views: 0, clicks: 0, buyNow: 0, visitors: new Set() };
       }
@@ -239,7 +287,7 @@ export const AnalyticsDashboard = () => {
       // Per-day unique visitors via RPC (matches the (visitor_id, day) + bot filter rule)
       const { data: dailyUvRows } = await supabase.rpc("get_unique_visitors", {
         p_start: chartStart.toISOString(),
-        p_end: null,
+        p_end: chartEnd ? chartEnd.toISOString() : null,
         p_bot_threshold: 200,
       });
       const dailyUvByDate: Record<string, number> = {};
@@ -266,9 +314,7 @@ export const AnalyticsDashboard = () => {
         .select("metadata, visitor_id")
         .eq("event_type", "product_click");
       
-      if (rangeStart) {
-        productClicksQuery = productClicksQuery.gte("created_at", rangeStart.toISOString());
-      }
+      productClicksQuery = applyRange(productClicksQuery);
       
       const { data: productClicks } = await productClicksQuery;
 
@@ -277,9 +323,7 @@ export const AnalyticsDashboard = () => {
         .select("metadata")
         .eq("event_type", "buy_now_click");
       
-      if (rangeStart) {
-        purchaseClicksQuery = purchaseClicksQuery.gte("created_at", rangeStart.toISOString());
-      }
+      purchaseClicksQuery = applyRange(purchaseClicksQuery);
       
       const { data: purchaseClicks } = await purchaseClicksQuery;
 
@@ -424,22 +468,45 @@ export const AnalyticsDashboard = () => {
           <div className="flex items-center gap-2">
             <Calendar size={16} className="text-muted-foreground" />
             <div className="flex rounded-md border border-border overflow-hidden">
-              {(["7days", "30days", "all"] as DateRange[]).map((range) => (
-                <Button
-                  key={range}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setDateRange(range)}
-                  className={`rounded-none px-3 py-1.5 text-xs font-medium transition-colors ${
-                    dateRange === range
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "hover:bg-secondary"
-                  }`}
-                >
-                  {range === "7days" ? "7 days" : range === "30days" ? "30 days" : "All time"}
-                </Button>
-              ))}
+              {(["7days", "30days", "all"] as RollingValue[]).map((range) => {
+                const active = dateRange.kind === "rolling" && dateRange.value === range;
+                return (
+                  <Button
+                    key={range}
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDateRange({ kind: "rolling", value: range })}
+                    className={`rounded-none px-3 py-1.5 text-xs font-medium transition-colors ${
+                      active
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : "hover:bg-secondary"
+                    }`}
+                  >
+                    {range === "7days" ? "7 days" : range === "30days" ? "30 days" : "All time"}
+                  </Button>
+                );
+              })}
             </div>
+            <select
+              value={dateRange.kind === "month" ? `${dateRange.year}-${dateRange.month}` : ""}
+              onChange={(e) => {
+                if (!e.target.value) return;
+                const [y, m] = e.target.value.split("-").map(Number);
+                setDateRange({ kind: "month", year: y, month: m });
+              }}
+              className={`h-8 rounded-md border px-2 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring ${
+                dateRange.kind === "month"
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background border-border hover:bg-secondary"
+              }`}
+            >
+              <option value="" disabled>Välj månad</option>
+              {monthOptions.map((o) => (
+                <option key={o.value} value={o.value} className="bg-background text-foreground">
+                  {o.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </div>
@@ -545,7 +612,7 @@ export const AnalyticsDashboard = () => {
                   tick={{ fontSize: 10 }}
                   tickLine={false}
                   axisLine={false}
-                  interval={dateRange === "30days" ? 4 : 0}
+                  interval={(dateRange.kind === "rolling" && dateRange.value === "30days") || dateRange.kind === "month" ? 4 : 0}
                 />
                 <YAxis 
                   tick={{ fontSize: 10 }}
