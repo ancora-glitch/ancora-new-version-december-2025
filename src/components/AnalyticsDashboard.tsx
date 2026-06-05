@@ -113,7 +113,8 @@ const chartConfig: ChartConfig = {
 };
 
 export const AnalyticsDashboard = () => {
-  const [dateRange, setDateRange] = useState<DateRange>("7days");
+  const [dateRange, setDateRange] = useState<DateRange>({ kind: "rolling", value: "7days" });
+  const monthOptions = buildMonthOptions();
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
 
   // Fetch product marketplace map for source filtering
