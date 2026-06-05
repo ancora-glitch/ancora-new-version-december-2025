@@ -468,22 +468,45 @@ export const AnalyticsDashboard = () => {
           <div className="flex items-center gap-2">
             <Calendar size={16} className="text-muted-foreground" />
             <div className="flex rounded-md border border-border overflow-hidden">
-              {(["7days", "30days", "all"] as DateRange[]).map((range) => (
-                <Button
-                  key={range}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setDateRange(range)}
-                  className={`rounded-none px-3 py-1.5 text-xs font-medium transition-colors ${
-                    dateRange === range
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "hover:bg-secondary"
-                  }`}
-                >
-                  {range === "7days" ? "7 days" : range === "30days" ? "30 days" : "All time"}
-                </Button>
-              ))}
+              {(["7days", "30days", "all"] as RollingValue[]).map((range) => {
+                const active = dateRange.kind === "rolling" && dateRange.value === range;
+                return (
+                  <Button
+                    key={range}
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDateRange({ kind: "rolling", value: range })}
+                    className={`rounded-none px-3 py-1.5 text-xs font-medium transition-colors ${
+                      active
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : "hover:bg-secondary"
+                    }`}
+                  >
+                    {range === "7days" ? "7 days" : range === "30days" ? "30 days" : "All time"}
+                  </Button>
+                );
+              })}
             </div>
+            <select
+              value={dateRange.kind === "month" ? `${dateRange.year}-${dateRange.month}` : ""}
+              onChange={(e) => {
+                if (!e.target.value) return;
+                const [y, m] = e.target.value.split("-").map(Number);
+                setDateRange({ kind: "month", year: y, month: m });
+              }}
+              className={`h-8 rounded-md border px-2 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring ${
+                dateRange.kind === "month"
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background border-border hover:bg-secondary"
+              }`}
+            >
+              <option value="" disabled>Välj månad</option>
+              {monthOptions.map((o) => (
+                <option key={o.value} value={o.value} className="bg-background text-foreground">
+                  {o.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </div>
