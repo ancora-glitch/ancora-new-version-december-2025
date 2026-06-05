@@ -196,7 +196,7 @@ export const AnalyticsDashboard = () => {
       // A person who visits multiple days is still counted once.
       const { data: uvTotal } = await supabase.rpc("get_unique_visitors_total", {
         p_start: rangeStart ? rangeStart.toISOString() : null,
-        p_end: null,
+        p_end: rangeEnd ? rangeEnd.toISOString() : null,
         p_bot_threshold: 200,
       });
       const uniqueVisitors = Number(uvTotal ?? 0);
@@ -287,7 +287,7 @@ export const AnalyticsDashboard = () => {
       // Per-day unique visitors via RPC (matches the (visitor_id, day) + bot filter rule)
       const { data: dailyUvRows } = await supabase.rpc("get_unique_visitors", {
         p_start: chartStart.toISOString(),
-        p_end: null,
+        p_end: chartEnd ? chartEnd.toISOString() : null,
         p_bot_threshold: 200,
       });
       const dailyUvByDate: Record<string, number> = {};
