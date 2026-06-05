@@ -157,9 +157,7 @@ export const AnalyticsDashboard = () => {
         .select("*", { count: "exact", head: true })
         .eq("event_type", "page_view");
       
-      if (rangeStart) {
-        viewsQuery = viewsQuery.gte("created_at", rangeStart.toISOString());
-      }
+      viewsQuery = applyRange(viewsQuery);
       
       const { count: totalViews } = await viewsQuery;
 
