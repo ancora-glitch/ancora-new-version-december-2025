@@ -167,9 +167,7 @@ export const AnalyticsDashboard = () => {
         .select("metadata")
         .eq("event_type", "product_click");
       
-      if (rangeStart) {
-        clicksQuery = clicksQuery.gte("created_at", rangeStart.toISOString());
-      }
+      clicksQuery = applyRange(clicksQuery);
       
       const { data: clicksData } = await clicksQuery;
       const filteredClicks = clicksData?.filter((e) => {
