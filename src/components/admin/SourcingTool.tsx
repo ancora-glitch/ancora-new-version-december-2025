@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, ExternalLink, Copy, Search } from "lucide-react";
+import { Loader2, ExternalLink, Search, ChevronDown, ChevronUp } from "lucide-react";
 import { TIER_BRANDS, type BrandTier } from "@/constants/brands";
 
 type TierSelection = BrandTier | "ALL";
@@ -73,22 +73,19 @@ function getBrands(tier: TierSelection): string[] {
   return [...TIER_BRANDS[tier]];
 }
 
-interface GeneratedLink {
-  source: Source;
-  url: string;
-}
-
 interface SearchResult {
-  links: GeneratedLink[];
   brands: string[];
   keywords: string[];
 }
+
+const DEFAULT_VISIBLE = 5;
 
 export const SourcingTool = () => {
   const [query, setQuery] = useState("");
   const [tier, setTier] = useState<TierSelection>("ALL");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SearchResult | null>(null);
+  const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
 
   const tiers: { value: TierSelection; label: string }[] = [
     { value: "A", label: "Tier A" },
@@ -103,29 +100,30 @@ export const SourcingTool = () => {
       return;
     }
     setLoading(true);
+    setExpandedSources(new Set());
     setTimeout(() => {
       const keywords = extractKeywords(query);
-      const brandList = getBrands(tier).slice(0, 5);
-      const keywordPart = keywords.join(" ");
-      const brandPart = brandList.join(" OR ");
-      const q = encodeURIComponent([keywordPart, brandPart].filter(Boolean).join(" "));
-      const links: GeneratedLink[] = SOURCES.map((s) => ({ source: s, url: s.build(q) }));
-      setResult({ links, brands: brandList, keywords });
+      const brandList = getBrands(tier);
+      setResult({ keywords, brands: brandList });
       setLoading(false);
     }, 300);
   };
 
-  const handleCopy = async (url: string) => {
-    try {
-      await navigator.clipboard.writeText(url);
-      toast.success("Länk kopierad");
-    } catch {
-      toast.error("Kunde inte kopiera");
-    }
+  const toggleExpanded = (sourceId: string) => {
+    setExpandedSources((prev) => {
+      const next = new Set(prev);
+      if (next.has(sourceId)) {
+        next.delete(sourceId);
+      } else {
+        next.add(sourceId);
+      }
+      return next;
+    });
   };
 
-  const seLinks = result?.links.filter((l) => l.source.group === "se") ?? [];
-  const intlLinks = result?.links.filter((l) => l.source.group === "intl") ?? [];
+  const seSources = SOURCES.filter((s) => s.group === "se");
+  const intlSources = SOURCES.filter((s) => s.group === "intl");
+  const keywordsStr = result ? result.keywords.join(" ") : "";
 
   return (
     <div className="space-y-8">
@@ -179,7 +177,7 @@ export const SourcingTool = () => {
       {result && (
         <div className="space-y-6">
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <span>{result.links.length} länkar genererade</span>
+            <span>{result.brands.length * SOURCES.length} länkar genererade</span>
             {result.keywords.length > 0 && (
               <>
                 <span>·</span>
@@ -193,20 +191,30 @@ export const SourcingTool = () => {
               <>
                 <span>·</span>
                 <span>Märken:</span>
-                {result.brands.map((b) => (
+                {result.brands.slice(0, 5).map((b) => (
                   <Badge key={b} variant="outline">{b}</Badge>
                 ))}
+                {result.brands.length > 5 && (
+                  <Badge variant="outline">+{result.brands.length - 5}</Badge>
+                )}
               </>
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-6">
             <section className="space-y-3">
               <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
                 Svenska källor
               </h3>
-              {seLinks.map((l) => (
-                <SourceCard key={l.source.id} link={l} onCopy={handleCopy} />
+              {seSources.map((source) => (
+                <SourceCard
+                  key={source.id}
+                  source={source}
+                  brands={result.brands}
+                  keywordsStr={keywordsStr}
+                  expanded={expandedSources.has(source.id)}
+                  onToggle={() => toggleExpanded(source.id)}
+                />
               ))}
             </section>
 
@@ -214,8 +222,15 @@ export const SourcingTool = () => {
               <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
                 Internationella källor
               </h3>
-              {intlLinks.map((l) => (
-                <SourceCard key={l.source.id} link={l} onCopy={handleCopy} />
+              {intlSources.map((source) => (
+                <SourceCard
+                  key={source.id}
+                  source={source}
+                  brands={result.brands}
+                  keywordsStr={keywordsStr}
+                  expanded={expandedSources.has(source.id)}
+                  onToggle={() => toggleExpanded(source.id)}
+                />
               ))}
             </section>
           </div>
@@ -226,28 +241,63 @@ export const SourcingTool = () => {
 };
 
 const SourceCard = ({
-  link,
-  onCopy,
+  source,
+  brands,
+  keywordsStr,
+  expanded,
+  onToggle,
 }: {
-  link: GeneratedLink;
-  onCopy: (url: string) => void;
-}) => (
-  <Card>
-    <CardHeader className="pb-3">
-      <CardTitle className="text-base">{link.source.name}</CardTitle>
-      <CardDescription>{link.source.description}</CardDescription>
-    </CardHeader>
-    <CardContent className="flex items-center gap-2">
-      <Button asChild size="sm">
-        <a href={link.url} target="_blank" rel="noopener noreferrer">
-          <ExternalLink className="w-4 h-4" />
-          Öppna
-        </a>
-      </Button>
-      <Button variant="outline" size="sm" onClick={() => onCopy(link.url)}>
-        <Copy className="w-4 h-4" />
-        Kopiera
-      </Button>
-    </CardContent>
-  </Card>
-);
+  source: Source;
+  brands: string[];
+  keywordsStr: string;
+  expanded: boolean;
+  onToggle: () => void;
+}) => {
+  const visibleBrands = expanded ? brands : brands.slice(0, DEFAULT_VISIBLE);
+  const hiddenCount = brands.length - DEFAULT_VISIBLE;
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">{source.name}</CardTitle>
+        <CardDescription>{source.description}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {visibleBrands.map((brand) => {
+            const q = encodeURIComponent(`${keywordsStr} ${brand}`.trim());
+            const url = source.build(q);
+            return (
+              <a
+                key={brand}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 rounded-full border border-input bg-background px-3 py-1 text-xs font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+              >
+                {brand}
+                <ExternalLink className="w-3 h-3 text-muted-foreground" />
+              </a>
+            );
+          })}
+        </div>
+
+        {hiddenCount > 0 && (
+          <Button variant="ghost" size="sm" onClick={onToggle} className="h-7 px-2 text-xs">
+            {expanded ? (
+              <>
+                <ChevronUp className="w-3 h-3 mr-1" />
+                Visa färre
+              </>
+            ) : (
+              <>
+                <ChevronDown className="w-3 h-3 mr-1" />
+                Visa alla ({hiddenCount})
+              </>
+            )}
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
