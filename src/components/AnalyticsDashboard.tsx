@@ -231,22 +231,36 @@ export const AnalyticsDashboard = () => {
         .slice(0, 5);
 
       // Get activity for the chart
-      const chartDays = dateRange === "7days" ? 7 : dateRange === "30days" ? 30 : 30;
-      const chartStart = new Date();
-      chartStart.setDate(chartStart.getDate() - chartDays);
+      let chartStart: Date;
+      let chartEnd: Date | null;
+      let chartDays: number;
+      if (dateRange.kind === "month") {
+        chartStart = new Date(dateRange.year, dateRange.month, 1);
+        chartEnd = new Date(dateRange.year, dateRange.month + 1, 1);
+        chartDays = Math.round((chartEnd.getTime() - chartStart.getTime()) / 86400000);
+      } else {
+        chartDays = dateRange.value === "7days" ? 7 : 30;
+        chartStart = new Date();
+        chartStart.setDate(chartStart.getDate() - chartDays);
+        chartEnd = null;
+      }
 
-      const { data: recentEvents } = await supabase
+      let recentEventsQuery = supabase
         .from("site_analytics")
         .select("event_type, page_path, created_at, visitor_id, metadata")
         .gte("created_at", chartStart.toISOString());
+      if (chartEnd) {
+        recentEventsQuery = recentEventsQuery.lt("created_at", chartEnd.toISOString());
+      }
+      const { data: recentEvents } = await recentEventsQuery;
 
       // Group by date
       const activityByDate: Record<string, { views: number; clicks: number; buyNow: number; visitors: Set<string> }> = {};
-      
+
       // Initialize all dates in range
       for (let i = 0; i < chartDays; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() - (chartDays - 1 - i));
+        const d = new Date(chartStart);
+        d.setDate(d.getDate() + i);
         const dateKey = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
         activityByDate[dateKey] = { views: 0, clicks: 0, buyNow: 0, visitors: new Set() };
       }
