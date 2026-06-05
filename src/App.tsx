@@ -21,6 +21,7 @@ import StyleGuarantee from "./pages/StyleGuarantee";
 import Sourcing from "./pages/Sourcing";
 import AdminPortal from "./pages/AdminPortal";
 import Auth from "./pages/Auth";
+import OnboardingChecklist from "./pages/OnboardingChecklist";
 import RequireAdmin from "./components/RequireAdmin";
 import ScrollToTop from "./components/ScrollToTop";
 import { PageViewTracker } from "./components/PageViewTracker";
@@ -68,6 +69,7 @@ const App = () => (
               }
             />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/onboarding-checklist" element={<OnboardingChecklist />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
