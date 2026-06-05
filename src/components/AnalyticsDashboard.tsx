@@ -612,7 +612,7 @@ export const AnalyticsDashboard = () => {
                   tick={{ fontSize: 10 }}
                   tickLine={false}
                   axisLine={false}
-                  interval={dateRange === "30days" ? 4 : 0}
+                  interval={(dateRange.kind === "rolling" && dateRange.value === "30days") || dateRange.kind === "month" ? 4 : 0}
                 />
                 <YAxis 
                   tick={{ fontSize: 10 }}
