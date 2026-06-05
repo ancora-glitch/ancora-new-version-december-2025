@@ -46,20 +46,31 @@ interface AnalyticsSummary {
   topProducts: TopProduct[];
 }
 
-const getDateRangeStart = (range: DateRange): Date | null => {
-  if (range === "all") return null;
-  
-  const date = new Date();
-  if (range === "7days") {
-    date.setDate(date.getDate() - 7);
-  } else if (range === "30days") {
-    date.setDate(date.getDate() - 30);
+const getDateRangeBounds = (range: DateRange): { start: Date | null; end: Date | null } => {
+  if (range.kind === "month") {
+    return {
+      start: new Date(range.year, range.month, 1),
+      end: new Date(range.year, range.month + 1, 1),
+    };
   }
-  return date;
+  if (range.value === "all") return { start: null, end: null };
+  const d = new Date();
+  if (range.value === "7days") {
+    d.setDate(d.getDate() - 7);
+  } else if (range.value === "30days") {
+    d.setDate(d.getDate() - 30);
+  }
+  return { start: d, end: null };
 };
 
 const getDateRangeLabel = (range: DateRange): string => {
-  switch (range) {
+  if (range.kind === "month") {
+    return new Date(range.year, range.month, 1).toLocaleDateString("sv-SE", {
+      month: "long",
+      year: "numeric",
+    });
+  }
+  switch (range.value) {
     case "7days":
       return "Last 7 days";
     case "30days":
@@ -67,6 +78,27 @@ const getDateRangeLabel = (range: DateRange): string => {
     case "all":
       return "All time";
   }
+};
+
+const buildMonthOptions = (): { year: number; month: number; label: string; value: string }[] => {
+  const opts: { year: number; month: number; label: string; value: string }[] = [];
+  const now = new Date();
+  let y = now.getFullYear();
+  let m = now.getMonth();
+  // iterate back to March 2026 (year=2026, month=2)
+  while (y > 2026 || (y === 2026 && m >= 2)) {
+    const label = new Date(y, m, 1).toLocaleDateString("sv-SE", {
+      month: "long",
+      year: "numeric",
+    });
+    opts.push({ year: y, month: m, label, value: `${y}-${m}` });
+    m -= 1;
+    if (m < 0) {
+      m = 11;
+      y -= 1;
+    }
+  }
+  return opts;
 };
 
 const chartConfig: ChartConfig = {
