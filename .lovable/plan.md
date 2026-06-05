@@ -1,142 +1,54 @@
-## Add Pure Effect as Statistics Source Filter
+Add a new route and page for an onboarding checklist to guide sharing repository access with Figura Labs.
 
-### Context
-The `AnalyticsDashboard` component (`src/components/AnalyticsDashboard.tsx`) renders the Statistics tab in AdminPortal. It already has source filter buttons: **All Sources | Tradera | eBay | VintageSphere**.
+### Page: `/onboarding-checklist`
 
-### Changes
+Create `src/pages/OnboardingChecklist.tsx` with the following layout and behavior:
 
-1. **Extend `SourceFilter` type** (line 17):
-   ```ts
-   type SourceFilter = "all" | "tradera" | "ebay" | "vintagesphere" | "pure_effect";
-   ```
+1. **Header**
+   - Title: "Repository access checklist – external partner"
+   - Subtitle: "Complete these steps before sharing repo access with Figura Labs"
 
-2. **Add Pure Effect filter button** (lines 405–420):
-   - Append `"pure_effect"` to the source filter array: `(["all", "tradera", "ebay", "vintagesphere", "pure_effect"] as SourceFilter[])`
-   - Add label mapping in the ternary on line 417: `source === "pure_effect" ? "Pure Effect" : "VintageSphere"` (insert before the VintageSphere branch)
+2. **Progress Indicator**
+   - Display at the top, below the header.
+   - Format: "X / 4 completed"
+   - Visual: a segmented bar or counter that updates in real time as checkboxes are toggled.
 
-### Why nothing else needs to change
+3. **Checklist (4 items)**
+   Each item is a toggleable checkbox with a label and descriptive body text:
+   - "Remove sensitive files" – ensure .env files, API keys, and secrets are not committed. Add them to .gitignore and verify git history is clean.
+   - "Define access level" – decide between fork (read-only, no push access) or collaborator with read-only role. Specify which branch they should base their work on.
+   - "Scope the integration" – document which pages/components are in scope (Clothing product pages on ancoraedit.com). Include a brief description of the Figura Labs widget (size-fit box).
+   - "Collect partner GitHub/GitLab usernames" – gather usernames or associated emails for everyone at Figura Labs who needs access. Note how many people.
 
-The existing `matchesSource` helper (lines 107–110) already works dynamically:
-```ts
-const matchesSource = (productId: string | undefined): boolean => {
-  if (sourceFilter === "all" || !productId) return true;
-  return mpMap[productId] === sourceFilter;
-};
-```
-It compares the selected `sourceFilter` against the `product.marketplace` value (normalized to lowercase in the `productMarketplaceMap` fetch). Since Pure Effect products are stored with `marketplace = 'pure_effect'`, selecting the new filter will correctly filter Product Clicks and Purchase Intent (Buy Now clicks) — exactly as Tradera, eBay, and VintageSphere do today.
+4. **Completed State Styling**
+   - When a checkbox is checked, the item text receives a subtle green tint (use a semantic green token or `text-green-600`).
+   - No animations required.
 
-Unique Visitors and Page Views are global metrics and are not filtered per partner in the current implementation either, so behavior remains consistent across all four filters.
+5. **"Copy invite email" Button**
+   - Placed at the bottom of the checklist.
+   - On click, copies a pre-written email template to the clipboard.
+   - Shows a brief toast/confirmation feedback.
+   - Email template includes:
+     - Subject line
+     - Repo URL placeholder
+     - Branch placeholder
+     - Scope description (Clothing product pages)
+     - Request for their GitHub username
 
----
+6. **Design**
+   - Clean, minimal, white background (`bg-white`).
+   - Sans-serif font (`font-sans`, Trispace / system-ui).
+   - Mobile-friendly responsive layout.
+   - No dependency on dark mode.
 
-## Session 2026-05-20 — Ändringar
+### Routing
+- Register the route in `src/App.tsx` at `/onboarding-checklist`.
+- Use existing `PageViewTracker` wrapper (no special tracking needed beyond default).
 
-### 1. Pure Effect Sweden — ny manuell import-partner
-
-Ny partner tillagd modellerad efter VintageSphere
-
-- **Endpoint:** `https://www.pureeffectsweden.com/collections/kladvard/products.json`
-- **Teknisk metod:** Shopify publikt JSON-API, ingen auth
-- **Två nya edge functions:** `pureeffect-search` + `pureeffect-item`
-- **Ny drawer:** `src/components/PureEffectSearchDrawer.tsx`
-- **Knapp tillagd i AdminPortal → Imports-tab**
-
-**Invarianter:**
-- `condition` alltid `null`
-- `status` alltid `draft`
-- `marketplace = 'pure_effect'`
-- cap 10/session
-- inga cron-jobb
-- ingen sold-detection
-- ingen editorial overwrite
-
-`marketplace`-kolumnen är plain text (ej ENUM) — ingen DB-migration krävdes
-
----
-
-### 2. Care — ny top-level shop-kategori
-
-Ny kategori tillagd på samma nivå som Clothing, Shoes, Bags, Accessories
-
-- **DB:** rad insertad i `categories` (name: Care, slug: care, status: published, id: 1ff0f814-be77-4b3c-97de-46ab66b1e4f3)
-- **Header.tsx:** `{ label: "Care", href: "/category/care" }` tillagd i `shopCategories`
-- **Shop.tsx och CategoryPage.tsx** opåverkade (dynamiska)
-- **Inga subkategorier**
-
----
-
-### 3. ProductDetail.tsx — Care-specifik rendering
-
-Fälten `condition`, `material` och `color` döljs på publika produktsidan när produkten tillhör Care-kategorin
-
-**Fix:** Supabase returnerar `categories`-relationen som array — löstes med:
-
-```ts
-const categoryRel = (product as any).categories;
-const categorySlug = Array.isArray(categoryRel)
-  ? categoryRel[0]?.slug
-  : categoryRel?.slug;
-const isCare = categorySlug === "care";
-```
-
-Samma dolda fält applicerat i AdminPortal produktredigering
-
----
-
-### 4. Marketplace display labels — komplett mappning
-
-ProductDetail.tsx visade inte korrekt källetikett för alla partners
-
-Komplett mappning tillagd:
-
-```ts
-const sourceLabel: Record<string, string> = {
-    tradera: "Tradera",
-    ebay: "eBay",
-    vintagesphere: "VintageSphere",
-    pure_effect: "Pure Effect",
-    manual: "Manual",
-  };
-```
-
----
-
-### 5. AnalyticsDashboard — Pure Effect som statistikfilter
-
-- `SourceFilter`-typen utökad med `"pure_effect"`
-- Pure Effect-knapp tillagd i filterraden bredvid VintageSphere
-- `matchesSource`-helpern fungerar dynamiskt — inga ytterligare ändringar krävdes
-- Unique Visitors och Page Views förblir globala mätvärden (ej partner-filtrerade), konsistent med övriga partners
-
----
-
-## Aktiv logg — klistra in i ANCORA Context
-
-### 2026-05-22 — Swimwear subkategori under Clothing
-**Vad:** Swimwear tillagd som ny subkategori under Clothing. Följer samma mönster som övriga Clothing-subkategorier.
-
-**Filer:**
-- `src/components/Header.tsx`
-- `src/pages/Shop.tsx`
-- `src/pages/CategoryPage.tsx`
-- `src/pages/AdminPortal.tsx`
-
-**DB:** Migration — `validate_product_subcategory()` trigger uppdaterad med `'swimwear'`.
-
-**Notering:** Subkategorier är hardcoded i fyra filer + DB-trigger. Alla platser uppdaterade.
-
-### 2026-05-20 — Pure Effect, Care-kategori, UI-fixes
-**Vad:** Pure Effect Sweden tillagd som manuell partner. Care tillagd som top-level kategori. condition/material/color döljs för Care i både admin och publika sajten. Marketplace-labels komplettterade för alla partners. Pure Effect tillagd som statistikfilter i AnalyticsDashboard.
-
-**Filer:**
-- `supabase/functions/pureeffect-search/index.ts` (ny)
-- `supabase/functions/pureeffect-item/index.ts` (ny)
-- `src/components/PureEffectSearchDrawer.tsx` (ny)
-- `src/components/AnalyticsDashboard.tsx`
-- `src/pages/ProductDetail.tsx`
-- `src/pages/AdminPortal.tsx`
-- `src/components/Header.tsx`
-
-**DB:** INSERT categories (Care, care, published). Ingen enum-migration (marketplace är plain text).
-
-**Notering:** categories-relation från Supabase returneras som array — slug-check måste hantera båda formaten.
+### Technical Details
+- Use React `useState` to manage checkbox states and derive progress.
+- Use `navigator.clipboard.writeText` for the copy action, with a fallback alert if unavailable.
+- Use existing shadcn/ui `Checkbox` component if available; otherwise use native styled `<input type="checkbox">`.
+- Use `lucide-react` icons for visual polish (checkmarks, copy icon).
+- No backend, database, or auth changes required.
+- No new dependencies required.
