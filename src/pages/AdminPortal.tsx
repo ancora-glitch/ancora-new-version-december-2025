@@ -944,7 +944,7 @@ const AdminPortal = () => {
           </p>
 
           <Tabs defaultValue="statistics" className="w-full">
-             <TabsList className="grid w-full grid-cols-7 mb-8">
+             <TabsList className="grid w-full grid-cols-8 mb-8">
               <TabsTrigger value="statistics">Statistics</TabsTrigger>
               <TabsTrigger value="imports">Imports</TabsTrigger>
               <TabsTrigger value="weekly-edits">Edits</TabsTrigger>
@@ -952,6 +952,7 @@ const AdminPortal = () => {
               <TabsTrigger value="products">Products</TabsTrigger>
               <TabsTrigger value="stories">Stories</TabsTrigger>
               <TabsTrigger value="intake-test">Intake (test)</TabsTrigger>
+              <TabsTrigger value="sourcing">Sourcing</TabsTrigger>
             </TabsList>
 
             {/* STATISTICS TAB */}
