@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { ImportsTab } from "@/components/admin/ImportsTab";
 import { WeeklyEditsTab } from "@/components/admin/WeeklyEditsTab";
 import { IntakeTab } from "@/components/admin/IntakeTab";
+import { SourcingTool } from "@/components/admin/SourcingTool";
 import { slugify } from "@/utils/slugify";
 import {
   DndContext,
@@ -2060,6 +2061,10 @@ const AdminPortal = () => {
 
             <TabsContent value="intake-test">
               <IntakeTab />
+            </TabsContent>
+
+            <TabsContent value="sourcing">
+              <SourcingTool />
             </TabsContent>
           </Tabs>
         </div>
