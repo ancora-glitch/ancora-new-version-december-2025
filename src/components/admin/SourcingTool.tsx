@@ -27,7 +27,7 @@ const SOURCES: Source[] = [
   { id: "plick", name: "Plick", description: "Svensk second hand", group: "se",
     build: (q) => `https://www.plick.se/s?query=${q}` },
   { id: "mai", name: "Mai.se", description: "Svensk second hand", group: "se",
-    build: (q) => `https://mai.se/search?q=${q}` },
+    build: (q) => `https://mairesale.com/search?q=${q}` },
   { id: "ebay", name: "eBay UK", description: "Used items, £10+", group: "intl",
     build: (q) => `https://www.ebay.co.uk/sch/i.html?_nkw=${q}&LH_ItemCondition=3000&_udlo=10` },
   { id: "vestiaire", name: "Vestiaire Collective", description: "Internationell pre-loved", group: "intl",
