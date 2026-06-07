@@ -5,9 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2, ExternalLink, Search, ChevronDown, ChevronUp } from "lucide-react";
-import { TIER_BRANDS, type BrandTier } from "@/constants/brands";
-
-type TierSelection = BrandTier | "ALL";
 
 interface Source {
   id: string;
@@ -42,6 +39,21 @@ const SOURCES: Source[] = [
     build: (q) => `https://www.beyondretro.com/search?type=product&q=${q}` },
 ];
 
+const TIER_A_BRANDS = [
+  "Toteme","Acne Studios","Filippa K","Tiger of Sweden","Stine Goya","Ganni","By Malene Birger","Rodebjer",
+  "Hope Stockholm","Our Legacy","3.1 Phillip Lim","Alaia","Alexander McQueen","ATP Atelier","APC","Balenciaga",
+  "Baserange","Baum und Pferdgarten","Bottega Veneta","Burberry","Carhartt","Carhartt WIP","Celine","Chanel",
+  "Chloe","COS","Dagmar","Dior","Dr Martens","Eytys","Flattered","House of Dagmar","Gant","Gucci","Patagonia",
+  "Isabel Marant","Jacquemus","Jil Sander","Levi's","Loewe","Louis Vuitton","Ralph Lauren","Maison Margiela",
+  "Marni","Miu Miu","Moncler","Mulberry","Prada","Saint Laurent","Sandqvist","Self Portrait","Skall Studio",
+  "Stella McCartney","The Row","Stand Studio","Valentino","Veja","Versace","Wood Wood","Vivienne Westwood",
+  "Diesel","Barbour","Helmut Lang","Calvin Klein","Axel Arigato","Rotate","Brunello Cucinelli","Loro Piana",
+  "Max Mara","Giorgio Armani","Emporio Armani","Fendi","Ferragamo",
+];
+
+const LETTER_SIZES = ["XS","S","M","L","XL","XXL"];
+const NUMERIC_SIZES = ["32","34","36","38","40","42","44","46","48"];
+
 const STOPWORDS = new Set([
   "och","eller","att","en","ett","den","det","som","på","i","är","för","av","med","till","jag","du","vi",
   "letar","efter","något","gärna","kanske","ha","ska","skulle","vill","behöver","mig","min","mitt",
@@ -66,15 +78,9 @@ function extractKeywords(text: string): string[] {
   return out;
 }
 
-function getBrands(tier: TierSelection): string[] {
-  if (tier === "ALL") {
-    return [...TIER_BRANDS.A, ...TIER_BRANDS.B, ...TIER_BRANDS.C];
-  }
-  return [...TIER_BRANDS[tier]];
-}
-
 interface SearchResult {
   brands: string[];
+  sizes: string[];
   keywords: string[];
 }
 
@@ -82,29 +88,49 @@ const DEFAULT_VISIBLE = 5;
 
 export const SourcingTool = () => {
   const [query, setQuery] = useState("");
-  const [tier, setTier] = useState<TierSelection>("ALL");
+  const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set());
+  const [selectedSizes, setSelectedSizes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SearchResult | null>(null);
   const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
 
-  const tiers: { value: TierSelection; label: string }[] = [
-    { value: "A", label: "Tier A" },
-    { value: "B", label: "Tier B" },
-    { value: "C", label: "Tier C" },
-    { value: "ALL", label: "Alla" },
-  ];
+  const toggleBrand = (brand: string) => {
+    setSelectedBrands((prev) => {
+      const next = new Set(prev);
+      if (next.has(brand)) next.delete(brand);
+      else next.add(brand);
+      return next;
+    });
+  };
+
+  const toggleSize = (size: string) => {
+    setSelectedSizes((prev) => {
+      const next = new Set(prev);
+      if (next.has(size)) next.delete(size);
+      else next.add(size);
+      return next;
+    });
+  };
+
+  const selectAllBrands = () => setSelectedBrands(new Set(TIER_A_BRANDS));
+  const clearAllBrands = () => setSelectedBrands(new Set());
 
   const handleSearch = () => {
     if (!query.trim()) {
       toast.error("Skriv något att söka efter");
       return;
     }
+    if (selectedBrands.size === 0) {
+      toast.error("Välj minst ett märke");
+      return;
+    }
     setLoading(true);
     setExpandedSources(new Set());
     setTimeout(() => {
       const keywords = extractKeywords(query);
-      const brandList = getBrands(tier);
-      setResult({ keywords, brands: brandList });
+      const brandList = TIER_A_BRANDS.filter((b) => selectedBrands.has(b));
+      const sizeList = [...LETTER_SIZES, ...NUMERIC_SIZES].filter((s) => selectedSizes.has(s));
+      setResult({ keywords, brands: brandList, sizes: sizeList });
       setLoading(false);
     }, 300);
   };
@@ -112,11 +138,8 @@ export const SourcingTool = () => {
   const toggleExpanded = (sourceId: string) => {
     setExpandedSources((prev) => {
       const next = new Set(prev);
-      if (next.has(sourceId)) {
-        next.delete(sourceId);
-      } else {
-        next.add(sourceId);
-      }
+      if (next.has(sourceId)) next.delete(sourceId);
+      else next.add(sourceId);
       return next;
     });
   };
@@ -124,15 +147,106 @@ export const SourcingTool = () => {
   const seSources = SOURCES.filter((s) => s.group === "se");
   const intlSources = SOURCES.filter((s) => s.group === "intl");
   const keywordsStr = result ? result.keywords.join(" ") : "";
+  const sizesStr = result ? result.sizes.join(" ") : "";
 
   return (
     <div className="space-y-8">
       <div>
         <h2 className="text-2xl font-serif text-primary mb-2">Sourcing Tool</h2>
         <p className="text-muted-foreground text-sm">
-          Generera söklänkar till second hand-källor utifrån fritext och utvald märkes-tier.
+          Generera söklänkar till second hand-källor utifrån fritext, valda märken och storlekar.
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Filter</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Brands */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-medium">Märken (Tier A)</h4>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={selectAllBrands} className="h-7 px-2 text-xs">
+                  Välj alla
+                </Button>
+                <Button variant="ghost" size="sm" onClick={clearAllBrands} className="h-7 px-2 text-xs">
+                  Rensa alla
+                </Button>
+              </div>
+            </div>
+            <div className="max-h-[200px] overflow-y-auto rounded-md border border-input p-3">
+              <div className="flex flex-wrap gap-2">
+                {TIER_A_BRANDS.map((brand) => {
+                  const active = selectedBrands.has(brand);
+                  return (
+                    <button
+                      key={brand}
+                      type="button"
+                      onClick={() => toggleBrand(brand)}
+                      className={
+                        "inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors " +
+                        (active
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground")
+                      }
+                    >
+                      {brand}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">{selectedBrands.size} valda</p>
+          </div>
+
+          {/* Sizes */}
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium">Storlek</h4>
+            <div className="flex flex-wrap gap-2">
+              {LETTER_SIZES.map((s) => {
+                const active = selectedSizes.has(s);
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => toggleSize(s)}
+                    className={
+                      "inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors " +
+                      (active
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground")
+                    }
+                  >
+                    {s}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {NUMERIC_SIZES.map((s) => {
+                const active = selectedSizes.has(s);
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => toggleSize(s)}
+                    className={
+                      "inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors " +
+                      (active
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground")
+                    }
+                  >
+                    {s}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -147,20 +261,6 @@ export const SourcingTool = () => {
               if (e.key === "Enter") handleSearch();
             }}
           />
-
-          <div className="flex flex-wrap gap-2">
-            {tiers.map((t) => (
-              <Button
-                key={t.value}
-                variant={tier === t.value ? "default" : "outline"}
-                size="sm"
-                onClick={() => setTier(t.value)}
-              >
-                {t.label}
-              </Button>
-            ))}
-          </div>
-
           <Button onClick={handleSearch} disabled={loading}>
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
             Sök
@@ -170,7 +270,7 @@ export const SourcingTool = () => {
 
       {!result && (
         <div className="border border-dashed border-border rounded-md p-12 text-center text-muted-foreground">
-          Välj tier och skriv vad du letar efter
+          Välj märken och skriv vad du letar efter
         </div>
       )}
 
@@ -184,6 +284,15 @@ export const SourcingTool = () => {
                 <span>Nyckelord:</span>
                 {result.keywords.map((k) => (
                   <Badge key={k} variant="secondary">{k}</Badge>
+                ))}
+              </>
+            )}
+            {result.sizes.length > 0 && (
+              <>
+                <span>·</span>
+                <span>Storlek:</span>
+                {result.sizes.map((s) => (
+                  <Badge key={s} variant="secondary">{s}</Badge>
                 ))}
               </>
             )}
@@ -212,6 +321,7 @@ export const SourcingTool = () => {
                   source={source}
                   brands={result.brands}
                   keywordsStr={keywordsStr}
+                  sizesStr={sizesStr}
                   expanded={expandedSources.has(source.id)}
                   onToggle={() => toggleExpanded(source.id)}
                 />
@@ -228,6 +338,7 @@ export const SourcingTool = () => {
                   source={source}
                   brands={result.brands}
                   keywordsStr={keywordsStr}
+                  sizesStr={sizesStr}
                   expanded={expandedSources.has(source.id)}
                   onToggle={() => toggleExpanded(source.id)}
                 />
@@ -244,12 +355,14 @@ const SourceCard = ({
   source,
   brands,
   keywordsStr,
+  sizesStr,
   expanded,
   onToggle,
 }: {
   source: Source;
   brands: string[];
   keywordsStr: string;
+  sizesStr: string;
   expanded: boolean;
   onToggle: () => void;
 }) => {
@@ -265,7 +378,8 @@ const SourceCard = ({
       <CardContent className="space-y-3">
         <div className="flex flex-wrap gap-2">
           {visibleBrands.map((brand) => {
-            const q = encodeURIComponent(`${keywordsStr} ${brand}`.trim());
+            const parts = [keywordsStr, brand, sizesStr].filter((p) => p && p.trim().length > 0);
+            const q = encodeURIComponent(parts.join(" "));
             const url = source.build(q);
             return (
               <a
