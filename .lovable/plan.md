@@ -1,74 +1,53 @@
-# Add month-by-month dropdown filter to Statistics tab
+# Plan: Visual garment analysis in Sourcing Tool
 
-Scope: `src/components/AnalyticsDashboard.tsx` only. No backend, schema, or other tab changes.
+Adds an image upload flow to the admin Sourcing Tool. The image is sent to a new Supabase Edge Function that calls Anthropic Claude (vision) using the existing `ANTHROPIC_API_KEY` secret, then returns Swedish keywords + style notes that auto-fill the search field.
 
-## Changes
+## 1. New Edge Function — `supabase/functions/analyze-garment/index.ts`
 
-### 1. Extend filter state
+- POST endpoint, CORS-enabled (`OPTIONS` preflight + headers on all responses, including errors).
+- Input validation with Zod:
+  - `image`: base64 string (no data URL prefix)
+  - `mimeType`: one of `image/jpeg`, `image/png`, `image/webp`
+  - `userText`: optional string, max ~500 chars
+  - Reject payloads where decoded image > 5MB.
+- Reads `ANTHROPIC_API_KEY` from `Deno.env`; returns 500 if missing.
+- Calls `https://api.anthropic.com/v1/messages` with model `claude-sonnet-4-20250514`, `max_tokens: 512`, a single user message containing:
+  - an `image` block (`type: base64`, the mimeType, the base64 data)
+  - a `text` block with the system instructions (the exact prompt in the request) plus, if provided, `Användaren beskriver också: {userText}`.
+- Parses Claude's text output as JSON. If parsing fails, strip ```json fences and retry; on failure return 502 with a clean error.
+- Returns `{ keywords: string[], garment_type: string, style_notes: string }` to the client.
+- No `supabase/config.toml` edit needed — function deploys with default `verify_jwt = false` like the other Lovable-managed functions in this project. Function is only invoked from the admin tool but does not itself require auth (no DB writes, no secrets leaked).
 
-Replace the current `DateRange` type with a discriminated union:
+No DB migration. No changes to other functions or cron.
 
-```ts
-type DateRange =
-  | { kind: "rolling"; value: "7days" | "30days" | "all" }
-  | { kind: "month"; year: number; month: number }; // month: 0-11
-```
+## 2. `src/components/admin/SourcingTool.tsx` — image upload section
 
-`useState<DateRange>({ kind: "rolling", value: "7days" })`.
+New section rendered **above** the existing "Sök" card (keeps filter panel order intact):
 
-### 2. Range computation
+- Drag-and-drop area + click-to-upload button labeled **"Ladda upp plagg för visuell sökning"**.
+- Accepts `image/jpeg`, `image/png`, `image/webp`, max 5MB. Client-side checks both type and size before upload.
+- On file selected:
+  - Show thumbnail (object URL) + spinner with **"Analyserar plagget…"**.
+  - Read file as base64, strip the `data:...;base64,` prefix, call the edge function via `supabase.functions.invoke("analyze-garment", { body: { image, mimeType, userText: query || undefined } })`.
+- On success:
+  - Set `query` state to `keywords.join(" ")` (user can still edit).
+  - Store `styleNotes` and render small italic muted text under the search input: **"Claude ser: {style_notes}"**.
+  - Show a small "Ta bort bild" button to clear the preview + style notes.
+- Error handling:
+  - File > 5MB → toast **"Bilden är för stor, max 5MB"**.
+  - Wrong mime → toast **"Endast jpg, png eller webp"**.
+  - Edge function failure / invalid JSON → toast + inline notice **"Kunde inte analysera bilden — skriv sökord manuellt"**; user can continue as normal.
+- Search button behavior unchanged (requires non-empty query + at least one brand selected). No changes to brand/size filters or URL generation.
 
-Update `getDateRangeStart` to return `{ start: Date | null; end: Date | null }`:
-- rolling `7days`/`30days` → `start = now - N days`, `end = null`
-- rolling `all` → both `null`
-- month → `start = new Date(year, month, 1)`, `end = new Date(year, month + 1, 1)`
-
-Update every `.gte("created_at", rangeStart.toISOString())` site (views, clicks, buyNow, pages, productClicks, purchaseClicks, chart query) to also apply `.lt("created_at", rangeEnd.toISOString())` when `end` is set.
-
-For the chart (`chartDays` / `chartStart`): when month mode, use the selected month's day count and `chartStart = start of month`; the daily aggregation keys (`toLocaleDateString`) keep working unchanged.
-
-Query key changes to include serialized range so React Query re-fetches per month.
-
-### 3. Month options
-
-Generate options once per render from March 2026 → current month, newest first:
-
-```ts
-const monthOptions = []; // { year, month, label, value: `${year}-${month}` }
-// iterate from now back to 2026-03 (inclusive)
-// label = new Date(year, month, 1).toLocaleDateString("sv-SE", { month: "long", year: "numeric" })
-```
-
-### 4. UI
-
-In the filter row (currently the three buttons around line 427), add a native `<select>` after the buttons, styled to match the button height/border so it visually aligns:
-
-```tsx
-<select
-  value={dateRange.kind === "month" ? `${dateRange.year}-${dateRange.month}` : ""}
-  onChange={(e) => {
-    const [y, m] = e.target.value.split("-").map(Number);
-    setDateRange({ kind: "month", year: y, month: m });
-  }}
-  className={cn(
-    "h-9 rounded-md border px-3 text-sm",
-    dateRange.kind === "month"
-      ? "bg-primary text-primary-foreground border-primary"
-      : "bg-background border-input"
-  )}
->
-  <option value="" disabled>Välj månad</option>
-  {monthOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-</select>
-```
-
-Rolling-button handlers set `{ kind: "rolling", value }`, which naturally resets the `<select>` value to `""` → placeholder "Välj månad" shown. Active-state highlight on buttons must check `dateRange.kind === "rolling" && dateRange.value === range`.
-
-### 5. Labels
-
-`getDateRangeLabel` extended: month mode → return the Swedish label from `toLocaleDateString("sv-SE", { month: "long", year: "numeric" })`. Used by the existing card subtitles and the "Trends (...)" heading without further edits.
-
-`chartDays` interval rule (`interval={dateRange === "30days" ? 4 : 0}`) updated to use `0` for short ranges and `4` when computed day count ≥ 28.
+Uses existing shadcn primitives (`Card`, `Button`, `Input`) and design tokens — no new colors. Matches the existing admin card look exactly.
 
 ## Out of scope
-Product/editorial/import code, other tabs, query schema, Supabase migrations. Spec invariants (cron, quota, enums) untouched — UI-only change.
+
+- No changes to brand list, sizes, URL patterns, or source cards.
+- No changes to other admin tabs, imports, cron, or quotas (Anthropic is not part of the Tradera/eBay 75-call governance).
+- No master spec / context doc updates in this round — happy to add a v1.10 changelog entry in a follow-up once the feature is verified.
+
+## Open questions
+
+1. Should the edge function require an authenticated admin caller (verify JWT + check `has_role(uid, 'admin')`), or stay open like the other Lovable-managed functions? It's only used from the admin tool, but leaving it open means anyone with the URL can spend Anthropic credits. **Recommendation: require auth + admin role check.**
+2. OK to use `claude-sonnet-4-20250514` exactly as specified, or should I fall back to the latest Sonnet if Anthropic returns model-not-found?
