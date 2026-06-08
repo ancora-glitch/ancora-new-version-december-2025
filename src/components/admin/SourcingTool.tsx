@@ -392,6 +392,9 @@ export const SourcingTool = () => {
               if (e.key === "Enter") handleSearch();
             }}
           />
+          <p className="text-xs text-muted-foreground">
+            Tips: skriv på engelska för bättre träffar på eBay och Vestiaire
+          </p>
           {styleNotes && (
             <p className="text-xs italic text-muted-foreground">Claude ser: {styleNotes}</p>
           )}
