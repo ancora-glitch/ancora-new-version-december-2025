@@ -130,8 +130,14 @@ AKTIV LOGG
 - price_debug i dry_run: visar råpris, valuta och SEK för de 5 första objekten
 - Master Spec uppdaterad till v1.8 (sektion 4.3.1 ny, changelog tillagt)
 
+2026-06-08
+- Sourcing Tool tillagd i AdminPortal — intern redaktionell sökverktyg
+  Fil: src/components/admin/SourcingTool.tsx, src/constants/brands.ts
+  Genererar söklänkar per märke/storlek till 11 externa second hand-källor
+  Read-only, ingen backend, ingen påverkan på import-pipeline eller cron
+- Depop exkluderad från källor (kräver spec-uppdatering för återinförande)
 
-Genererad: 2026-03-10 | Baserad på Master Spec v1.7 + AI Operating Protocol v1.1
+Genererad: 2026-03-10 | Baserad på Master Spec v1.9 + AI Operating Protocol v1.1
 
 
 
