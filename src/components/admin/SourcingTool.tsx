@@ -513,9 +513,7 @@ const SourceCard = ({
       <CardContent className="space-y-3">
         <div className="flex flex-wrap gap-2">
           {visibleBrands.map((brand) => {
-            const parts = [keywordsStr, brand, sizesStr].filter((p) => p && p.trim().length > 0);
-            const q = encodeURIComponent(parts.join(" "));
-            const url = source.build(q);
+            const url = source.build({ brand, keywords: keywordsStr });
             return (
               <a
                 key={brand}
