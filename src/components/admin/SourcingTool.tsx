@@ -127,6 +127,7 @@ export const SourcingTool = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [styleNotes, setStyleNotes] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [debugExpanded, setDebugExpanded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageFile = async (file: File) => {
@@ -482,6 +483,50 @@ export const SourcingTool = () => {
                 />
               ))}
             </section>
+
+            <div className="border border-dashed border-border rounded-md">
+              <button
+                type="button"
+                onClick={() => setDebugExpanded((v) => !v)}
+                className="flex items-center justify-between w-full px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-accent/40 transition-colors"
+              >
+                <span>Debug — genererade URL:er</span>
+                {debugExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+              {debugExpanded && (
+                <div className="px-4 pb-4 space-y-2">
+                  {result.brands.flatMap((brand) =>
+                    SOURCES.map((source) => {
+                      const url = source.build({ brand, keywords: keywordsStr });
+                      const vintedInfo =
+                        source.id === "vinted"
+                          ? VINTED_BRAND_IDS[brand]
+                            ? `brand_id: ${VINTED_BRAND_IDS[brand]}`
+                            : "fallback: fritext"
+                          : null;
+                      return (
+                        <div key={`${source.id}-${brand}`} className="text-xs font-mono space-y-0.5">
+                          <div className="flex flex-wrap items-center gap-x-2">
+                            <span className="text-muted-foreground shrink-0">{source.name} · {brand}</span>
+                            {vintedInfo && (
+                              <span className="text-amber-600 shrink-0">({vintedInfo})</span>
+                            )}
+                          </div>
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline break-all block"
+                          >
+                            {url}
+                          </a>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
