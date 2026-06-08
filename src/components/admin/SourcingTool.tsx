@@ -517,6 +517,8 @@ const SourceCard = ({
         <div className="flex flex-wrap gap-2">
           {visibleBrands.map((brand) => {
             const url = source.build({ brand, keywords: keywordsStr });
+            const vintedId = source.id === "vinted" ? VINTED_BRAND_IDS[brand] ?? "(fallback search_text)" : undefined;
+            console.log(`[SourcingTool] ${source.name} · ${brand}${vintedId !== undefined ? ` · vinted brand_id=${vintedId}` : ""} → ${url}`);
             return (
               <a
                 key={brand}
