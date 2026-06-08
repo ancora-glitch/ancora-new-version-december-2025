@@ -309,6 +309,64 @@ export const SourcingTool = () => {
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-lg">Visuell sökning</CardTitle>
+          <CardDescription>Ladda upp ett plagg så fyller Claude i sökorden åt dig.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleImageFile(f);
+            }}
+          />
+          {!imagePreview ? (
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => {
+                e.preventDefault();
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const f = e.dataTransfer.files?.[0];
+                if (f) handleImageFile(f);
+              }}
+              className="flex flex-col items-center justify-center gap-2 border border-dashed border-input rounded-md p-8 text-center cursor-pointer hover:bg-accent/40 transition-colors"
+            >
+              <Upload className="w-5 h-5 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Ladda upp plagg för visuell sökning</p>
+              <p className="text-xs text-muted-foreground">jpg, png eller webp · max 5MB</p>
+            </div>
+          ) : (
+            <div className="flex items-start gap-4">
+              <img
+                src={imagePreview}
+                alt="Uppladdat plagg"
+                className="w-24 h-24 object-cover rounded-md border border-input"
+              />
+              <div className="flex-1 space-y-2">
+                {analyzing ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Analyserar plagget...
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Bilden är analyserad — redigera nyckelord nedan om du vill.</p>
+                )}
+                <Button variant="ghost" size="sm" onClick={clearImage} className="h-7 px-2 text-xs">
+                  <X className="w-3 h-3 mr-1" /> Ta bort bild
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-lg">Sök</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -320,12 +378,16 @@ export const SourcingTool = () => {
               if (e.key === "Enter") handleSearch();
             }}
           />
-          <Button onClick={handleSearch} disabled={loading}>
+          {styleNotes && (
+            <p className="text-xs italic text-muted-foreground">Claude ser: {styleNotes}</p>
+          )}
+          <Button onClick={handleSearch} disabled={loading || analyzing}>
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
             Sök
           </Button>
         </CardContent>
       </Card>
+
 
       {!result && (
         <div className="border border-dashed border-border rounded-md p-12 text-center text-muted-foreground">
