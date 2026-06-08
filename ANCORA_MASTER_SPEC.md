@@ -1,5 +1,49 @@
 ANCORA — MASTER PROJECT SPECIFICATION
-Version 2.0
+Version 1.9
+
+Changelog v1.9:
+
+### 2026-06-08 — Sourcing Tool tillagd
+
+**Vad:** Internt redaktionellt verktyg i AdminPortal för att hitta plagg på beställning. Genererar söklänkar till externa second hand-källor baserat på fritext, valda märken och storlekar. Inga API-anrop, ingen scraping, ingen backend — ren frontend-logik.
+
+**Lager:** Editorial Layer (AdminPortal only)
+**Fil:** src/components/admin/SourcingTool.tsx
+**Märkeskonstant:** src/constants/brands.ts
+
+**Funktionalitet:**
+- Fritextsök — enstaka ord eller hela meningar
+- Märkesväljare — multiselect från Tier A-listan, chips med toggle, Välj alla / Rensa alla
+- Storleksfilter — multiselect, bokstavsstorlekar (XS–XXL) och sifferstorlekar (32–48)
+- Genererar en länk per valt märke per källa
+- Storlekar appendas till query-strängen
+
+**Källor:**
+
+| Källa | Region | URL-mönster |
+|-------|--------|-------------|
+| Tradera | SE | tradera.com/search?q={keywords}+{brand}+{size} |
+| Sellpy | SE | sellpy.se/search?query={keywords}+{brand}+{size} |
+| Vinted SE | SE | vinted.se/catalog?search_text={keywords}+{brand}+{size} |
+| Plick | SE | plick.se/s?query={keywords}+{brand}+{size} |
+| Mai | SE | mairesale.com/search?q={keywords}+{brand}+{size} |
+| eBay UK | UK | ebay.co.uk/sch/i.html?_nkw={keywords}+{brand}+{size}&LH_ItemCondition=3000 |
+| eBay IT | IT | ebay.it/sch/i.html?_nkw={keywords}+{brand}+{size}&LH_ItemCondition=3000 |
+| Vestiaire | EU | vestiairecollective.com/search/?q={keywords}+{brand}+{size} |
+| VintageSphere | SE | vintagesphere.se/search?type=product&q={keywords}+{brand}+{size} |
+| ReDesignedBy | SE | redesignedby.se/search?type=product&q={keywords}+{brand}+{size} |
+| Beyond Retro | EU | beyondretro.com/search?type=product&q={keywords}+{brand}+{size} |
+
+**Hårdregler:**
+- Sourcing Tool är read-only — skapar aldrig produkter, skriver aldrig till DB
+- Påverkar inte import-pipeline, cron-jobb eller editorial layer
+- Märkeslistan hämtas alltid från src/constants/brands.ts — uppdateras aldrig inline i komponenten
+- Depop är exkluderad och ska inte återinföras utan spec-uppdatering
+
+**Framtida utbyggnad:**
+- Kundvänd chatbot på ancoraedit.com (ej påbörjad)
+- Tier B/C-märken kan återinföras i filterpanelen vid behov
+- Eventuell integration med AI Intake System för automatisk produktimport från sourcing-träffar
 
 Changelog v2.0:
 
