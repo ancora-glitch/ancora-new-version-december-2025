@@ -127,6 +127,7 @@ export const SourcingTool = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [styleNotes, setStyleNotes] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [debugExpanded, setDebugExpanded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageFile = async (file: File) => {
