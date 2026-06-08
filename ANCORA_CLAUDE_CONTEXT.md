@@ -11,7 +11,7 @@ TECH STACK
 Frontend + Admin: Lovable (React, TypeScript)
 Backend: Supabase (Postgres + Edge Functions)
 Import-adaptrar: Tradera (SOAP), eBay (Browse API), VintageSphere (Shopify JSON)
-Status: Production MVP låst — Master Spec v1.7 är source of truth
+Status: Production MVP låst — Master Spec v1.9 är source of truth
 
 HÅRDREGLER (bryt aldrig dessa)
 Master Spec prevails — vid konflikt mellan kod och spec vinner spec alltid
