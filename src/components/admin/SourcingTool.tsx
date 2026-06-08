@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2, ExternalLink, Search, ChevronDown, ChevronUp, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { VINTED_BRAND_IDS } from "@/constants/brands";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -23,37 +24,50 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
+interface BuildArgs {
+  brand: string;
+  keywords: string;
+}
+
 interface Source {
   id: string;
   name: string;
   description: string;
   group: "se" | "intl";
-  build: (q: string) => string;
+  build: (args: BuildArgs) => string;
 }
+
+const enc = encodeURIComponent;
+const joinBK = (brand: string, keywords: string) =>
+  enc([brand, keywords].filter((p) => p && p.trim().length > 0).join(" "));
 
 const SOURCES: Source[] = [
   { id: "tradera", name: "Tradera", description: "Svensk second hand", group: "se",
-    build: (q) => `https://www.tradera.com/search?q=${q}` },
+    build: ({ brand }) => `https://www.tradera.com/search?q=${enc(brand)}` },
   { id: "sellpy", name: "Sellpy", description: "Svensk second hand", group: "se",
-    build: (q) => `https://www.sellpy.se/search?query=${q}` },
+    build: ({ brand, keywords }) => `https://www.sellpy.se/search?query=${joinBK(brand, keywords)}` },
   { id: "vinted", name: "Vinted SE", description: "Svensk second hand", group: "se",
-    build: (q) => `https://www.vinted.se/catalog?search_text=${q}` },
-  { id: "plick", name: "Plick", description: "Svensk second hand", group: "se",
-    build: (q) => `https://www.plick.se/s?query=${q}` },
+    build: ({ brand, keywords }) => {
+      const id = VINTED_BRAND_IDS[brand];
+      if (id) {
+        return `https://www.vinted.se/catalog?search_text=${enc(keywords)}&brand_ids[]=${id}`;
+      }
+      return `https://www.vinted.se/catalog?search_text=${joinBK(brand, keywords)}`;
+    } },
   { id: "mai", name: "Mai.se", description: "Svensk second hand", group: "se",
-    build: (q) => `https://mairesale.com/search?q=${q}` },
-  { id: "ebay", name: "eBay UK", description: "Used items, £10+", group: "intl",
-    build: (q) => `https://www.ebay.co.uk/sch/i.html?_nkw=${q}&LH_ItemCondition=3000&_udlo=10` },
+    build: ({ brand }) => `https://mairesale.com/search?q=${enc(brand)}` },
+  { id: "ebay", name: "eBay UK", description: "Used items", group: "intl",
+    build: ({ brand }) => `https://www.ebay.co.uk/sch/i.html?_nkw=${enc(brand)}&LH_ItemCondition=3000` },
+  { id: "ebay-it", name: "eBay Italia", description: "Usato", group: "intl",
+    build: ({ brand }) => `https://www.ebay.it/sch/i.html?_nkw=${enc(brand)}&LH_ItemCondition=3000` },
   { id: "vestiaire", name: "Vestiaire Collective", description: "Internationell pre-loved", group: "intl",
-    build: (q) => `https://www.vestiairecollective.com/search/?q=${q}` },
-  { id: "ebay-it", name: "eBay Italia", description: "Usato, €10+", group: "intl",
-    build: (q) => `https://www.ebay.it/sch/i.html?_nkw=${q}&LH_ItemCondition=3000&_udlo=10` },
+    build: ({ brand }) => `https://www.vestiairecollective.com/search/?q=${enc(brand)}` },
   { id: "vintagesphere", name: "VintageSphere", description: "Svensk vintage", group: "intl",
-    build: (q) => `https://vintagesphere.se/search?type=product&q=${q}` },
+    build: ({ brand, keywords }) => `https://vintagesphere.se/search?type=product&q=${joinBK(brand, keywords)}` },
   { id: "redesignedby", name: "ReDesignedBy", description: "Svensk pre-loved", group: "intl",
-    build: (q) => `https://redesignedby.se/search?type=product&q=${q}` },
+    build: ({ brand, keywords }) => `https://redesignedby.se/search?type=product&q=${joinBK(brand, keywords)}` },
   { id: "beyondretro", name: "Beyond Retro", description: "Internationell vintage", group: "intl",
-    build: (q) => `https://www.beyondretro.com/search?type=product&q=${q}` },
+    build: ({ brand, keywords }) => `https://www.beyondretro.com/search?type=product&q=${joinBK(brand, keywords)}` },
 ];
 
 const TIER_A_BRANDS = [
