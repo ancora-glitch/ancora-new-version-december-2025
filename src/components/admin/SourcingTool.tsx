@@ -110,6 +110,48 @@ export const SourcingTool = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SearchResult | null>(null);
   const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [styleNotes, setStyleNotes] = useState<string | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageFile = async (file: File) => {
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      toast.error("Endast jpg, png eller webp");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      toast.error("Bilden är för stor, max 5MB");
+      return;
+    }
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
+    setStyleNotes(null);
+    setAnalyzing(true);
+    try {
+      const base64 = await fileToBase64(file);
+      const { data, error } = await supabase.functions.invoke("analyze-garment", {
+        body: { image: base64, mimeType: file.type, userText: query || undefined },
+      });
+      if (error) throw error;
+      if (!data || !Array.isArray(data.keywords)) throw new Error("Bad response");
+      setQuery(data.keywords.join(" "));
+      setStyleNotes(typeof data.style_notes === "string" ? data.style_notes : null);
+    } catch (err) {
+      console.error("analyze-garment failed", err);
+      toast.error("Kunde inte analysera bilden — skriv sökord manuellt");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const clearImage = () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
+    setStyleNotes(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
 
   const toggleBrand = (brand: string) => {
     setSelectedBrands((prev) => {
