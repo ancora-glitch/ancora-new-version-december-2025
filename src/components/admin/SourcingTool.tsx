@@ -1,28 +1,11 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, ExternalLink, Search, ChevronDown, ChevronUp, Upload, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Loader2, ExternalLink, Search, ChevronDown, ChevronUp } from "lucide-react";
 import { VINTED_BRAND_IDS } from "@/constants/brands";
-
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      const comma = result.indexOf(",");
-      resolve(comma >= 0 ? result.slice(comma + 1) : result);
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
 
 interface BuildArgs {
   brand: string;
