@@ -40,6 +40,14 @@ Changelog v1.9:
 - Märkeslistan hämtas alltid från src/constants/brands.ts — uppdateras aldrig inline i komponenten
 - Depop är exkluderad och ska inte återinföras utan spec-uppdatering
 
+**Refineringar 2026-06-09:**
+- Debug-fönster tillagt i UI: expanderbar sektion "Debug — genererade URL:er" listar alla genererade URL:er som klickbar text, med Vinted-brand_id (eller "fallback: fritext") per rad.
+- VINTED_BRAND_IDS utökad med ~20 saknade mappningar (bl.a. Stand Studio, Skall Studio, Self Portrait, ATP Atelier, Jeanerica, Baserange, Sefr, Flattered, Eytys, Little Liffner, Sandqvist, Soft Goat, Rotate, Axel Arigato, Wood Wood, Baum und Pferdgarten, House of Dagmar, Dagmar).
+- Vinted URL-konstruktion ändrad: använder `URL`-objektet för bas-query (`search_text`) och appendar `brand_ids[]=` manuellt som råsträng sist för att undvika double-encoding av hakparenteser.
+- Vinted ID-korrigeringar: "House of Dagmar" 23504 → 693449; "Dagmar" 23504 → 212624.
+- Visuell sökning / bilduppladdning borttagen helt från Sourcing Tool (upload-yta, miniatyr, spinner, Claude-analys, style_notes).
+- Edge Function-anrop till `analyze-garment` borttaget från komponenten.
+
 **Framtida utbyggnad:**
 - Kundvänd chatbot på ancoraedit.com (ej påbörjad)
 - Tier B/C-märken kan återinföras i filterpanelen vid behov
