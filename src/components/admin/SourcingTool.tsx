@@ -50,7 +50,9 @@ const SOURCES: Source[] = [
     build: ({ brand, keywords }) => {
       const id = VINTED_BRAND_IDS[brand];
       if (id) {
-        return `https://www.vinted.se/catalog?search_text=${enc(keywords)}&brand_ids[]=${id}`;
+        const vintedUrl = new URL('https://www.vinted.se/catalog');
+        vintedUrl.searchParams.set('search_text', keywords);
+        return `${vintedUrl.toString()}&brand_ids[]=${id}`;
       }
       return `https://www.vinted.se/catalog?search_text=${joinBK(brand, keywords)}`;
     } },
