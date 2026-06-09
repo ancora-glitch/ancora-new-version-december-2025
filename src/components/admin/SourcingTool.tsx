@@ -1,28 +1,11 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, ExternalLink, Search, ChevronDown, ChevronUp, Upload, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Loader2, ExternalLink, Search, ChevronDown, ChevronUp } from "lucide-react";
 import { VINTED_BRAND_IDS } from "@/constants/brands";
-
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      const comma = result.indexOf(",");
-      resolve(comma >= 0 ? result.slice(comma + 1) : result);
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
 
 interface BuildArgs {
   brand: string;
@@ -126,48 +109,8 @@ export const SourcingTool = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SearchResult | null>(null);
   const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [styleNotes, setStyleNotes] = useState<string | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
   const [debugExpanded, setDebugExpanded] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleImageFile = async (file: File) => {
-    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      toast.error("Endast jpg, png eller webp");
-      return;
-    }
-    if (file.size > MAX_IMAGE_BYTES) {
-      toast.error("Bilden är för stor, max 5MB");
-      return;
-    }
-    const previewUrl = URL.createObjectURL(file);
-    setImagePreview(previewUrl);
-    setStyleNotes(null);
-    setAnalyzing(true);
-    try {
-      const base64 = await fileToBase64(file);
-      const { data, error } = await supabase.functions.invoke("analyze-garment", {
-        body: { image: base64, mimeType: file.type, userText: query || undefined },
-      });
-      if (error) throw error;
-      if (!data || !Array.isArray(data.keywords)) throw new Error("Bad response");
-      setQuery(data.keywords.join(" "));
-      setStyleNotes(typeof data.style_notes === "string" ? data.style_notes : null);
-    } catch (err) {
-      console.error("analyze-garment failed", err);
-      toast.error("Kunde inte analysera bilden — skriv sökord manuellt");
-    } finally {
-      setAnalyzing(false);
-    }
-  };
-
-  const clearImage = () => {
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
-    setImagePreview(null);
-    setStyleNotes(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
 
 
   const toggleBrand = (brand: string) => {
@@ -324,63 +267,6 @@ export const SourcingTool = () => {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Visuell sökning</CardTitle>
-          <CardDescription>Ladda upp ett plagg så fyller Claude i sökorden åt dig.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handleImageFile(f);
-            }}
-          />
-          {!imagePreview ? (
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              onDragOver={(e) => {
-                e.preventDefault();
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                const f = e.dataTransfer.files?.[0];
-                if (f) handleImageFile(f);
-              }}
-              className="flex flex-col items-center justify-center gap-2 border border-dashed border-input rounded-md p-8 text-center cursor-pointer hover:bg-accent/40 transition-colors"
-            >
-              <Upload className="w-5 h-5 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Ladda upp plagg för visuell sökning</p>
-              <p className="text-xs text-muted-foreground">jpg, png eller webp · max 5MB</p>
-            </div>
-          ) : (
-            <div className="flex items-start gap-4">
-              <img
-                src={imagePreview}
-                alt="Uppladdat plagg"
-                className="w-24 h-24 object-cover rounded-md border border-input"
-              />
-              <div className="flex-1 space-y-2">
-                {analyzing ? (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Analyserar plagget...
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Bilden är analyserad — redigera nyckelord nedan om du vill.</p>
-                )}
-                <Button variant="ghost" size="sm" onClick={clearImage} className="h-7 px-2 text-xs">
-                  <X className="w-3 h-3 mr-1" /> Ta bort bild
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>
@@ -398,10 +284,7 @@ export const SourcingTool = () => {
           <p className="text-xs text-muted-foreground">
             Tips: skriv på engelska för bättre träffar på eBay och Vestiaire
           </p>
-          {styleNotes && (
-            <p className="text-xs italic text-muted-foreground">Claude ser: {styleNotes}</p>
-          )}
-          <Button onClick={handleSearch} disabled={loading || analyzing}>
+          <Button onClick={handleSearch} disabled={loading}>
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
             Sök
           </Button>
