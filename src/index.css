@@ -109,6 +109,72 @@
   }
 }
 
+@keyframes tryon-drop-glow {
+  0%,
+  100% {
+    box-shadow: 0 6px 18px rgba(90, 15, 20, 0);
+  }
+  50% {
+    box-shadow: 0 10px 32px rgba(90, 15, 20, 0.45);
+  }
+}
+
+.tryon-glow-shadow {
+  animation: tryon-drop-glow 1.2s ease-in-out 3;
+}
+
+@keyframes tryon-sparkle {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    opacity: 0.72;
+    transform: scale(1.06) rotate(5deg);
+  }
+}
+
+.tryon-sparkle-icon {
+  transform-origin: center;
+  animation: tryon-sparkle 2.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tryon-glow-shadow,
+  .tryon-sparkle-icon {
+    animation: none;
+  }
+}
+
+/* Figura loading screen */
+@keyframes figura-scan-down {
+  0% {
+    top: 0;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+.figura-scan-line {
+  animation: figura-scan-down 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .figura-scan-line {
+    animation: none;
+  }
+}
+
 /* Coming Soon Hero Image Responsive Positioning */
 .hero-image-position {
   object-position: 65% center;

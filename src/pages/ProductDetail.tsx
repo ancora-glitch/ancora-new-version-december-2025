@@ -11,6 +11,8 @@ import { trackBuyNowClickBeacon } from "@/hooks/useAnalytics";
 import { markProductViewed } from "@/lib/sessionAnalytics";
 import { useState } from "react";
 import { toEbayAffiliateUrl } from "@/lib/ebayAffiliate";
+import { SparkleIcon } from "@/components/icons/SparkleIcon";
+import { TryOnModal } from "@/components/TryOnModal";
 
 // Track product page view (excludes admins) and marks product as viewed in session
 const trackProductPageView = async (productId: string, productName: string, brand: string) => {
@@ -66,6 +68,7 @@ const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const location = useLocation();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isTryOnOpen, setIsTryOnOpen] = useState(false);
   const analyticsTrackedRef = useRef(false);
   const hasTrackedPageView = useRef(false);
 
@@ -500,21 +503,44 @@ const ProductDetail = () => {
                     </p>
                   </div>
                 ) : (
-                  <a
-                    href={buyNowUrl}
-                    target="_blank"
-                    rel="noopener"
-                    onClick={handleBuyNowClick}
-                    className="inline-flex items-center justify-center px-8 py-3 min-h-[44px] min-w-[44px] bg-primary text-primary-foreground font-medium rounded-sm hover:bg-primary/90 transition-colors touch-manipulation select-none"
-                  >
-                    Buy now
-                  </a>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <a
+                      href={buyNowUrl}
+                      target="_blank"
+                      rel="noopener"
+                      onClick={handleBuyNowClick}
+                      className="inline-flex items-center justify-center px-8 py-3 min-h-[44px] min-w-[44px] bg-primary text-primary-foreground font-sans font-medium rounded-sm hover:bg-primary/90 transition-colors touch-manipulation select-none"
+                    >
+                      Buy now
+                    </a>
+                    <div key={slug} className="relative inline-flex p-3 -m-3">
+                      <span
+                        aria-hidden="true"
+                        className="tryon-glow-shadow absolute inset-3 rounded-sm pointer-events-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setIsTryOnOpen(true)}
+                        className="relative z-10 inline-flex items-center justify-center gap-2 px-8 py-3 min-h-[44px] min-w-[44px] bg-primary text-primary-foreground font-sans font-medium rounded-sm hover:bg-primary/90 transition-colors touch-manipulation select-none"
+                      >
+                        Try on me
+                        <SparkleIcon className="h-[18px] w-[18px] tryon-sparkle-icon" />
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
           </div>
         </div>
       </main>
+
+      <TryOnModal
+        isOpen={isTryOnOpen}
+        onClose={() => setIsTryOnOpen(false)}
+        images={allImages}
+        productName={product.name}
+      />
 
       <Footer />
     </div>
