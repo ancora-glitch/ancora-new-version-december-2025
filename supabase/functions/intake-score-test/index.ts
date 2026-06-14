@@ -467,6 +467,8 @@ serve(async (req) => {
         scored_review: reviewCount,
         rejected: rejectedCount,
       },
+      scoring_failures: scoringFailures,
+      scoring_failure_count: scoringFailures.length,
     },
   });
 
