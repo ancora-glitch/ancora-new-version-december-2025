@@ -334,27 +334,55 @@ serve(async (req) => {
       const condAdj = conditionAdjustment(product.condition);
       const commercial = Math.max(0, commBase + condAdj.delta);
 
-      const totalScore = brandFit + catFit + visual + metadata + commercial + ai.editorial_score;
+      const aiOk = ai.status === "ok";
+      const aiParseFailed = ai.status === "parse_failed";
+      const aiApiFailed = ai.status === "api_failed";
+
+      const totalScore = aiApiFailed
+        ? 0
+        : brandFit + catFit + visual + metadata + commercial + ai.editorial_score;
 
       // Hard overrides
       const hardFlags: string[] = [];
       if (tier === "reject") hardFlags.push("tier_reject");
-      
+
       if (!product.affiliate_url) hardFlags.push("no_affiliate_url");
       if (!Array.isArray(product.image_urls) || product.image_urls.length === 0) hardFlags.push("no_images");
+      if (aiApiFailed) hardFlags.push("scoring_failed");
 
       const softFlags: string[] = [];
       if (condAdj.flag) softFlags.push(condAdj.flag);
+      if (aiParseFailed) softFlags.push("editorial_scoring_failed");
+
+      const reasons: string[] = [
+        ai.editorial_reason,
+        `brand tier: ${tier}`,
+        editorialBrief ? "editorial brief applied" : "no brief",
+      ];
+      if (aiParseFailed) reasons.push("scoring_fallback_used");
+      if (aiApiFailed) reasons.push("scoring_failed");
 
       let decision: string;
-      if (hardFlags.length > 0) {
+      if (aiApiFailed) {
+        // Never draft_approve when scoring failed entirely
+        decision = "scored_review";
+      } else if (hardFlags.length > 0) {
         decision = "rejected";
-      } else if (totalScore >= 75) {
+      } else if (totalScore >= 75 && aiOk) {
         decision = "scored_draft_approved";
       } else if (totalScore >= 40) {
         decision = "scored_review";
       } else {
         decision = "rejected";
+      }
+
+      if (aiParseFailed || aiApiFailed) {
+        scoringFailures.push({
+          product_id: product.id,
+          status: ai.status,
+          raw_response: ai.raw_response,
+          error_detail: ai.error_detail,
+        });
       }
 
       // 6. Write evaluation
@@ -375,12 +403,13 @@ serve(async (req) => {
           commercial_condition_adjustment: condAdj.delta,
           editorial_distinctiveness: ai.editorial_score,
         },
-        score_total: totalScore,
+        score_total: aiApiFailed ? null : totalScore,
         decision,
-        reasons: [ai.editorial_reason, `brand tier: ${tier}`, editorialBrief ? "editorial brief applied" : "no brief"],
+        reasons,
         hard_flags: hardFlags,
         soft_flags: softFlags,
       });
+
 
       if (evalErr) {
         console.error(`[intake-score-test] eval insert error for ${product.id}:`, evalErr.message);
