@@ -14,7 +14,7 @@ const StyleGuarantee = () => {
               Timeless or Trending — always intentional.
             </h1>
             <p className="text-base md:text-lg leading-relaxed text-foreground/80 max-w-[600px]">
-              Everything on Ancora is handpicked by us or our trained model, using the same editorial eye for quality, cut, and longevity.
+              Everything on Ancora is handpicked by us, using the same editorial eye for quality, cut, and longevity.
             </p>
           </div>
         </section>
