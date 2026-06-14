@@ -309,6 +309,12 @@ serve(async (req) => {
   let draftApproved = 0;
   let reviewCount = 0;
   let rejectedCount = 0;
+  const scoringFailures: Array<{
+    product_id: string;
+    status: string;
+    raw_response?: string;
+    error_detail?: string;
+  }> = [];
 
   for (const product of products) {
     try {
