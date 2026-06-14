@@ -585,14 +585,15 @@ Deno.serve(async (req) => {
       if (images.length === 0) hardFlags.push("no_images");
       if (!title || title.length < 3) hardFlags.push("title_too_short");
       if (!category || !ANCORA_CATEGORIES.has(category)) hardFlags.push("unmapped_category");
+      if (!brand || !brand.trim()) hardFlags.push("unknown_brand");
 
       /* ── SOFT FLAG rules ── */
       const softFlags: string[] = [];
       if (images.length < 2) softFlags.push("fewer_than_2_images");
-      if (!brand) softFlags.push("brand_undetected");
       if (!size) softFlags.push("size_missing");
       if (priceSek !== null && priceSek < 500) softFlags.push("price_below_500_sek");
       if (priceSek !== null && priceSek > 50000) softFlags.push("price_above_50000_sek");
+
 
       const isRejected = hardFlags.length > 0;
       const queueState = isRejected ? "rules_rejected" : "normalized";
