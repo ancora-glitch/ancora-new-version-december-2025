@@ -246,13 +246,14 @@ Deno.serve(async (req) => {
       if (images.length === 0) hardFlags.push("no_images");
       if (!title || title.length < 3) hardFlags.push("title_too_short");
       if (!available) hardFlags.push("unavailable");
+      if (!brand || !brand.trim()) hardFlags.push("unknown_brand");
 
       /* SOFT FLAGS */
       const softFlags: string[] = [];
       if (images.length < 2) softFlags.push("fewer_than_2_images");
-      if (!brand) softFlags.push("brand_undetected");
       if (!size) softFlags.push("size_missing");
       if (price !== null && price < 500) softFlags.push("price_below_500_sek");
+
 
       const isRejected = hardFlags.length > 0;
       const queueState = isRejected ? "rules_rejected" : "normalized";
