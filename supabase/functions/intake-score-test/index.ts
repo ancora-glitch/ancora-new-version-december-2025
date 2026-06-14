@@ -93,6 +93,9 @@ interface EditorialResult {
   presentation_score: number;
   editorial_score: number;
   editorial_reason: string;
+  status: "ok" | "parse_failed" | "api_failed";
+  raw_response?: string;
+  error_detail?: string;
 }
 
 async function aiEvaluate(
@@ -109,22 +112,24 @@ async function aiEvaluate(
     ? `\n\nCurrent editorial brief for Ancora:\n${editorialBrief}\nProducts that align with this brief should score higher on editorial distinctiveness. Products that feel off-season, off-trend, or misaligned with the brief should score lower.`
     : "";
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": anthropicKey,
-      "anthropic-version": "2023-06-01",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 384,
-      system:
-        "You are an editorial assistant for Ancora, a curated second-hand fashion storefront with a minimalist, Scandinavian aesthetic. Score presentation quality and editorial distinctiveness. Return JSON only.",
-      messages: [
-        {
-          role: "user",
-          content: `Evaluate this product for Ancora.
+  let res: Response;
+  try {
+    res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": anthropicKey,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 384,
+        system:
+          "You are an editorial assistant for Ancora, a curated second-hand fashion storefront with a minimalist, Scandinavian aesthetic. Score presentation quality and editorial distinctiveness. Return JSON only.",
+        messages: [
+          {
+            role: "user",
+            content: `Evaluate this product for Ancora.
 
 Brand: ${p.brand || "unknown"} (tier: ${tier})
 Category: ${p.category || "unknown"} / ${p.subcategory || ""}
@@ -157,21 +162,45 @@ Score on TWO dimensions:
 
 Return JSON only:
 {"presentation_score": number 0-10, "editorial_score": number 0-15, "editorial_reason": string (one sentence)}`,
-        },
-      ],
-    }),
-  });
+          },
+        ],
+      }),
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[intake-score-test] Anthropic fetch threw: ${msg}`);
+    return {
+      presentation_score: 0,
+      editorial_score: 0,
+      editorial_reason: "AI scoring request failed",
+      status: "api_failed",
+      error_detail: msg,
+    };
+  }
 
   if (!res.ok) {
     const err = await res.text();
     console.error(`[intake-score-test] Anthropic error: ${res.status} ${err}`);
-    return { presentation_score: 4, editorial_score: 5, editorial_reason: "AI scoring unavailable" };
+    return {
+      presentation_score: 0,
+      editorial_score: 0,
+      editorial_reason: `AI scoring unavailable (HTTP ${res.status})`,
+      status: "api_failed",
+      error_detail: `HTTP ${res.status}: ${err.slice(0, 500)}`,
+    };
   }
 
   const data = await res.json();
   const textBlock = data?.content?.find((b: { type: string }) => b.type === "text");
   if (!textBlock?.text) {
-    return { presentation_score: 4, editorial_score: 5, editorial_reason: "No AI response" };
+    console.error("[intake-score-test] Empty Claude response");
+    return {
+      presentation_score: 4,
+      editorial_score: 5,
+      editorial_reason: "Empty AI response — fallback applied",
+      status: "parse_failed",
+      raw_response: "(empty)",
+    };
   }
 
   try {
@@ -181,12 +210,20 @@ Return JSON only:
       presentation_score: Math.min(10, Math.max(0, Number(parsed.presentation_score) || 0)),
       editorial_score: Math.min(15, Math.max(0, Number(parsed.editorial_score) || 0)),
       editorial_reason: String(parsed.editorial_reason || ""),
+      status: "ok",
     };
   } catch {
-    console.error("[intake-score-test] Malformed JSON:", textBlock.text.slice(0, 200));
-    return { presentation_score: 4, editorial_score: 5, editorial_reason: "Parse error" };
+    console.error("[intake-score-test] Malformed JSON:", textBlock.text.slice(0, 500));
+    return {
+      presentation_score: 4,
+      editorial_score: 5,
+      editorial_reason: "Malformed AI response — fallback applied",
+      status: "parse_failed",
+      raw_response: String(textBlock.text).slice(0, 1000),
+    };
   }
 }
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
