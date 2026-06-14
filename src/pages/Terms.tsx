@@ -49,12 +49,12 @@ const Terms = () => {
             <p>We do not guarantee that listings are accurate, complete, or up to date.</p>
 
             <h2 className="article-subheader">3. Prices & Availability</h2>
-            <div>
-              All prices are set by third-party sellers and may change at any time. Ancora has no control over pricing.{"\n"}
-            </div>
-            <div>
-              {"\n"}With some partners, prices shown via Ancora may differ slightly from the prices shown on the partner’s own site. This reflects standard affiliate pricing practices and is determined entirely by the partner, not by Ancora.
-            </div>
+            <p>
+              All prices are set by third-party sellers and may change at any time. Ancora has no control over pricing.
+            </p>
+            <p>
+              With some partners, prices shown via Ancora may differ slightly from the prices shown on the partner’s own site. This reflects standard affiliate pricing practices and is determined entirely by the partner, not by Ancora.
+            </p>
             <p>
               Please direct all pricing or availability questions to the seller or marketplace where the item is listed.
             </p>
