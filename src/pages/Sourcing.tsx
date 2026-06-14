@@ -54,7 +54,7 @@ const useCases = [
     label: "New wardrobe",
     title: "A completely new circular wardrobe",
     description:
-      "Built from scratch, edited to your taste and lifestyle.",
+      "Built from scratch – edited to your taste and lifestyle.",
   },
   {
     label: "Special occasion",
@@ -125,7 +125,7 @@ const Sourcing = () => {
               {steps.map((step, i) => (
                 <li key={i} className="flex items-start gap-4">
                   <span className="text-sm font-medium text-muted-foreground font-sans tabular-nums">
-                    {String(i + 1).padStart(2, "0")}
+                    {i + 1}
                   </span>
                   <p className="text-base leading-relaxed text-foreground/80">
                     {step}
@@ -159,7 +159,7 @@ const Sourcing = () => {
                   {pricingTiers.single.map((tier, i) => (
                     <li key={i} className="flex items-start gap-4">
                       <span className="text-sm font-medium text-muted-foreground font-sans tabular-nums mt-0.5">
-                        {String(i + 1).padStart(2, "0")}
+                        {i + 1}
                       </span>
                       <p className="text-base leading-relaxed text-foreground/80">
                         {tier}
