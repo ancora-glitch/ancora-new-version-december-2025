@@ -323,8 +323,42 @@ serve(async (req) => {
       const brandFit = BRAND_SCORES[tier] ?? 10;
       const catFit = categoryScore(product.category);
 
+      // Tier gate: only tier 'a' brands proceed to AI scoring
+      if (tier !== "a") {
+        const { error: evalErr } = await supabase.from("intake_evaluations").insert({
+          normalized_product_id: product.id,
+          rules_version: RULES_VERSION,
+          prompt_version: PROMPT_VERSION,
+          model_version: MODEL,
+          subscores: { brand_fit: brandFit, category_fit: catFit },
+          score_total: 0,
+          decision: "reject",
+          reasons: [`brand tier: ${tier}`, "not tier a — rejected before AI scoring"],
+          hard_flags: ["not_tier_a"],
+          soft_flags: [],
+        });
+        if (evalErr) {
+          console.error(`[intake-score-test] eval insert error for ${product.id}:`, evalErr.message);
+          errorCount++;
+          continue;
+        }
+        const { error: updateErr } = await supabase
+          .from("intake_normalized_products")
+          .update({ current_queue_state: "rejected", updated_at: new Date().toISOString() })
+          .eq("id", product.id);
+        if (updateErr) {
+          console.error(`[intake-score-test] update error for ${product.id}:`, updateErr.message);
+          errorCount++;
+          continue;
+        }
+        successCount++;
+        rejectedCount++;
+        continue;
+      }
+
       // AI evaluates presentation + editorial
       const ai = await aiEvaluate(anthropicKey, product, tier, editorialBrief);
+
 
       // VISUAL = presentation (0-10) + image count (0-10) = 0-20
       const imgCountScore = imageCountScore(product.image_urls);
