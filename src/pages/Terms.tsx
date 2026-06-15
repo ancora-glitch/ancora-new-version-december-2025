@@ -100,10 +100,10 @@ const Terms = () => {
             <p>
               For questions regarding these Terms, please contact:{" "}
               <a 
-                href="mailto:hello@ancoraedit.com" 
+                href="mailto:carin@ancoraedit.com" 
                 className="text-primary hover:opacity-70 transition-opacity"
               >
-                hello@ancoraedit.com
+                carin@ancoraedit.com
               </a>
             </p>
           </div>

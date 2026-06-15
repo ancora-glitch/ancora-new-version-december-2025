@@ -32,11 +32,11 @@ const Contact = () => {
             <div className="border-b border-primary/10 pb-8">
               <h2 className="font-serif text-lg text-primary mb-3">Email</h2>
               <a 
-                href="mailto:ancoraedit@gmail.com"
+                href="mailto:carin@ancoraedit.com"
                 className="text-foreground hover:text-primary transition-colors duration-200 flex items-center gap-2"
               >
                 <Mail className="w-4 h-4" strokeWidth={1.5} />
-                ancoraedit@gmail.com
+                carin@ancoraedit.com
               </a>
             </div>
 
