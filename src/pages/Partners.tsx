@@ -58,7 +58,7 @@ const Partners = () => {
             </p>
             <div className="pt-4 pb-1 flex flex-col items-start gap-2">
               <a
-                href="mailto:ancoraedit@gmail.com"
+                href="mailto:carin@ancoraedit.com"
                 className="inline-block bg-primary text-primary-foreground px-8 py-3 text-xs font-medium uppercase tracking-[0.16em] hover:bg-primary/90 transition-colors duration-200">
 
                 Become a partner
@@ -220,7 +220,7 @@ Featured in:
             </h2>
             <div className="flex flex-col items-center gap-2">
               <a
-                href="mailto:ancoraedit@gmail.com"
+                href="mailto:carin@ancoraedit.com"
                 className="inline-block bg-primary text-primary-foreground px-8 py-3 text-xs font-medium uppercase tracking-[0.16em] hover:bg-primary/90 transition-colors duration-200">
 
                 Email us
