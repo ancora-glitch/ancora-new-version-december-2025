@@ -6,7 +6,7 @@ import { GuideCard } from "@/components/GuideCard";
 import { useActiveWeeklyEdit } from "@/hooks/useWeeklyEdits";
 import { formatPrice } from "@/hooks/useProducts";
 import { useStyleGuides } from "@/hooks/useStyleGuides";
-import heroAsset from "@/assets/hero-stadium.jpg.asset.json";
+import heroAsset from "@/assets/hero-hands.jpg.asset.json";
 const heroImage = heroAsset.url;
 
 const Index = () => {
