@@ -29,7 +29,7 @@ const Index = () => {
           <img alt="Person on a sports court, hands at center" fetchPriority="high" width={1280} height={1920} className="absolute inset-0 w-full h-full object-cover [object-position:50%_50%]" src={heroImage} />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
           <div className="absolute inset-0 flex items-end md:items-center justify-center px-4 md:px-8 pb-2 md:pb-0">
-            <div className="bg-[hsl(35_30%_35%)]/15 md:bg-[hsl(35_30%_30%)]/25 backdrop-blur-sm rounded-lg px-3 md:px-4 max-w-md text-center py-[14px] mx-auto pb-[10px] pt-[5px]">
+            <div className="rounded-lg px-3 md:px-4 max-w-md text-center py-[14px] mx-auto pb-[10px] pt-[5px]">
               <h1 className="text-3xl md:text-4xl lg:text-5xl mb-2 md:mb-3 leading-tight text-white font-serif text-center whitespace-nowrap">
                 Fashion worth finding
               </h1>
