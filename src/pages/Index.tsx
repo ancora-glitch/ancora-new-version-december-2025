@@ -6,7 +6,7 @@ import { GuideCard } from "@/components/GuideCard";
 import { useActiveWeeklyEdit } from "@/hooks/useWeeklyEdits";
 import { formatPrice } from "@/hooks/useProducts";
 import { useStyleGuides } from "@/hooks/useStyleGuides";
-import heroAsset from "@/assets/hero-stadium.jpg.asset.json";
+import heroAsset from "@/assets/hero-hands.jpg.asset.json";
 const heroImage = heroAsset.url;
 
 const Index = () => {
@@ -26,7 +26,7 @@ const Index = () => {
       <main className="pt-16">
         {/* Hero Section */}
         <section className="relative w-full h-[40vh] min-h-[300px]">
-          <img alt="Woman in sunglasses sitting on stadium bleachers" fetchPriority="high" width={1280} height={1920} className="absolute inset-0 w-full h-full object-cover [object-position:55%_30%] md:[object-position:55%_35%]" src={heroImage} />
+          <img alt="Person on a sports court, hands at center" fetchPriority="high" width={1280} height={1920} className="absolute inset-0 w-full h-full object-cover [object-position:50%_50%]" src={heroImage} />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
           <div className="absolute inset-0 flex items-end md:items-center justify-center px-4 md:px-8 pb-2 md:pb-0">
             <div className="bg-[hsl(35_30%_35%)]/15 md:bg-[hsl(35_30%_30%)]/25 backdrop-blur-sm rounded-lg px-3 md:px-4 max-w-md text-center py-[14px] mx-auto pb-[10px] pt-[5px]">
