@@ -1,4 +1,4 @@
-import { Instagram } from "lucide-react";
+import { Instagram, Podcast } from "lucide-react";
 
 const SubstackIcon = ({ className, strokeWidth = 1.5 }: { className?: string; strokeWidth?: number }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
