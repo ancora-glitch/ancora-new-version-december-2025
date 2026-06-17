@@ -33,7 +33,7 @@ const Index = () => {
               <h1 className="text-3xl md:text-4xl lg:text-5xl mb-2 md:mb-3 leading-tight text-white font-serif text-center whitespace-nowrap">
                 Fashion worth finding
               </h1>
-              <p className="text-sm md:text-lg lg:text-xl mb-3 md:mb-5 leading-relaxed text-white/90 text-center">A new way to shop second hand.</p>
+              <p className="text-sm md:text-lg lg:text-xl mb-3 md:mb-5 leading-relaxed text-white/90 text-center">Fashion worth finding</p>
               <div className="flex flex-row gap-2 sm:gap-4 justify-center">
                 <Button className="font-medium text-xs md:text-sm tracking-wide px-4 md:px-8 py-2 md:py-4 h-auto" onClick={() => navigate('/shop')}>
                   New Arrivals
