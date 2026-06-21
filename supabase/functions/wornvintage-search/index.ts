@@ -48,6 +48,7 @@ interface NormalizedItem {
   currency: string;
   primaryImage: string | null;
   imageCount: number;
+  brand: string;
   vendor: string;
   productType: string;
   size: string | null;
@@ -83,6 +84,7 @@ function normalizeProduct(product: ShopifyProduct, sourceCollection: string): No
     currency: "SEK",
     primaryImage: sortedImages[0]?.src || null,
     imageCount: product.images.length,
+    brand: "Worn",
     vendor: product.vendor,
     productType: product.product_type,
     size: extractOption(product, "Size") || variant?.option1 || null,

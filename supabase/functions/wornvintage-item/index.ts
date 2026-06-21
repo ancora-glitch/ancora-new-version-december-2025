@@ -175,6 +175,7 @@ Deno.serve(async (req) => {
       descriptionHtml: product.body_html,
       price: price && !isNaN(price) ? price : null,
       currency: "SEK",
+      brand: "Worn",
       vendor: product.vendor,
       productType: product.product_type,
       tags: product.tags,

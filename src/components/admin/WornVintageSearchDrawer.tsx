@@ -37,6 +37,7 @@ interface WornVintageItem {
   currency: string;
   primaryImage: string | null;
   imageCount: number;
+  brand: string;
   vendor: string;
   productType: string;
   size: string | null;
@@ -56,6 +57,7 @@ interface WornVintageItemDetail {
   descriptionHtml: string | null;
   price: number | null;
   currency: string;
+  brand: string;
   vendor: string;
   productType: string;
   tags: string[];
@@ -284,7 +286,7 @@ export function WornVintageSearchDrawer({
         const parsed = parseListingFields({
           title: detail.title,
           description: detail.description || "",
-          apiBrand: detail.vendor !== "Worn Vintage" ? detail.vendor : undefined,
+          apiBrand: detail.brand,
           apiSize: detail.size || undefined,
           apiColor: detail.color || undefined,
           apiMaterial: detail.material || undefined,
@@ -303,7 +305,7 @@ export function WornVintageSearchDrawer({
           condition: detail.condition || parsed.condition_text || undefined,
           material: detail.material || parsed.material_text || undefined,
           size: detail.size || parsed.size_text || undefined,
-          brand: detail.vendor !== "Worn Vintage" ? detail.vendor : undefined,
+          brand: detail.brand,
           sourceRef: handle,
         });
 
@@ -320,7 +322,7 @@ export function WornVintageSearchDrawer({
           description_en: tx.description_en,
           language: tx.language,
           translated_at: tx.translated_at,
-          brand: parsed.brand_text || (detail.vendor !== "Worn Vintage" ? detail.vendor : "Unknown"),
+          brand: detail.brand,
           size: detail.size || parsed.size_text || null,
           color: detail.color || parsed.color_text || null,
           material: detail.material || parsed.material_text || null,
