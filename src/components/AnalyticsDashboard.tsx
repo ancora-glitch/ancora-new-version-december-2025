@@ -396,6 +396,30 @@ export const AnalyticsDashboard = () => {
         .sort((a, b) => (b.clicks + b.purchases * 2) - (a.clicks + a.purchases * 2))
         .slice(0, 10);
 
+      // Aggregate top categories from product clicks + buy_now clicks
+      const catMap = productMeta?.category || {};
+      const categoryStats: Record<string, { clicks: number; purchases: number; visitors: Set<string> }> = {};
+      productClicks?.forEach((event) => {
+        const meta = event.metadata as { product_id?: string } | null;
+        if (!meta?.product_id || !matchesSource(meta.product_id)) return;
+        const cat = catMap[meta.product_id];
+        if (!cat) return;
+        if (!categoryStats[cat]) categoryStats[cat] = { clicks: 0, purchases: 0, visitors: new Set() };
+        categoryStats[cat].clicks++;
+        if (event.visitor_id) categoryStats[cat].visitors.add(event.visitor_id);
+      });
+      purchaseClicks?.forEach((event) => {
+        const meta = event.metadata as { product_id?: string } | null;
+        if (!meta?.product_id || !matchesSource(meta.product_id)) return;
+        const cat = catMap[meta.product_id];
+        if (!cat) return;
+        if (!categoryStats[cat]) categoryStats[cat] = { clicks: 0, purchases: 0, visitors: new Set() };
+        categoryStats[cat].purchases++;
+      });
+      const topCategories: TopCategory[] = Object.entries(categoryStats)
+        .map(([category, s]) => ({ category, clicks: s.clicks, uniqueClicks: s.visitors.size, purchases: s.purchases }))
+        .sort((a, b) => (b.clicks + b.purchases * 2) - (a.clicks + a.purchases * 2));
+
       return {
         totalViews: totalViews || 0,
         totalClicks: totalClicks || 0,
@@ -404,6 +428,7 @@ export const AnalyticsDashboard = () => {
         popularPages,
         recentActivity,
         topProducts,
+        topCategories,
       };
     },
     refetchInterval: 30000,
