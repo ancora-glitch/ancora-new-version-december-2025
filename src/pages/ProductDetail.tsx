@@ -472,6 +472,7 @@ const ProductDetail = () => {
                     ebay: "eBay",
                     vintagesphere: "VintageSphere",
                     pure_effect: "Pure Effect",
+                    wornvintage: "Worn Vintage",
                     manual: "Manual",
                     redesignedby: "AddNewDesign",
                   };
