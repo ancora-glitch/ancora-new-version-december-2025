@@ -5,6 +5,7 @@ import { NewImportDialog } from "./NewImportDialog";
 import { EbaySearchDrawer } from "./EbaySearchDrawer";
 import { TraderaSearchDrawer } from "./TraderaSearchDrawer";
 import { VintageSphereSearchDrawer } from "./VintageSphereSearchDrawer";
+import { WornVintageSearchDrawer } from "./WornVintageSearchDrawer";
 import { PureEffectSearchDrawer } from "./PureEffectSearchDrawer";
 import { ReDesignedBySearchDrawer } from "./ReDesignedBySearchDrawer";
 import { RetryJobsPanel } from "./RetryJobsPanel";
@@ -39,6 +40,7 @@ export function ImportsTab() {
   const [showEbayDrawer, setShowEbayDrawer] = useState(false);
   const [showTraderaDrawer, setShowTraderaDrawer] = useState(false);
   const [showVintageSphereDrawer, setShowVintageSphereDrawer] = useState(false);
+  const [showWornVintageDrawer, setShowWornVintageDrawer] = useState(false);
   const [showPureEffectDrawer, setShowPureEffectDrawer] = useState(false);
   const [showReDesignedByDrawer, setShowReDesignedByDrawer] = useState(false);
   
@@ -173,6 +175,10 @@ export function ImportsTab() {
             <Button variant="outline" onClick={() => setShowVintageSphereDrawer(true)}>
               <Search className="w-4 h-4 mr-2" />
               Search VintageSphere
+            </Button>
+            <Button variant="outline" onClick={() => setShowWornVintageDrawer(true)}>
+              <Search className="w-4 h-4 mr-2" />
+              Search Worn Vintage
             </Button>
             <Button variant="outline" onClick={() => setShowPureEffectDrawer(true)}>
               <Search className="w-4 h-4 mr-2" />
@@ -657,6 +663,11 @@ export function ImportsTab() {
       <VintageSphereSearchDrawer
         open={showVintageSphereDrawer}
         onOpenChange={setShowVintageSphereDrawer}
+        onImported={() => setSelectedItemId(null)}
+      />
+      <WornVintageSearchDrawer
+        open={showWornVintageDrawer}
+        onOpenChange={setShowWornVintageDrawer}
         onImported={() => setSelectedItemId(null)}
       />
       <PureEffectSearchDrawer
