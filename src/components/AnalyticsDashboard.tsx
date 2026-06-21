@@ -125,21 +125,28 @@ export const AnalyticsDashboard = () => {
   const monthOptions = buildMonthOptions();
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
 
-  // Fetch product marketplace map for source filtering
-  const { data: productMarketplaceMap } = useQuery({
-    queryKey: ["product-marketplace-map"],
+  // Fetch product marketplace + category map for filtering & aggregation
+  const { data: productMeta } = useQuery({
+    queryKey: ["product-meta-map"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("products")
-        .select("id, marketplace");
-      const map: Record<string, string> = {};
-      data?.forEach((p) => {
-        if (p.marketplace) map[p.id] = p.marketplace.toLowerCase();
+      const [{ data: products }, { data: categories }] = await Promise.all([
+        supabase.from("products").select("id, marketplace, category_id"),
+        supabase.from("categories").select("id, name"),
+      ]);
+      const catNameById: Record<string, string> = {};
+      categories?.forEach((c) => { catNameById[c.id] = c.name; });
+      const marketplace: Record<string, string> = {};
+      const category: Record<string, string> = {};
+      products?.forEach((p) => {
+        if (p.marketplace) marketplace[p.id] = p.marketplace.toLowerCase();
+        if (p.category_id && catNameById[p.category_id]) category[p.id] = catNameById[p.category_id];
       });
-      return map;
+      return { marketplace, category };
     },
     staleTime: 60000,
   });
+  const productMarketplaceMap = productMeta?.marketplace;
+  const productCategoryMap = productMeta?.category;
 
   const { data: analytics, isLoading } = useQuery<AnalyticsSummary>({
     queryKey: ["site-analytics", dateRange, sourceFilter, productMarketplaceMap],
