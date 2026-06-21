@@ -28,6 +28,13 @@ interface TopProduct {
   purchases: number;
 }
 
+interface TopCategory {
+  category: string;
+  clicks: number;
+  uniqueClicks: number;
+  purchases: number;
+}
+
 interface DailyData {
   date: string;
   views: number;
@@ -44,6 +51,7 @@ interface AnalyticsSummary {
   popularPages: { page_path: string; count: number }[];
   recentActivity: DailyData[];
   topProducts: TopProduct[];
+  topCategories: TopCategory[];
 }
 
 const getDateRangeBounds = (range: DateRange): { start: Date | null; end: Date | null } => {
