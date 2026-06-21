@@ -756,6 +756,50 @@ export const AnalyticsDashboard = () => {
         </CardContent>
       </Card>
 
+      {/* Top Categories */}
+      <Card className="border-border/30">
+        <CardHeader>
+          <CardTitle className="text-base font-medium text-foreground flex items-center gap-2">
+            <BarChart3 size={16} className="text-primary" />
+            Top Categories
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!analytics?.topCategories?.length ? (
+            <p className="text-muted-foreground text-sm">No category data yet</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10">#</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead className="text-right w-20">Clicks</TableHead>
+                  <TableHead className="text-right w-20">Unique</TableHead>
+                  <TableHead className="text-right w-20">Intent</TableHead>
+                  <TableHead className="text-right w-20">Rate</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {analytics.topCategories.map((cat, index) => (
+                  <TableRow key={cat.category}>
+                    <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
+                    <TableCell className="font-medium text-foreground">{cat.category}</TableCell>
+                    <TableCell className="text-right font-semibold">{cat.clicks}</TableCell>
+                    <TableCell className="text-right font-semibold text-muted-foreground">{cat.uniqueClicks}</TableCell>
+                    <TableCell className="text-right font-semibold text-primary">{cat.purchases}</TableCell>
+                    <TableCell className="text-right font-semibold">
+                      {cat.clicks > 0
+                        ? `${Math.min((cat.purchases / cat.clicks) * 100, 100).toFixed(0)}%`
+                        : "0%"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Story Views */}
       <StoryViewsSection />
 
