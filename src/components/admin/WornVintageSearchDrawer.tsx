@@ -29,7 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { parseListingFields } from "@/lib/listingParser";
 import { translateImport } from "@/lib/translateImport";
 
-interface VintageSphereItem {
+interface WornVintageItem {
   external_id: string;
   handle: string;
   title: string;
@@ -47,7 +47,7 @@ interface VintageSphereItem {
   tags: string[];
 }
 
-interface VintageSphereItemDetail {
+interface WornVintageItemDetail {
   external_id: string;
   shopify_id: number;
   title: string;
@@ -70,7 +70,7 @@ interface VintageSphereItemDetail {
   updatedAt: string | null;
 }
 
-interface VintageSphereSearchDrawerProps {
+interface WornVintageSearchDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onImported?: () => void;
@@ -78,17 +78,17 @@ interface VintageSphereSearchDrawerProps {
 
 const MAX_IMPORT_PER_RUN = 10;
 
-export function VintageSphereSearchDrawer({
+export function WornVintageSearchDrawer({
   open,
   onOpenChange,
   onImported,
-}: VintageSphereSearchDrawerProps) {
+}: WornVintageSearchDrawerProps) {
   const importMutation = useImportToProduct();
 
   const [keywords, setKeywords] = useState("");
   const [includeUnavailable, setIncludeUnavailable] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState<VintageSphereItem[]>([]);
+  const [searchResults, setSearchResults] = useState<WornVintageItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [hasSearched, setHasSearched] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -125,7 +125,7 @@ export function VintageSphereSearchDrawer({
       const { data: existingProducts } = await supabase
         .from("products")
         .select("slug, affiliate_url")
-        .eq("marketplace", "vintagesphere");
+        .eq("marketplace", "wornvintage");
 
       const existingSet = new Set<string>();
       for (const p of existingProducts || []) {
@@ -138,7 +138,7 @@ export function VintageSphereSearchDrawer({
       setExistingRefs(existingSet);
 
       const { data, error } = await supabase.functions.invoke(
-        "vintagesphere-search",
+        "wornvintage-search",
         {
           body: {
             keywords: keywords.trim(),
@@ -160,8 +160,8 @@ export function VintageSphereSearchDrawer({
 
       // Failure alert: zero results
       if (!data.items || data.items.length === 0) {
-        console.warn("[VintageSphereImportWarning]", JSON.stringify({
-          event: "VintageSphereImportWarning",
+        console.warn("[WornVintageImportWarning]", JSON.stringify({
+          event: "WornVintageImportWarning",
           endpoint_status: "ok",
           pages_fetched: data.pagesScanned ?? 0,
           products_returned: 0,
@@ -172,15 +172,15 @@ export function VintageSphereSearchDrawer({
       }
     } catch (error: any) {
       // Failure alert: endpoint error
-      console.warn("[VintageSphereImportWarning]", JSON.stringify({
-        event: "VintageSphereImportWarning",
+      console.warn("[WornVintageImportWarning]", JSON.stringify({
+        event: "WornVintageImportWarning",
         endpoint_status: "error",
         pages_fetched: 0,
         products_returned: 0,
         error_count: 1,
         duration_ms: 0,
       }));
-      console.error("VintageSphere search error:", error);
+      console.error("WornVintage search error:", error);
       setSearchError(error.message || "Search failed");
       toast.error("Search failed: " + error.message);
     } finally {
@@ -200,19 +200,19 @@ export function VintageSphereSearchDrawer({
 
   const fetchItemDetails = async (
     handle: string
-  ): Promise<VintageSphereItemDetail | null> => {
+  ): Promise<WornVintageItemDetail | null> => {
     try {
       const { data, error } = await supabase.functions.invoke(
-        "vintagesphere-item",
+        "wornvintage-item",
         { body: { handle } }
       );
       if (error) {
-        console.error("vintagesphere-item error:", error);
+        console.error("wornvintage-item error:", error);
         return null;
       }
       return data?.item || null;
     } catch (err) {
-      console.error("vintagesphere-item exception:", err);
+      console.error("wornvintage-item exception:", err);
       return null;
     }
   };
@@ -244,7 +244,7 @@ export function VintageSphereSearchDrawer({
         if (imported >= MAX_IMPORT_PER_RUN) {
           setRunLimitReached(true);
           console.info(
-            `[VintageSphere Import] Run limit reached (${MAX_IMPORT_PER_RUN}). Stopping.`
+            `[WornVintage Import] Run limit reached (${MAX_IMPORT_PER_RUN}). Stopping.`
           );
           toast.warning(
             `Run limit reached (${MAX_IMPORT_PER_RUN} imports). Start a new run to continue.`
@@ -260,7 +260,7 @@ export function VintageSphereSearchDrawer({
 
         // Dedupe check
         const isDupe = await checkProductDuplicate(
-          "vintagesphere",
+          "wornvintage",
           handle,
           searchItem.productUrl
         );
@@ -273,7 +273,7 @@ export function VintageSphereSearchDrawer({
         const detail = await fetchItemDetails(handle);
         if (!detail) {
           console.warn(
-            `[VintageSphere Import] Could not fetch details for ${handle} — skipping`
+            `[WornVintage Import] Could not fetch details for ${handle} — skipping`
           );
           failed++;
           errorCount++;
@@ -284,7 +284,7 @@ export function VintageSphereSearchDrawer({
         const parsed = parseListingFields({
           title: detail.title,
           description: detail.description || "",
-          apiBrand: detail.vendor !== "Vintage Sphere" ? detail.vendor : undefined,
+          apiBrand: detail.vendor !== "Worn Vintage" ? detail.vendor : undefined,
           apiSize: detail.size || undefined,
           apiColor: detail.color || undefined,
           apiMaterial: detail.material || undefined,
@@ -303,12 +303,12 @@ export function VintageSphereSearchDrawer({
           condition: detail.condition || parsed.condition_text || undefined,
           material: detail.material || parsed.material_text || undefined,
           size: detail.size || parsed.size_text || undefined,
-          brand: detail.vendor !== "Vintage Sphere" ? detail.vendor : undefined,
+          brand: detail.vendor !== "Worn Vintage" ? detail.vendor : undefined,
           sourceRef: handle,
         });
 
         const importInput = {
-          marketplace: "vintagesphere",
+          marketplace: "wornvintage",
           source_ref: handle,
           source_url: detail.productUrl,
           affiliate_url: detail.productUrl,
@@ -320,7 +320,7 @@ export function VintageSphereSearchDrawer({
           description_en: tx.description_en,
           language: tx.language,
           translated_at: tx.translated_at,
-          brand: parsed.brand_text || (detail.vendor !== "Vintage Sphere" ? detail.vendor : "Unknown"),
+          brand: parsed.brand_text || (detail.vendor !== "Worn Vintage" ? detail.vendor : "Unknown"),
           size: detail.size || parsed.size_text || null,
           color: detail.color || parsed.color_text || null,
           material: detail.material || parsed.material_text || null,
@@ -346,7 +346,7 @@ export function VintageSphereSearchDrawer({
           await importMutation.mutateAsync(importInput);
           imported++;
         } catch (importErr: any) {
-          console.error(`[VintageSphere Import] Failed to import ${handle}:`, importErr);
+          console.error(`[WornVintage Import] Failed to import ${handle}:`, importErr);
           failed++;
           errorCount++;
           continue;
@@ -356,7 +356,7 @@ export function VintageSphereSearchDrawer({
         if (!detail.available) {
           soldOut++;
           console.info(
-            `[VintageSphere Import] ${handle} is sold out — created as draft with note`
+            `[WornVintage Import] ${handle} is sold out — created as draft with note`
           );
         }
 
@@ -368,8 +368,8 @@ export function VintageSphereSearchDrawer({
 
       // Health log
       const durationMs = Date.now() - runStartTime;
-      console.info("[VintageSphere Import Run]", JSON.stringify({
-        importer_name: "vintagesphere",
+      console.info("[WornVintage Import Run]", JSON.stringify({
+        importer_name: "wornvintage",
         endpoint_status: "ok",
         pages_fetched: searchMeta?.pagesScanned ?? 0,
         products_returned: searchResults.length,
@@ -415,16 +415,16 @@ export function VintageSphereSearchDrawer({
       onImported?.();
     } catch (error: any) {
       const durationMs = Date.now() - runStartTime;
-      console.warn("[VintageSphereImportWarning]", JSON.stringify({
-        event: "VintageSphereImportWarning",
+      console.warn("[WornVintageImportWarning]", JSON.stringify({
+        event: "WornVintageImportWarning",
         endpoint_status: "error",
         pages_fetched: searchMeta?.pagesScanned ?? 0,
         products_returned: searchResults.length,
         error_count: errorCount + 1,
         duration_ms: durationMs,
       }));
-      console.error("[VintageSphere Import Run] Fatal error:", JSON.stringify({
-        importer_name: "vintagesphere",
+      console.error("[WornVintage Import Run] Fatal error:", JSON.stringify({
+        importer_name: "wornvintage",
         endpoint_status: "error",
         products_imported: imported,
         duration_ms: durationMs,
@@ -448,10 +448,10 @@ export function VintageSphereSearchDrawer({
         <SheetHeader>
           <SheetTitle className="font-display flex items-center gap-2">
             <Store className="w-5 h-5" />
-            Search VintageSphere
+            Search Worn Vintage
           </SheetTitle>
           <SheetDescription>
-            Browse VintageSphere catalog and import items as draft products.
+            Browse Worn Vintage catalog (vintage & bags only) and import items as draft products.
           </SheetDescription>
         </SheetHeader>
 
@@ -459,7 +459,7 @@ export function VintageSphereSearchDrawer({
           {/* Search Form */}
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="vs-keywords">
+              <Label htmlFor="wv-keywords">
                 Keywords{" "}
                 <span className="text-muted-foreground text-xs">
                   (optional — leave empty to browse all)
@@ -467,7 +467,7 @@ export function VintageSphereSearchDrawer({
               </Label>
               <div className="flex gap-2">
                 <Input
-                  id="vs-keywords"
+                  id="wv-keywords"
                   value={keywords}
                   onChange={(e) => setKeywords(e.target.value)}
                   placeholder="silk dress, wool coat..."
@@ -486,11 +486,11 @@ export function VintageSphereSearchDrawer({
 
             <div className="flex items-center gap-2">
               <Switch
-                id="vs-unavailable"
+                id="wv-unavailable"
                 checked={includeUnavailable}
                 onCheckedChange={setIncludeUnavailable}
               />
-              <Label htmlFor="vs-unavailable" className="text-sm">
+              <Label htmlFor="wv-unavailable" className="text-sm">
                 Include sold-out items
               </Label>
             </div>
