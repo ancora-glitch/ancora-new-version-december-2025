@@ -121,7 +121,7 @@ export function WornVintageSearchDrawer({
     setSearchMeta(null);
 
     try {
-      // Check existing VintageSphere products
+      // Check existing Worn Vintage products
       const { data: existingProducts } = await supabase
         .from("products")
         .select("slug, affiliate_url")
