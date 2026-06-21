@@ -28,6 +28,13 @@ interface TopProduct {
   purchases: number;
 }
 
+interface TopCategory {
+  category: string;
+  clicks: number;
+  uniqueClicks: number;
+  purchases: number;
+}
+
 interface DailyData {
   date: string;
   views: number;
@@ -44,6 +51,7 @@ interface AnalyticsSummary {
   popularPages: { page_path: string; count: number }[];
   recentActivity: DailyData[];
   topProducts: TopProduct[];
+  topCategories: TopCategory[];
 }
 
 const getDateRangeBounds = (range: DateRange): { start: Date | null; end: Date | null } => {
@@ -117,21 +125,28 @@ export const AnalyticsDashboard = () => {
   const monthOptions = buildMonthOptions();
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
 
-  // Fetch product marketplace map for source filtering
-  const { data: productMarketplaceMap } = useQuery({
-    queryKey: ["product-marketplace-map"],
+  // Fetch product marketplace + category map for filtering & aggregation
+  const { data: productMeta } = useQuery({
+    queryKey: ["product-meta-map"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("products")
-        .select("id, marketplace");
-      const map: Record<string, string> = {};
-      data?.forEach((p) => {
-        if (p.marketplace) map[p.id] = p.marketplace.toLowerCase();
+      const [{ data: products }, { data: categories }] = await Promise.all([
+        supabase.from("products").select("id, marketplace, category_id"),
+        supabase.from("categories").select("id, name"),
+      ]);
+      const catNameById: Record<string, string> = {};
+      categories?.forEach((c) => { catNameById[c.id] = c.name; });
+      const marketplace: Record<string, string> = {};
+      const category: Record<string, string> = {};
+      products?.forEach((p) => {
+        if (p.marketplace) marketplace[p.id] = p.marketplace.toLowerCase();
+        if (p.category_id && catNameById[p.category_id]) category[p.id] = catNameById[p.category_id];
       });
-      return map;
+      return { marketplace, category };
     },
     staleTime: 60000,
   });
+  const productMarketplaceMap = productMeta?.marketplace;
+  const productCategoryMap = productMeta?.category;
 
   const { data: analytics, isLoading } = useQuery<AnalyticsSummary>({
     queryKey: ["site-analytics", dateRange, sourceFilter, productMarketplaceMap],
@@ -381,6 +396,30 @@ export const AnalyticsDashboard = () => {
         .sort((a, b) => (b.clicks + b.purchases * 2) - (a.clicks + a.purchases * 2))
         .slice(0, 10);
 
+      // Aggregate top categories from product clicks + buy_now clicks
+      const catMap = productMeta?.category || {};
+      const categoryStats: Record<string, { clicks: number; purchases: number; visitors: Set<string> }> = {};
+      productClicks?.forEach((event) => {
+        const meta = event.metadata as { product_id?: string } | null;
+        if (!meta?.product_id || !matchesSource(meta.product_id)) return;
+        const cat = catMap[meta.product_id];
+        if (!cat) return;
+        if (!categoryStats[cat]) categoryStats[cat] = { clicks: 0, purchases: 0, visitors: new Set() };
+        categoryStats[cat].clicks++;
+        if (event.visitor_id) categoryStats[cat].visitors.add(event.visitor_id);
+      });
+      purchaseClicks?.forEach((event) => {
+        const meta = event.metadata as { product_id?: string } | null;
+        if (!meta?.product_id || !matchesSource(meta.product_id)) return;
+        const cat = catMap[meta.product_id];
+        if (!cat) return;
+        if (!categoryStats[cat]) categoryStats[cat] = { clicks: 0, purchases: 0, visitors: new Set() };
+        categoryStats[cat].purchases++;
+      });
+      const topCategories: TopCategory[] = Object.entries(categoryStats)
+        .map(([category, s]) => ({ category, clicks: s.clicks, uniqueClicks: s.visitors.size, purchases: s.purchases }))
+        .sort((a, b) => (b.clicks + b.purchases * 2) - (a.clicks + a.purchases * 2));
+
       return {
         totalViews: totalViews || 0,
         totalClicks: totalClicks || 0,
@@ -389,6 +428,7 @@ export const AnalyticsDashboard = () => {
         popularPages,
         recentActivity,
         topProducts,
+        topCategories,
       };
     },
     refetchInterval: 30000,
@@ -712,6 +752,50 @@ export const AnalyticsDashboard = () => {
                 </Table>
               </div>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Top Categories */}
+      <Card className="border-border/30">
+        <CardHeader>
+          <CardTitle className="text-base font-medium text-foreground flex items-center gap-2">
+            <BarChart3 size={16} className="text-primary" />
+            Top Categories
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!analytics?.topCategories?.length ? (
+            <p className="text-muted-foreground text-sm">No category data yet</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10">#</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead className="text-right w-20">Clicks</TableHead>
+                  <TableHead className="text-right w-20">Unique</TableHead>
+                  <TableHead className="text-right w-20">Intent</TableHead>
+                  <TableHead className="text-right w-20">Rate</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {analytics.topCategories.map((cat, index) => (
+                  <TableRow key={cat.category}>
+                    <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
+                    <TableCell className="font-medium text-foreground">{cat.category}</TableCell>
+                    <TableCell className="text-right font-semibold">{cat.clicks}</TableCell>
+                    <TableCell className="text-right font-semibold text-muted-foreground">{cat.uniqueClicks}</TableCell>
+                    <TableCell className="text-right font-semibold text-primary">{cat.purchases}</TableCell>
+                    <TableCell className="text-right font-semibold">
+                      {cat.clicks > 0
+                        ? `${Math.min((cat.purchases / cat.clicks) * 100, 100).toFixed(0)}%`
+                        : "0%"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
