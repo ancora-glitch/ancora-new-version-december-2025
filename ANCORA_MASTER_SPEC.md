@@ -3,6 +3,25 @@ Version 1.9
 
 Changelog v1.9:
 
+### 2026-06-21 — Worn Vintage: ny manuell import-partner
+
+**Vad:** Worn Vintage tillagd som manuell import-partner, modellerad efter
+VintageSphere. Scope: endast äkta secondhand (/collections/vintage +
+/collections/bags) — Worn Design (nytillverkade upcyclade jackor) exkluderat.
+
+**Filer:** supabase/functions/wornvintage-search/index.ts (ny),
+supabase/functions/wornvintage-item/index.ts (ny),
+src/components/WornVintageSearchDrawer.tsx (ny),
+src/components/ImportsTab.tsx (knapp + drawer), ProductDetail.tsx (source label)
+
+**DB:** Ingen migration — marketplace är plain text
+
+**Detaljer:** marketplace: 'wornvintage'. Condition extraheras ur beskrivning,
+konservativ mappning — okända strängar lämnas null + loggas, tvingas aldrig in
+i fel enum. Dry-run rekommenderad innan skarp drift för att stämma av
+CONDITION_MAP mot verkligt vokabulär. Direktlänkar utan affiliate-tracking.
+Cap 10/session. Inga cron-jobb, ingen sold-detection, ingen editorial overwrite.
+
 ### 2026-06-08 — Sourcing Tool tillagd
 
 **Vad:** Internt redaktionellt verktyg i AdminPortal för att hitta plagg på beställning. Genererar söklänkar till externa second hand-källor baserat på fritext, valda märken och storlekar. Inga API-anrop, ingen scraping, ingen backend — ren frontend-logik.
