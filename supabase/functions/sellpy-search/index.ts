@@ -88,44 +88,51 @@ function extractImages(hit: any): string[] {
   return urls;
 }
 
-function normalizeHit(hit: any): NormalizedItem {
-  const id = String(hit.objectID ?? hit.id ?? "");
-  const images = extractImages(hit);
-  const title =
-    firstString(hit.title, hit.name, hit?.title?.sv, hit?.title?.en) ||
-    "(no title)";
-  const brand = firstString(hit.brand, hit.brandName, hit?.brand?.name);
-  const size = firstString(hit.size, hit.sizes, hit?.size?.label);
-  const color = firstString(hit.color, hit.colors, hit?.color?.label);
-  const material = firstString(hit.material, hit.materials, hit?.material?.label);
-  const condition_raw = firstString(hit.condition, hit.conditionLabel, hit?.condition?.label);
-  const description = firstString(hit.description, hit?.description?.sv, hit?.description?.en);
-  const available =
-    typeof hit.available === "boolean"
-      ? hit.available
-      : typeof hit.inStock === "boolean"
-      ? hit.inStock
-      : true;
+function normalizeHit(hit: Record<string, unknown>): NormalizedItem {
+  const metadata = (hit.metadata ?? {}) as Record<string, unknown>;
+  const pricing = (hit.pricing ?? {}) as Record<string, unknown>;
+
+  // Title is built from brand + type + size (Sellpy's titleOutputOrder).
+  const brand = (metadata.brand as string) ?? null;
+  const type = (metadata.type as string) ?? "";
+  const size = (metadata.size as string) ?? null;
+  const title = [brand, type, size].filter(Boolean).join(" ") || "Untitled";
+
+  // pricing.amount is already SEK as an integer (e.g. 960).
+  const price = typeof pricing.amount === "number" ? pricing.amount : null;
+
+  // Color and material are arrays.
+  const colorArr = Array.isArray(metadata.color) ? metadata.color : [];
+  const materialArr = Array.isArray(metadata.material) ? metadata.material : [];
+
+  const available = hit.isForSale === true;
+  const condition_raw = (metadata.condition as string) ?? null;
+
+  const images = Array.isArray(hit.images) ? (hit.images as string[]) : [];
+  const primaryImage = images[0] ?? null;
+
+  const id = String(hit.objectID ?? "");
 
   return {
     external_id: id,
     marketplace: "sellpy",
     title,
-    price: extractPrice(hit),
+    price,
     currency: "SEK",
-    primaryImage: images[0] || null,
+    primaryImage,
     imageCount: images.length,
     brand,
     size,
-    color,
-    material,
+    color: colorArr.join(", ") || null,
+    material: materialArr.join(", ") || null,
     condition_raw,
     available,
     productUrl: `${PRODUCT_BASE}/${id}`,
-    description,
+    description: null,
     sourceCollection: "sellpy",
   };
 }
+
 
 async function algoliaQuery(query: string, page: number, hitsPerPage: number): Promise<any> {
   const body = {
@@ -172,9 +179,9 @@ Deno.serve(async (req) => {
 
     const data = await algoliaQuery(query, page, MAX_HITS);
     const hits: any[] = Array.isArray(data?.hits) ? data.hits : [];
-    console.log("SELLPY_RAW_HIT", JSON.stringify(data.hits?.[0]));
 
     let items = hits.map(normalizeHit);
+
     if (!includeUnavailable) items = items.filter((i) => i.available);
 
     const durationMs = Date.now() - startTime;
