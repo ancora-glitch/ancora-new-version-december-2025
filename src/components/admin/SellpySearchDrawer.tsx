@@ -119,12 +119,11 @@ export function SellpySearchDrawer({
     try {
       const { data: existingProducts } = await supabase
         .from("products")
-        .select("slug, affiliate_url, source_ref")
+        .select("slug, affiliate_url")
         .eq("marketplace", "sellpy");
 
       const existingSet = new Set<string>();
       for (const p of existingProducts || []) {
-        if ((p as any).source_ref) existingSet.add((p as any).source_ref);
         if (p.slug) existingSet.add(p.slug);
         const match = p.affiliate_url?.match(/\/item\/([^?#\/]+)/);
         if (match) existingSet.add(match[1]);
