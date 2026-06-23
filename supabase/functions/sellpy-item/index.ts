@@ -19,17 +19,12 @@ const PRODUCT_BASE = "https://www.sellpy.se/item";
 
 // Sellpy's Swedish condition vocabulary. Unknown → null + warn.
 const CONDITION_MAP: Record<string, string> = {
-  "nyskick": "Excellent",
-  "som nytt": "Excellent",
-  "mycket bra skick": "Very good",
-  "very good": "Very good",
-  "bra skick": "Good",
-  "good": "Good",
-  "acceptabelt skick": "Fair",
-  "fair": "Fair",
-  "slitet": "Poor",
-  "poor": "Poor",
+  "nyskick": "new",
+  "mycket bra": "very_good",
+  "bra": "good",
+  "acceptabelt": "fair",
 };
+
 
 function firstString(...vals: unknown[]): string | null {
   for (const v of vals) {
