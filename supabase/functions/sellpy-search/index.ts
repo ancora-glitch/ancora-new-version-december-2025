@@ -88,10 +88,7 @@ function extractImages(hit: any): string[] {
   return urls;
 }
 
-function normalizeHit(hit: any): NormalizedItem { function normalizeHit(hit: Record<string, unknown>): SellpyItem {
-  console.log("SELLPY HIT KEYS:", Object.keys(hit));
-  console.log("SELLPY HIT:", JSON.stringify(hit));
-  // ... resten oförändrad
+function normalizeHit(hit: any): NormalizedItem {
   const id = String(hit.objectID ?? hit.id ?? "");
   const images = extractImages(hit);
   const title =
@@ -175,6 +172,7 @@ Deno.serve(async (req) => {
 
     const data = await algoliaQuery(query, page, MAX_HITS);
     const hits: any[] = Array.isArray(data?.hits) ? data.hits : [];
+    console.log("SELLPY_RAW_HIT", JSON.stringify(data.hits?.[0]));
 
     let items = hits.map(normalizeHit);
     if (!includeUnavailable) items = items.filter((i) => i.available);
