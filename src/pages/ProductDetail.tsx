@@ -473,6 +473,7 @@ const ProductDetail = () => {
                     vintagesphere: "VintageSphere",
                     pure_effect: "Pure Effect",
                     wornvintage: "Worn Vintage",
+                    sellpy: "Sellpy",
                     manual: "Manual",
                     redesignedby: "AddNewDesign",
                   };
