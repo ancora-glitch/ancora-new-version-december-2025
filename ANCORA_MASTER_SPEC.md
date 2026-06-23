@@ -3,6 +3,33 @@ Version 1.9
 
 Changelog v1.9:
 
+### 2026-06-22 — Sellpy: ny manuell import-partner
+
+**Vad:** Sellpy tillagd som manuell import-partner, modellerad efter
+VintageSphere/Worn Vintage. Sökning sker direkt mot Sellpys publika Algolia-index
+(prod_marketItem_se_relevance) — ingen HTML-scraping, ingen gissning på okänt
+JSON-API.
+
+**Filer:** supabase/functions/sellpy-search/index.ts (ny),
+supabase/functions/sellpy-item/index.ts (ny),
+src/components/admin/SellpySearchDrawer.tsx (ny),
+src/components/admin/ImportsTab.tsx (knapp + drawer-koppling),
+src/pages/ProductDetail.tsx (source label)
+
+**DB:** Ingen migration — marketplace är plain text.
+
+**Detaljer:** marketplace: 'sellpy'. POST mot
+https://M6WNFR0LVI-dsn.algolia.net/1/indexes/prod_marketItem_se_relevance/query
+med X-Algolia-Application-Id + X-Algolia-API-Key (Sellpys publika search-only
+key, hårdkodad i edge function). Body: { query, hitsPerPage: 10, page }.
+Item-lookup via Algolia getObject. Defensiv field-extraction (title/brand/size/
+color/material/condition kan ligga på flera nycklar). CONDITION_MAP konservativ
+för svensk vokabulär (Nyskick/Mycket bra skick/Bra skick/Acceptabelt skick) —
+okända strängar lämnas null + loggas, tvingas aldrig in i fel enum. Brand tas
+från Algolia-hit (inte hårdkodad). Direktlänkar utan affiliate-tracking. Cap
+10/session. Inga cron-jobb, ingen sold-detection, ingen editorial overwrite,
+ingen quota-räknare (Algolia search keys saknar daglig limit i denna kontext).
+
 ### 2026-06-21 — Worn Vintage: ny manuell import-partner
 
 **Vad:** Worn Vintage tillagd som manuell import-partner, modellerad efter

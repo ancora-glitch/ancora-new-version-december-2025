@@ -1,53 +1,52 @@
-# Add Worn Vintage Manual Import
+## Sellpy manual import partner (Algolia-based)
 
-Add Worn Vintage (wornvintage.se) as a new manual import partner, modeled exactly on the existing VintageSphere flow. Scope is limited to genuine secondhand items in `/collections/vintage` and `/collections/bags` — the "Worn Design" upcycled line is excluded.
+Model on the existing Worn Vintage / VintageSphere pattern. Manual-only, no cron, no DB migration. Search backed by Sellpy's public Algolia index.
 
-No existing Tradera, eBay, VintageSphere, or Pure Effect code will be touched. No DB migration is needed (`marketplace` is plain text).
+### Scope & invariants
 
-## Files to create
-
-### 1. `supabase/functions/wornvintage-search/index.ts`
-Shopify-style search edge function:
-- Fetches `/collections/vintage/products.json` and `/collections/bags/products.json` from `https://wornvintage.se`
-- Paginates up to 20 pages × 250 items, with 500ms delay between pages and one retry on HTTP 429
-- Dedupes by `handle`, applies AND keyword filter across `title + vendor + product_type + tags`
-- Returns normalized results: `external_id` (handle), `marketplace: "wornvintage"`, title, vendor, price, currency `"SEK"`, `available`, primary image, product URL, source collection
-- Standard CORS headers + OPTIONS handler
-
-### 2. `supabase/functions/wornvintage-item/index.ts`
-Item-detail edge function:
-- Fetches `https://wornvintage.se/products/<handle>.json` with a 15s abort timeout
-- Maps Shopify variant `option1/2/3` to `Size`, `Color`, `Material` based on `product.options`
-- Parses `Condition:` and `Era:` from `body_html`; condition mapping is conservative — unknown strings stay `null` and log a warning (never forced into a wrong enum value)
-- Sorts images by `position`, strips HTML for plain-text description
-- Standard CORS + OPTIONS
-
-### 3. `src/components/WornVintageSearchDrawer.tsx`
-Exact duplicate of `VintageSphereSearchDrawer.tsx` with only these changes:
-- Edge function calls: `wornvintage-search` / `wornvintage-item`
-- `useImportToProduct` called with `marketplace: "wornvintage"`
-- Drawer title: "Search Worn Vintage"
-- 10-item per-run cap preserved
-
-## Files to edit
-
-### 4. `src/pages/AdminPortal.tsx`
-Alongside the existing VintageSphere button/drawer:
-- Add `import { WornVintageSearchDrawer } from "@/components/WornVintageSearchDrawer"`
-- Add `wornVintageOpen` state
-- Add `<Button variant="outline">Import Worn Vintage</Button>`
-- Render `<WornVintageSearchDrawer open onClose />`
-
-### 5. `src/pages/ProductDetail.tsx`
-Add `wornvintage: "Worn Vintage"` to the marketplace `sourceLabel` map.
-
-## Invariants enforced
-- `status` always `"draft"` on insert
-- `marketplace` always lowercase `"wornvintage"`
+- `marketplace: "sellpy"` (lowercase snake_case)
+- `status: "draft"` on insert
+- Cap 10 items/session, enforced in drawer
 - No cron, no availability sync, no editorial overwrites
-- 10-item run cap enforced in drawer
-- No changes to Tradera / eBay / VintageSphere / Pure Effect code paths
+- Direct product links, no affiliate tracking
+- No changes to Tradera, eBay, VintageSphere, Worn Vintage, or Pure Effect code
 
-## Validation after build
-- Confirm both edge functions deploy
-- Dry-run a search from the admin portal, then a single import, and check edge-function logs for any "unmapped condition string" warnings to tune `CONDITION_MAP` if needed
+### Files to create
+
+1. **`supabase/functions/sellpy-search/index.ts`**
+   - CORS via `npm:@supabase/supabase-js@2/cors`, Zod-validated body `{ query: string, page?: number }`.
+   - POST to `https://M6WNFR0LVI-dsn.algolia.net/1/indexes/prod_marketItem_se_relevance/query` with headers:
+     - `X-Algolia-Application-Id: M6WNFR0LVI`
+     - `X-Algolia-API-Key: 313e09c3b00b6e2da5dbe382cd1c8f4b`
+     - `Content-Type: application/json`
+   - Body: `{ query, hitsPerPage: 10, page }`.
+   - Normalize each hit to the same shape the drawer expects: `{ external_id, marketplace: "sellpy", title, brand, price, currency, images, url, size, color, condition_raw, description, sourceCollection }`.
+   - 429 retry with exponential backoff (mirroring `wornvintage-search`).
+   - These Algolia credentials are public search keys (the same ones Sellpy ships to its own browser); hardcoding them in the edge function is acceptable and matches Algolia's "search-only key" model. No `add_secret` needed.
+
+2. **`supabase/functions/sellpy-item/index.ts`**
+   - Same Algolia POST, but using `filters: "objectID:<id>"` (or `getObject` endpoint) to fetch a single hit by `external_id`.
+   - Normalize the full record: `title`, `brand` (from hit, not hardcoded), `price`, `size`, `color`, `material`, `condition`, `images[]`, `description`, product URL.
+   - Conservative `CONDITION_MAP` for Sellpy's Swedish condition vocabulary (`"Nyskick"`, `"Mycket bra skick"`, `"Bra skick"`, `"Acceptabelt skick"`). Unknown strings → `null` + `console.warn`; never coerced.
+
+3. **`src/components/admin/SellpySearchDrawer.tsx`**
+   - Duplicate of `WornVintageSearchDrawer.tsx`, retargeted at `sellpy-search` / `sellpy-item`, with `marketplace: "sellpy"` everywhere.
+   - Uses `useImportToProduct` and `parseListingFields`. Brand flows from `detail.brand` (not hardcoded).
+   - 10-item cap.
+
+### Files to edit
+
+4. **`src/components/admin/ImportsTab.tsx`**
+   - Add `const [sellpyOpen, setSellpyOpen] = useState(false)`.
+   - Add "Importera från Sellpy" button next to the VintageSphere button.
+   - Mount `<SellpySearchDrawer open={sellpyOpen} onOpenChange={setSellpyOpen} onImported={refetch} />`.
+
+5. **`src/pages/ProductDetail.tsx`**
+   - Extend `sourceLabels` map: `sellpy: "Sellpy"`.
+
+6. **`ANCORA_MASTER_SPEC.md`**
+   - Append a v1.9 changelog entry mirroring the Worn Vintage entry format, noting Algolia as the backing search.
+
+### Not touched
+
+- Cron (`setup_cron_vault`, `cron-setup`), Tradera quota, eBay, VintageSphere, Worn Vintage, Pure Effect, editorial fields, DB schema (no migration — `marketplace` is plain text).
