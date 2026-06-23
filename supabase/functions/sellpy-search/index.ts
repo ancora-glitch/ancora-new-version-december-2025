@@ -88,7 +88,10 @@ function extractImages(hit: any): string[] {
   return urls;
 }
 
-function normalizeHit(hit: any): NormalizedItem {
+function normalizeHit(hit: any): NormalizedItem { function normalizeHit(hit: Record<string, unknown>): SellpyItem {
+  console.log("SELLPY HIT KEYS:", Object.keys(hit));
+  console.log("SELLPY HIT:", JSON.stringify(hit));
+  // ... resten oförändrad
   const id = String(hit.objectID ?? hit.id ?? "");
   const images = extractImages(hit);
   const title =
