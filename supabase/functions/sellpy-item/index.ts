@@ -25,56 +25,6 @@ const CONDITION_MAP: Record<string, string> = {
   "acceptabelt": "fair",
 };
 
-
-function firstString(...vals: unknown[]): string | null {
-  for (const v of vals) {
-    if (typeof v === "string" && v.trim()) return v.trim();
-    if (Array.isArray(v) && v.length > 0 && typeof v[0] === "string" && v[0].trim()) {
-      return v[0].trim();
-    }
-  }
-  return null;
-}
-
-function extractPrice(hit: any): number | null {
-  const candidates = [
-    hit.price,
-    hit.currentPrice,
-    hit.priceAmount,
-    hit?.prices?.SEK,
-    hit?.prices?.sek,
-    hit?.price?.amount,
-  ];
-  for (const c of candidates) {
-    if (typeof c === "number" && !isNaN(c)) return c;
-    if (typeof c === "string") {
-      const n = parseFloat(c);
-      if (!isNaN(n)) return n;
-    }
-  }
-  return null;
-}
-
-function extractImages(hit: any): string[] {
-  const raw =
-    hit.imageUrls ||
-    hit.images ||
-    hit.imageURL ||
-    hit.image ||
-    hit.thumbnails ||
-    [];
-  const arr = Array.isArray(raw) ? raw : [raw];
-  const urls: string[] = [];
-  for (const it of arr) {
-    if (typeof it === "string" && it.startsWith("http")) urls.push(it);
-    else if (it && typeof it === "object") {
-      const u = it.url || it.src || it.large || it.medium || it.original;
-      if (typeof u === "string" && u.startsWith("http")) urls.push(u);
-    }
-  }
-  return urls;
-}
-
 function mapCondition(raw: string | null): string | null {
   if (!raw) return null;
   const key = raw.trim().toLowerCase();
@@ -124,48 +74,49 @@ Deno.serve(async (req) => {
       );
     }
 
-    const hit = await response.json();
-    const images = extractImages(hit);
-    const title =
-      firstString(hit.title, hit.name, hit?.title?.sv, hit?.title?.en) ||
-      "(no title)";
-    const brand = firstString(hit.brand, hit.brandName, hit?.brand?.name);
-    const size = firstString(hit.size, hit.sizes, hit?.size?.label);
-    const color = firstString(hit.color, hit.colors, hit?.color?.label);
-    const material = firstString(hit.material, hit.materials, hit?.material?.label);
-    const condition_raw = firstString(hit.condition, hit.conditionLabel, hit?.condition?.label);
-    const description = firstString(hit.description, hit?.description?.sv, hit?.description?.en);
-    const available =
-      typeof hit.available === "boolean"
-        ? hit.available
-        : typeof hit.inStock === "boolean"
-        ? hit.inStock
-        : true;
+    const hit = await response.json() as Record<string, unknown>;
+
+    const metadata = (hit.metadata ?? {}) as Record<string, unknown>;
+    const pricing = (hit.pricing ?? {}) as Record<string, unknown>;
+
+    const brand = (metadata.brand as string) ?? null;
+    const type = (metadata.type as string) ?? "";
+    const size = (metadata.size as string) ?? null;
+    const title = [brand, type, size].filter(Boolean).join(" ") || "Untitled";
+    const price = typeof pricing.amount === "number" ? pricing.amount : null;
+
+    const colorArr = Array.isArray(metadata.color) ? metadata.color : [];
+    const materialArr = Array.isArray(metadata.material) ? metadata.material : [];
+
+    const available = hit.isForSale === true;
+    const condition_raw = (metadata.condition as string) ?? null;
+    const images = Array.isArray(hit.images) ? (hit.images as string[]) : [];
+    const objectID = String(hit.objectID ?? id);
 
     const item = {
-      external_id: id,
+      external_id: objectID,
       title,
-      handle: id,
-      description,
-      price: extractPrice(hit),
+      handle: objectID,
+      description: null,
+      price,
       currency: "SEK",
       brand,
       size,
-      color,
-      material,
+      color: colorArr.join(", ") || null,
+      material: materialArr.join(", ") || null,
       condition: mapCondition(condition_raw),
       condition_raw,
       available,
       images,
-      productUrl: `${PRODUCT_BASE}/${id}`,
-      tags: Array.isArray(hit.tags) ? hit.tags : [],
+      productUrl: `${PRODUCT_BASE}/${objectID}`,
+      tags: [],
       era: null,
       vendor: brand ?? "Sellpy",
-      productType: firstString(hit.category, hit.productType, hit?.category?.label) ?? "",
+      productType: type,
     };
 
     console.info("[SellpyItem]", {
-      id,
+      id: objectID,
       images: item.images.length,
       condition_raw,
       condition_mapped: item.condition,
