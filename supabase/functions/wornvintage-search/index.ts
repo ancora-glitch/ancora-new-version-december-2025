@@ -1,8 +1,7 @@
 /**
- * Worn Vintage Search — scrapes Shopify /collections/<handle>/products.json
- * Restricted to genuine secondhand: /collections/vintage and /collections/bags.
- * The "Worn Design" line (newly manufactured upcycled leather) is intentionally
- * NOT included. Isolated from Tradera/eBay/VintageSphere/Pure Effect flows.
+ * Worn Vintage Search — paginated fetch from the global /products.json endpoint.
+ * Returns all products from the store in a single sweep; no per-collection logic,
+ * no dedupe. Isolated from Tradera/eBay/VintageSphere/Pure Effect flows.
  */
 
 const corsHeaders = {
@@ -12,7 +11,6 @@ const corsHeaders = {
 };
 
 const BASE_URL = "https://wornvintage.se";
-const COLLECTIONS = ["vintage", "bags"]; // genuine secondhand only — Worn Design excluded
 const MAX_PAGES = 20;
 const PAGE_SIZE = 250;
 const DELAY_MS = 500;
@@ -57,7 +55,6 @@ interface NormalizedItem {
   available: boolean;
   productUrl: string;
   tags: string[];
-  sourceCollection: string;
 }
 
 function extractOption(product: ShopifyProduct, optionName: string): string | null {
@@ -70,7 +67,7 @@ function extractOption(product: ShopifyProduct, optionName: string): string | nu
   return val;
 }
 
-function normalizeProduct(product: ShopifyProduct, sourceCollection: string): NormalizedItem {
+function normalizeProduct(product: ShopifyProduct): NormalizedItem {
   const variant = product.variants[0];
   const allAvailable = product.variants.some((v) => v.available);
   const price = variant ? parseFloat(variant.price) : null;
@@ -93,7 +90,6 @@ function normalizeProduct(product: ShopifyProduct, sourceCollection: string): No
     available: allAvailable,
     productUrl: `${BASE_URL}/products/${product.handle}`,
     tags: product.tags,
-    sourceCollection,
   };
 }
 
@@ -101,66 +97,58 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function fetchCollection(collection: string, maxPages: number): Promise<{ items: NormalizedItem[]; pages: number }> {
-  const items: NormalizedItem[] = [];
+async function fetchPage(page: number): Promise<ShopifyProduct[]> {
+  const url = `${BASE_URL}/products.json?limit=${PAGE_SIZE}&page=${page}`;
+  console.info(`[WornVintageSearch] Fetching page ${page}: ${url}`);
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      signal: controller.signal,
+      headers: { "User-Agent": "Ancora-Import/1.0 (+https://ancoraedit.lovable.app)" },
+    });
+  } catch (fetchErr: any) {
+    clearTimeout(timeout);
+    if (fetchErr.name === "AbortError") {
+      console.warn(`[WornVintageSearch] Timeout on page ${page}`);
+      return [];
+    }
+    throw fetchErr;
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  if (response.status === 429) {
+    console.warn(`[WornVintageSearch] Rate limited at page ${page}, waiting 2s`);
+    await sleep(2000);
+    response = await fetch(url, {
+      headers: { "User-Agent": "Ancora-Import/1.0 (+https://ancoraedit.lovable.app)" },
+    });
+  }
+
+  if (!response.ok) {
+    console.error(`[WornVintageSearch] HTTP ${response.status} on page ${page}`);
+    return [];
+  }
+
+  const data = await response.json();
+  return (data.products as ShopifyProduct[]) || [];
+}
+
+async function fetchAllProducts(maxPages: number): Promise<{ products: ShopifyProduct[]; pages: number }> {
+  const all: ShopifyProduct[] = [];
   let page = 1;
-  while (page <= maxPages) {
-    const url = `${BASE_URL}/collections/${collection}/products.json?limit=${PAGE_SIZE}&page=${page}`;
-    console.info(`[WornVintageSearch] Fetching ${collection} page ${page}: ${url}`);
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-
-    let response: Response;
-    try {
-      response = await fetch(url, {
-        signal: controller.signal,
-        headers: { "User-Agent": "Ancora-Import/1.0 (+https://ancoraedit.lovable.app)" },
-      });
-    } catch (fetchErr: any) {
-      clearTimeout(timeout);
-      if (fetchErr.name === "AbortError") {
-        console.warn(`[WornVintageSearch] Timeout on ${collection} page ${page}`);
-        break;
-      }
-      throw fetchErr;
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        console.warn(`[WornVintageSearch] Rate limited at ${collection} page ${page}, waiting 2s`);
-        await sleep(2000);
-        const retry = await fetch(url, {
-          headers: { "User-Agent": "Ancora-Import/1.0 (+https://ancoraedit.lovable.app)" },
-        });
-        if (!retry.ok) {
-          console.error(`[WornVintageSearch] Retry failed: ${retry.status}`);
-          break;
-        }
-        const retryData = await retry.json();
-        const products = (retryData.products as ShopifyProduct[]) || [];
-        if (products.length === 0) break;
-        items.push(...products.map((p) => normalizeProduct(p, collection)));
-        if (products.length < PAGE_SIZE) break;
-        page++;
-        await sleep(DELAY_MS);
-        continue;
-      }
-      console.error(`[WornVintageSearch] HTTP ${response.status} on ${collection} page ${page}`);
-      break;
-    }
-
-    const data = await response.json();
-    const products = (data.products as ShopifyProduct[]) || [];
+  for (; page <= maxPages; page++) {
+    const products = await fetchPage(page);
     if (products.length === 0) break;
-    items.push(...products.map((p) => normalizeProduct(p, collection)));
+    all.push(...products);
     if (products.length < PAGE_SIZE) break;
-    page++;
     await sleep(DELAY_MS);
   }
-  return { items, pages: page };
+  return { products: all, pages: page };
 }
 
 Deno.serve(async (req) => {
@@ -177,23 +165,10 @@ Deno.serve(async (req) => {
     const includeUnavailable = body.includeUnavailable ?? true;
     const maxPages = Math.min((body.maxPages as number) ?? MAX_PAGES, MAX_PAGES);
 
-    const all: NormalizedItem[] = [];
-    let totalPages = 0;
-    for (const collection of COLLECTIONS) {
-      const { items, pages } = await fetchCollection(collection, maxPages);
-      all.push(...items);
-      totalPages += pages;
-    }
+    const { products, pages } = await fetchAllProducts(maxPages);
+    const normalized = products.map((p) => normalizeProduct(p));
 
-    // Dedupe by handle (an item may live in both collections)
-    const seen = new Set<string>();
-    const deduped = all.filter((it) => {
-      if (seen.has(it.handle)) return false;
-      seen.add(it.handle);
-      return true;
-    });
-
-    let filtered = deduped;
+    let filtered = normalized;
     if (filterKeywords) {
       const words = filterKeywords.split(/\s+/);
       filtered = filtered.filter((item) => {
@@ -207,8 +182,8 @@ Deno.serve(async (req) => {
     }
 
     const durationMs = Date.now() - startTime;
-    log.pages_fetched = totalPages;
-    log.total_products = deduped.length;
+    log.pages_fetched = pages;
+    log.total_products = normalized.length;
     log.filtered_count = filtered.length;
     log.duration_ms = durationMs;
     console.info("[WornVintageSearch]", JSON.stringify(log));
@@ -217,7 +192,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         items: filtered,
         total: filtered.length,
-        pagesScanned: totalPages,
+        pagesScanned: pages,
         durationMs,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
