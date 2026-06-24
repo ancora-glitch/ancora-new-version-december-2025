@@ -1,5 +1,38 @@
 ANCORA — MASTER PROJECT SPECIFICATION
-Version 1.9
+Version 1.10
+
+Changelog v1.10:
+
+### 2026-06-24 — Sellpy: korrigerad Algolia-fältmappning + UI-label
+
+**Vad:** sellpy-search och sellpy-item uppdaterade till de verifierade
+Algolia-fältvägarna efter inspektion av rå hit-payload. Tidigare defensiva
+multi-key extraktion (title/brand/price på flera nycklar) ersatt med exakta
+vägar. Marketplace-label "Sellpy" (versalt S) tillagd i ProductDetail
+sourceLabels — DB-värdet förblir lowercase `sellpy`.
+
+**Filer:** supabase/functions/sellpy-search/index.ts,
+supabase/functions/sellpy-item/index.ts, src/pages/ProductDetail.tsx
+
+**DB:** Ingen migration.
+
+**Fältmappning (verifierad mot rådata):**
+- Titel: `metadata.brand` + `metadata.type` + `metadata.size` (Sellpys
+  titleOutputOrder), join med mellanslag
+- Pris: `pricing.amount` (heltal SEK)
+- Brand: `metadata.brand`
+- Storlek: `metadata.size`
+- Färg: `metadata.color[]` (array, joinad till sträng)
+- Material: `metadata.material[]` (array, joinad till sträng — visas i PDP)
+- Condition: `metadata.condition` (svensk vokabulär, mappad via CONDITION_MAP
+  → new / very_good / good / fair, okänt → null)
+- Bilder: `hit.images[]` (top-level array, image_url = images[0])
+- Tillgänglighet: `hit.isForSale === true`
+- objectID: `hit.objectID`
+
+**Övrigt:** Rå-hit-loggning (`console.log("SELLPY_RAW_HIT", ...)`) borttagen
+efter att fältvägarna verifierats. Direktlänkar till sellpy.se/item/{objectID}
+utan affiliate-tracking. Cap 10/session. Inga cron-jobb, ingen quota-räknare.
 
 Changelog v1.9:
 
@@ -2699,6 +2732,8 @@ Display rules:
   vintagesphere → "VintageSphere"
   pure_effect → "Pure Effect"
   redesignedby → "AddNewDesign"
+  wornvintage → "Worn Vintage"
+  sellpy → "Sellpy"
   manual → "Manual"
 - Priority: ancora_select_source, then marketplace (lowercase fallback)
 - Only shown for active/published products (hidden when sold)
@@ -2901,7 +2936,7 @@ DB: site_analytics (+ visitor_id)
 Admin: Statistics UI, intent rate formula, source filter row
 
 Source filter:
-All Sources | Tradera | eBay | VintageSphere | Pure Effect
+All Sources | Tradera | eBay | VintageSphere | Pure Effect | Worn Vintage | Sellpy
 Product Clicks, Purchase Intent, Intent Rate, trend chart, and Top Products are filtered by selected source.
 Page Views and Unique Visitors remain global (not source-specific), consistent across all filters.
 matchesSource helper compares sourceFilter against product.marketplace dynamically — new partners require only type + UI label additions.
@@ -3010,6 +3045,8 @@ ebay
 vintagesphere
 redesignedby
 pure_effect
+wornvintage
+sellpy
 manual
 Invariants
 All values lowercase
