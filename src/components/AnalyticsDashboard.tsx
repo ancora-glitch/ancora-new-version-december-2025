@@ -130,7 +130,7 @@ export const AnalyticsDashboard = () => {
     queryKey: ["product-meta-map"],
     queryFn: async () => {
       const [{ data: products }, { data: categories }] = await Promise.all([
-        supabase.from("products").select("id, marketplace, category_id"),
+        supabase.from("products").select("id, marketplace, category_id, subcategory"),
         supabase.from("categories").select("id, name"),
       ]);
       const catNameById: Record<string, string> = {};
@@ -139,7 +139,15 @@ export const AnalyticsDashboard = () => {
       const category: Record<string, string> = {};
       products?.forEach((p) => {
         if (p.marketplace) marketplace[p.id] = p.marketplace.toLowerCase();
-        if (p.category_id && catNameById[p.category_id]) category[p.id] = catNameById[p.category_id];
+        const baseCat = p.category_id ? catNameById[p.category_id] : null;
+        if (baseCat) {
+          if (p.subcategory) {
+            const sub = p.subcategory.charAt(0).toUpperCase() + p.subcategory.slice(1);
+            category[p.id] = `${baseCat} / ${sub}`;
+          } else {
+            category[p.id] = baseCat;
+          }
+        }
       });
       return { marketplace, category };
     },
