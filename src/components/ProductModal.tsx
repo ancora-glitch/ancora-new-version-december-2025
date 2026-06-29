@@ -47,9 +47,12 @@ export const ProductModal = ({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const analyticsTrackedRef = useRef(false);
 
-  const redirectUrl = marketplace?.toLowerCase() === "ebay"
-    ? (toEbayAffiliateUrl(affiliateUrl) || cleanUrl(affiliateUrl))
-    : cleanUrl(affiliateUrl);
+  const redirectUrl = (() => {
+    const mp = marketplace?.toLowerCase();
+    if (mp === "ebay") return toEbayAffiliateUrl(affiliateUrl) || cleanUrl(affiliateUrl);
+    if (mp === "pure_effect") return toPureEffectAffiliateUrl(affiliateUrl) || cleanUrl(affiliateUrl);
+    return cleanUrl(affiliateUrl);
+  })();
   const partnerName = marketplace || "Instagram";
 
   // Track Buy Now click for analytics (called on link click)
