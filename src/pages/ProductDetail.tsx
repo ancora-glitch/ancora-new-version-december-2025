@@ -11,6 +11,7 @@ import { trackBuyNowClickBeacon } from "@/hooks/useAnalytics";
 import { markProductViewed } from "@/lib/sessionAnalytics";
 import { useState } from "react";
 import { toEbayAffiliateUrl } from "@/lib/ebayAffiliate";
+import { toPureEffectAffiliateUrl } from "@/lib/pureEffectAffiliate";
 
 // Track product page view (excludes admins) and marks product as viewed in session
 const trackProductPageView = async (productId: string, productName: string, brand: string) => {

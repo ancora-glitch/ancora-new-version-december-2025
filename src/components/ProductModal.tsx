@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { X, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { trackBuyNowClickBeacon } from "@/hooks/useAnalytics";
 import { toEbayAffiliateUrl } from "@/lib/ebayAffiliate";
+import { toPureEffectAffiliateUrl } from "@/lib/pureEffectAffiliate";
 
 interface ProductModalProps {
   isOpen: boolean;
