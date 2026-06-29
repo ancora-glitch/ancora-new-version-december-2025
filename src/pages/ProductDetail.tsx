@@ -11,6 +11,7 @@ import { trackBuyNowClickBeacon } from "@/hooks/useAnalytics";
 import { markProductViewed } from "@/lib/sessionAnalytics";
 import { useState } from "react";
 import { toEbayAffiliateUrl } from "@/lib/ebayAffiliate";
+import { toPureEffectAffiliateUrl } from "@/lib/pureEffectAffiliate";
 
 // Track product page view (excludes admins) and marks product as viewed in session
 const trackProductPageView = async (productId: string, productName: string, brand: string) => {
@@ -223,12 +224,11 @@ const ProductDetail = () => {
   const buyNowUrl = useMemo(() => {
     if (!product || isSoldOrUnavailable) return "#";
     const raw = product.affiliate_url;
-    const isEbay = product.marketplace?.toLowerCase() === "ebay";
-    const final = isEbay
-      ? (toEbayAffiliateUrl(raw) || cleanUrl(raw))
-      : cleanUrl(raw);
-    console.log("[ebay-affiliate] final_url:", final, "| raw:", raw, "| marketplace:", product.marketplace);
-    return final;
+    const mp = product.marketplace?.toLowerCase();
+
+    if (mp === "ebay") return toEbayAffiliateUrl(raw) || cleanUrl(raw);
+    if (mp === "pure_effect") return toPureEffectAffiliateUrl(raw) || cleanUrl(raw);
+    return cleanUrl(raw);
   }, [product, isSoldOrUnavailable]);
 
   // Track Buy Now click for analytics (called on link click)
