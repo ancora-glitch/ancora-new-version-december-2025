@@ -13,6 +13,7 @@ import { CategoryScrollMenu } from "@/components/CategoryScrollMenu";
 import { ProductToolbar, SortOption } from "@/components/ProductToolbar";
 import { ProductFilters, ActiveProductFilters, EMPTY_FILTERS } from "@/components/ProductFilters";
 import { brandGroupKey, canonicalBrandDisplay } from "@/utils/normalizeBrand";
+import { colorGroupKey, canonicalColorDisplay } from "@/utils/normalizeColor";
 
 type Category = Tables<"categories">;
 type Product = Tables<"products">;
@@ -91,10 +92,17 @@ const CategoryPage = () => {
       : products ?? [];
   }, [products, isClothing, selectedSubcategory]);
 
-  const colorOptions = useMemo(
-    () => Array.from(new Set(subcategoryFilteredProducts.map((p) => p.color).filter(Boolean))) as string[],
-    [subcategoryFilteredProducts]
-  );
+  const colorOptions = useMemo(() => {
+    const groups = new Map<string, string>(); // groupKey -> canonical display
+    subcategoryFilteredProducts.forEach((p) => {
+      if (!p.color) return;
+      const key = colorGroupKey(p.color);
+      if (!groups.has(key)) {
+        groups.set(key, canonicalColorDisplay(p.color));
+      }
+    });
+    return Array.from(groups.values()).sort();
+  }, [subcategoryFilteredProducts]);
   const sizeOptions = useMemo(
     () => Array.from(new Set(subcategoryFilteredProducts.map((p) => p.size).filter(Boolean))) as string[],
     [subcategoryFilteredProducts]
@@ -113,7 +121,14 @@ const CategoryPage = () => {
 
   const filteredProducts = useMemo(() => {
     let result = subcategoryFilteredProducts.filter((p) => {
-      if (activeFilters.colors.length && !activeFilters.colors.includes(p.color ?? "")) return false;
+      if (
+        activeFilters.colors.length &&
+        !activeFilters.colors.some((selectedDisplay) => {
+          const productKey = p.color ? colorGroupKey(p.color) : "";
+          const selectedKey = colorGroupKey(selectedDisplay);
+          return productKey === selectedKey;
+        })
+      ) return false;
       if (activeFilters.sizes.length && !activeFilters.sizes.includes(p.size ?? "")) return false;
       if (
         activeFilters.brands.length &&

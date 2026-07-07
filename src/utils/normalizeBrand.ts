@@ -11,6 +11,7 @@ export const brandGroupKey = (brand: string): string => {
   return brand
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // ta bort diakritiska tecken (é→e, ö→o, etc.)
+    .replace(/[\s\u00A0\u200B]+/g, " ") // kollapsa alla whitespace-typer (inkl. NBSP, ZWSP) till ett vanligt mellanslag
     .trim()
     .toLowerCase();
 };
@@ -60,6 +61,10 @@ const MANUAL_BRAND_ALIASES: Record<string, string> = {
   "acne": "Acne Studios",
   "acne jeans": "Acne Studios",
   "acne studios": "Acne Studios",
+
+  // House of Dagmar — kort form aliasas till fullt namn
+  "dagmar": "House of Dagmar",
+  "house of dagmar": "House of Dagmar",
 };
 
 /**
