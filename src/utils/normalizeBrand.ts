@@ -22,8 +22,44 @@ export const brandGroupKey = (brand: string): string => {
  * Fylls på manuellt när audit-queryn (steg 1) visar fler kluster.
  */
 const MANUAL_BRAND_ALIASES: Record<string, string> = {
+  // See by Chloé
   "see by chloe": "See by Chloé",
   "see by chloé": "See by Chloé",
+
+  // Mads Nørgaard (ø är inte en diakritisk kombination — NFD-strippning löser den inte)
+  "mads norgaard": "Mads Nørgaard",
+  "mads nørgaard": "Mads Nørgaard",
+  "mads norgaard copenhagen": "Mads Nørgaard",
+
+  // Dr. Martens (punkt-variant)
+  "dr martens": "Dr. Martens",
+  "dr. martens": "Dr. Martens",
+
+  // Ganni x Levi's (apostrof-teckenkodning)
+  "ganni x levi's": "Ganni x Levi's",
+
+  // Stockholm Surfboard Club (parentes-variant)
+  "stockholm (surfboard) club": "Stockholm Surfboard Club",
+  "stockholm surfboard club": "Stockholm Surfboard Club",
+
+  // Barbour-collabs (case-varianter, redan täckta av Title Case men explicit
+  // för tydlighet kring x-separator)
+  "barbour x alexa chung": "Barbour x Alexa Chung",
+  "barbour x ganni": "Barbour x Ganni",
+
+  // Rotate — alltid fullt namn
+  "rotate": "Rotate Birger Christensen",
+  "rotate birger christensen": "Rotate Birger Christensen",
+  "rotate briger christensen": "Rotate Birger Christensen", // känt stavfel i källdata
+
+  // By Malina — samma varumärke
+  "by malina": "By Malina",
+  "malina": "By Malina",
+
+  // Acne — slås ihop till en grupp (redaktionellt beslut, 2026-07-07)
+  "acne": "Acne Studios",
+  "acne jeans": "Acne Studios",
+  "acne studios": "Acne Studios",
 };
 
 /**
