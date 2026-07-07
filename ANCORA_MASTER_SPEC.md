@@ -7,8 +7,8 @@ Changelog v1.10:
 
 Vad: Ersatte flex-wrap subkategori-knappar med horisontell scroll-meny
 (CategoryScrollMenu, delad mellan Shop och CategoryPage). Lade till
-Filter-sidebar (Färg/Storlek/Varumärke, dynamiskt extraherade ur synliga
-produkter) och Sortera-dropdown (Pris låg→hög, Pris hög→låg, Senast inkommet).
+Filter-sidebar (Färg/Storlek/Varumärke, dynamiskt extraherade) och
+Sortera-dropdown (Pris låg→hög, Pris hög→låg, Senast inkommet).
 
 Filer: src/constants/subcategories.ts (ny), CategoryScrollMenu.tsx (ny),
 ProductFilters.tsx (ny), ProductToolbar.tsx (ny), useProducts.ts
@@ -17,24 +17,37 @@ ProductFilters.tsx (ny), ProductToolbar.tsx (ny), useProducts.ts
 DB: Inga migrations. Inga enum-ändringar.
 
 Invarianter: Default-sortering oförändrad (Shop: created_at desc,
-CategoryPage: sort_order asc) när ingen sortering vald. CLOTHING_SUBCATEGORIES
-nu på exakt ett ställe. Typecheck OK.
+CategoryPage: sort_order asc) när ingen sortering vald.
 
-Security-scan: 9 findings, samtliga pre-existing (2026-02-01–2026-06-28),
-inga introducerade av denna ändring.
+Security-scan: 9 findings, samtliga pre-existing, inga introducerade av
+denna ändring (se separat lista över öppna säkerhetsärenden nedan).
 
 ### 2026-07-07 — Brand-filter: normalisering av dubbletter (display-lager)
 
-Vad: normalizeBrand.ts (ny) — brandGroupKey (case+accent-normalisering) +
-MANUAL_BRAND_ALIASES för kluster som kräver manuellt beslut: Mads Nørgaard,
-Dr. Martens, Ganni x Levi's, Stockholm Surfboard Club, Barbour-collabs,
-Rotate Birger Christensen, By Malina, Acne (Studios/Jeans/plain slås ihop —
-redaktionellt beslut, projektägare 2026-07-07, avviker från Claudes
-rekommendation om att hålla Acne-linjerna separata).
+Vad: normalizeBrand.ts (ny) — brandGroupKey (NFD-accent-strip + whitespace-
+kollaps + lowercase) + MANUAL_BRAND_ALIASES för semantiska kluster: Mads
+Nørgaard, Dr. Martens, Ganni x Levi's, Stockholm Surfboard Club, Barbour-
+collabs, Rotate Birger Christensen (inkl. "Rotate" och stavfelet "Briger"),
+By Malina, Acne (Studios/Jeans/plain — redaktionellt beslut, projektägare
+2026-07-07, avviker från Claudes rekommendation om att hålla dem separata),
+House of Dagmar (inkl. "Dagmar").
 
 Ren display/filter-normalisering — products.brand orört i DB.
 
-tsgo --noEmit OK.
+### 2026-07-07 — Färgfilter: normalisering + multi-token-splittning
+
+Vad: normalizeColor.ts (ny) — colorGroupKey (samma normalisering som brand)
++ MANUAL_COLOR_ALIASES (Off-white) + splitColorValue som delar upp
+kombinerade färgvärden ("Black, White", "Black & Gold" etc.) på
+komma/slash/&/"och" till separata filter-chips, så en produkt matchar
+flera färgval samtidigt. NO_SPLIT_OVERRIDES-undantag för värden som ser ut
+som flera färger men semantiskt är en ("Light & Dark Blue").
+
+Ren display/filter-normalisering — products.color orört i DB.
+
+Rör inte färgvisning på ProductCard/grid, endast filter-sidebar.
+
+tsgo --noEmit OK genom hela kedjan av ändringar.
 
 Känt datafel, EJ åtgärdat — eget ärende:
 
@@ -50,6 +63,7 @@ deklarationen vinner, sold-arkivet kan vara trasigt.
 Ej åtgärdat, kräver eget beslut, sedan tidigare:
 
 - Tradera Edge Functions saknar auth helt (error-nivå finding, sedan 2026-02-01)
+
 - RLS på products tillåter publik läsning av unpublished/internal data
 
 
