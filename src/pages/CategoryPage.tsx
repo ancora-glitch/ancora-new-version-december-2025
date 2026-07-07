@@ -61,7 +61,10 @@ const CategoryPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const subFromUrl = searchParams.get("sub");
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(subFromUrl);
-  
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [sortValue, setSortValue] = useState<SortOption | null>(null);
+  const [activeFilters, setActiveFilters] = useState<ActiveProductFilters>(EMPTY_FILTERS);
+
   const { data: category, isLoading: categoryLoading, error: categoryError } = useCategoryBySlug(slug);
   const { data: products, isLoading: productsLoading } = useCategoryProducts(category?.id);
 
@@ -81,10 +84,46 @@ const CategoryPage = () => {
     }
   };
 
-  // Filter by subcategory if clothing
-  const filteredProducts = isClothing && selectedSubcategory
-    ? products?.filter((p) => (p as any).subcategory === selectedSubcategory)
-    : products;
+  const subcategoryFilteredProducts = useMemo(() => {
+    return isClothing && selectedSubcategory
+      ? products?.filter((p) => (p as any).subcategory === selectedSubcategory) ?? []
+      : products ?? [];
+  }, [products, isClothing, selectedSubcategory]);
+
+  const colorOptions = useMemo(
+    () => Array.from(new Set(subcategoryFilteredProducts.map((p) => p.color).filter(Boolean))) as string[],
+    [subcategoryFilteredProducts]
+  );
+  const sizeOptions = useMemo(
+    () => Array.from(new Set(subcategoryFilteredProducts.map((p) => p.size).filter(Boolean))) as string[],
+    [subcategoryFilteredProducts]
+  );
+  const brandOptions = useMemo(
+    () => Array.from(new Set(subcategoryFilteredProducts.map((p) => p.brand).filter(Boolean))) as string[],
+    [subcategoryFilteredProducts]
+  );
+
+  const filteredProducts = useMemo(() => {
+    let result = subcategoryFilteredProducts.filter((p) => {
+      if (activeFilters.colors.length && !activeFilters.colors.includes(p.color ?? "")) return false;
+      if (activeFilters.sizes.length && !activeFilters.sizes.includes(p.size ?? "")) return false;
+      if (activeFilters.brands.length && !activeFilters.brands.includes(p.brand ?? "")) return false;
+      return true;
+    });
+
+    if (sortValue === "price_asc") {
+      result = [...result].sort((a, b) => parsePriceValue(a.price) - parsePriceValue(b.price));
+    } else if (sortValue === "price_desc") {
+      result = [...result].sort((a, b) => parsePriceValue(b.price) - parsePriceValue(a.price));
+    } else if (sortValue === "newest") {
+      result = [...result].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    }
+    // sortValue === null → behåller ursprunglig sort_order-ordning
+
+    return result;
+  }, [subcategoryFilteredProducts, activeFilters, sortValue]);
 
   // Update document metadata when category data is available
   useEffect(() => {
