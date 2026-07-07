@@ -3,6 +3,56 @@ Version 1.10
 
 Changelog v1.10:
 
+### 2026-07-07 — Filter & Sortering på Shop + CategoryPage
+
+Vad: Ersatte flex-wrap subkategori-knappar med horisontell scroll-meny
+(CategoryScrollMenu, delad mellan Shop och CategoryPage). Lade till
+Filter-sidebar (Färg/Storlek/Varumärke, dynamiskt extraherade ur synliga
+produkter) och Sortera-dropdown (Pris låg→hög, Pris hög→låg, Senast inkommet).
+
+Filer: src/constants/subcategories.ts (ny), CategoryScrollMenu.tsx (ny),
+ProductFilters.tsx (ny), ProductToolbar.tsx (ny), useProducts.ts
+(+parsePriceValue), Shop.tsx, CategoryPage.tsx
+
+DB: Inga migrations. Inga enum-ändringar.
+
+Invarianter: Default-sortering oförändrad (Shop: created_at desc,
+CategoryPage: sort_order asc) när ingen sortering vald. CLOTHING_SUBCATEGORIES
+nu på exakt ett ställe. Typecheck OK.
+
+Security-scan: 9 findings, samtliga pre-existing (2026-02-01–2026-06-28),
+inga introducerade av denna ändring.
+
+### 2026-07-07 — Brand-filter: normalisering av dubbletter (display-lager)
+
+Vad: normalizeBrand.ts (ny) — brandGroupKey (case+accent-normalisering) +
+MANUAL_BRAND_ALIASES för kluster som kräver manuellt beslut: Mads Nørgaard,
+Dr. Martens, Ganni x Levi's, Stockholm Surfboard Club, Barbour-collabs,
+Rotate Birger Christensen, By Malina, Acne (Studios/Jeans/plain slås ihop —
+redaktionellt beslut, projektägare 2026-07-07, avviker från Claudes
+rekommendation om att hålla Acne-linjerna separata).
+
+Ren display/filter-normalisering — products.brand orört i DB.
+
+tsgo --noEmit OK.
+
+Känt datafel, EJ åtgärdat — eget ärende:
+
+products.brand innehåller trasiga värden: "Unknown", "UnknownCarhartt",
+"UnknownSkall Studio". Ser ut som en konkateneringsbugg i en import-adapter.
+Kräver DB-fix och grundorsaksanalys, inte filter-alias.
+
+Känd bugg, ej åtgårdad, sedan tidigare:
+
+useAllProducts dubbeldeklarerad i useProducts.ts (rad 50 & 79) — andra
+deklarationen vinner, sold-arkivet kan vara trasigt.
+
+Ej åtgärdat, kräver eget beslut, sedan tidigare:
+
+- Tradera Edge Functions saknar auth helt (error-nivå finding, sedan 2026-02-01)
+- RLS på products tillåter publik läsning av unpublished/internal data
+
+
 ### 2026-06-24 — Sellpy: korrigerad Algolia-fältmappning + UI-label
 
 **Vad:** sellpy-search och sellpy-item uppdaterade till de verifierade
