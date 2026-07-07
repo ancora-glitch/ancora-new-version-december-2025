@@ -13,6 +13,9 @@ import { CategoryScrollMenu } from "@/components/CategoryScrollMenu";
 import { ProductToolbar, SortOption } from "@/components/ProductToolbar";
 import { ProductFilters, ActiveProductFilters, EMPTY_FILTERS } from "@/components/ProductFilters";
 
+type Category = Tables<"categories">;
+type Product = Tables<"products">;
+
 const useCategoryBySlug = (slug: string | undefined) => {
   return useQuery({
     queryKey: ["category", slug],
