@@ -1,39 +1,48 @@
-## Multi-token färgfilter
+# Plan: Update Master Spec with RLS Policy Change
 
-### Ändringar
+## What
+Append a new changelog entry to the existing 2026-07-07 section in `ANCORA_MASTER_SPEC.md` documenting the products SELECT RLS policy change.
 
-**1. `src/utils/normalizeColor.ts`**
-- Lägg till `"off white"` / `"off-white"` → `"Off-white"` i `MANUAL_COLOR_ALIASES`.
-- Exportera ny `splitColorValue(rawColor)` som splittar på `,` `/` `&` samt " och " (case-insensitive), trimmar och filtrerar tomma tokens.
+## Entry to insert (verbatim)
 
-**2. `src/pages/Shop.tsx` + `src/pages/CategoryPage.tsx`**
-- Importera `splitColorValue`.
-- `colorOptions`: iterera produkter → för varje produkt splitta color, gruppera varje token via `colorGroupKey` med `canonicalColorDisplay` som visningsvärde.
-- Filtrering: produkt matchar om någon av dess splittade tokens (som group-key) finns bland `activeFilters.colors` (som group-keys). Produkter utan color exkluderas när filter är aktivt.
-- Rör inte visning av color på ProductCard/grid — endast filter-sidebar och matchningslogik.
+```text
+### 2026-07-07 — RLS-fix på products: publik SELECT begränsad
 
-### Konkret utfall av splitten (från audit)
+Vad: Ersatte helt öppen SELECT-policy (qual: true) med två policies:
 
-Rena, väntade splittar (majoriteten):
-- `Black / White` → `Black`, `White`
-- `Beige / Black / White / Yellow` → 4 rena tokens
-- `Black & Gold` → `Black`, `Gold`
-- `Beige, Camel, Black, White` → 4 rena tokens
-- `Black/grey`, `Blue/Brown`, `Gold/Silver`, `Green/Blue`, `Grey/Pink` → splittar korrekt (regex kräver inte whitespace runt `/`)
+"Public can view active and sold products" (status IN active/sold,
+allowlist — framtida statusar som archived/pending_import/review_required
+exponeras INTE publikt by default) och "Admins can view all products"
+(has_role-check). Åtgärdar security finding #6 (unpublished/internal
+produktdata publikt läsbar sedan 2026-06-23).
 
-Kluster som konsolideras via `colorGroupKey` (case-insensitive):
-- `Black, White` + `Black, white` + `Black & White` + `Black / White` → alla producerar tokens `Black` + `White`
-- `Gold` + `gold`, `Green` + `green` → en grupp vardera
+Verifierat: anon-totalräkning 1358 (1022 sold + 336 active), draft-id
+och status=eq.draft returnerar tomt för anon, sold-arkiv och sold-PDP
+fungerar oförändrat för anon, admin ser alla 1370 rader inkl. 12 drafts.
 
-Potentiellt "brusiga" tokens att vara medveten om (får egen filter-chip):
-- `Dark navy / black pinstripe` → `Dark navy`, `black pinstripe` (den senare är ovanlig som fristående färg)
-- `Light & Dark Blue` → `Light`, `Dark Blue` (tappar semantik — "Light" blir en fristående chip)
-- `Brown, Blue & Pink` → `Brown`, `Blue`, `Pink` (OK)
-- Ej berörda av split (saknar separator): `Anthracite (Dark grey)`, `Black leather with gold hardware`, `Butter yellow`, `Charcoal grey`, `Dark taupe`, `Faded Green`, `Khaki Green`, `Light military green`, `Moss Green`, `Olive Green`, `Orange Rust`, `Pale Pink`, `Caramel Brown`, `Mint green`, `Cream White`, `Dark Sand`, `Dark Khaki`, `Golden yellow`, `Mid blue`, `Mixed blue` m.fl. — dessa fortsätter fungera som en chip var.
+tsgt --noEmit OK.
 
-Om `Light` som fristående chip stör kan `MANUAL_COLOR_ALIASES` senare mappa den, alternativt lägga en pre-split-normalisering — utanför denna PR.
+KRITISK KORRIGERING under processen: ursprungligt förslag (active+published)
+hade brutit sold-arkivet/PDP/story-embeds — fångat av Lovables diagnos
+INNAN produktion. Grundorsak: Claude kände inte till invarianten "sold-
+produkter visas publikt som historisk proveniens" och gissade fel status-
+lista utifrån bara useProducts.ts. Lärdom: fråga om alla publika
+konsumtionsvägar innan RLS-policy ändras på en delad tabell.
 
-### Verifiering
-- `tsgo --noEmit` ska passera.
-- Ingen DB-migration; `products.color` orört.
-- Manuell rök-test: öppna Shop → färgfiltret ska visa splittrade primärfärger (t.ex. `White` som egen chip även om ingen produkt har enbart White) och filtrera korrekt.
+DB: RLS-policy-ändring på products (SELECT only). Inga enum-ändringar,
+inga INSERT/UPDATE/DELETE-policies rörda.
+
+Öppen fråga, ej beslutad: ska archived/pending_import/review_required
+någonsin vara publikt synliga? Just nu dolda by default.
+```
+
+## Where
+Group it with the other 2026-07-07 changelog entries in `ANCORA_MASTER_SPEC.md`, immediately after the prior entry (around the top of the changelog section).
+
+## Steps
+1. Read current lines around the 2026-07-07 entries in `ANCORA_MASTER_SPEC.md`.
+2. Insert the new entry immediately after the existing 2026-07-07 entries.
+3. Save and verify the file still reads correctly.
+
+## No code/DB/schema changes
+This is a documentation-only edit to the project specification.
