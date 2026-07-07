@@ -11,9 +11,10 @@ import { PUBLIC_VISIBLE_PRODUCT_STATUSES, formatPrice, parsePriceValue } from "@
 import { CLOTHING_SUBCATEGORIES } from "@/constants/subcategories";
 import { CategoryScrollMenu } from "@/components/CategoryScrollMenu";
 import { ProductToolbar, SortOption } from "@/components/ProductToolbar";
-import { ProductFilters, ActiveProductFilters, EMPTY_FILTERS } from "@/components/ProductFilters";
+import { ProductFilters, ActiveProductFilters } from "@/components/ProductFilters";
 import { brandGroupKey, canonicalBrandDisplay } from "@/utils/normalizeBrand";
 import { colorGroupKey, canonicalColorDisplay, splitColorValue } from "@/utils/normalizeColor";
+import { parseListParam, buildSearchParams } from "@/utils/urlFilterParams";
 
 type Category = Tables<"categories">;
 type Product = Tables<"products">;
