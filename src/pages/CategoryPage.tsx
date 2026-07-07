@@ -228,7 +228,7 @@ const CategoryPage = () => {
 
         {/* Subcategory Filters (Clothing only) */}
         {isClothing && (
-          <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto mb-10 md:mb-14">
+          <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto mb-8 md:mb-12">
             <CategoryScrollMenu
               options={CLOTHING_SUBCATEGORIES}
               selected={selectedSubcategory}

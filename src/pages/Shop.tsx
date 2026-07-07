@@ -177,12 +177,12 @@ const Shop = () => {
 
         {/* Subcategory Filters (Clothing only) — shared scroll menu */}
         <div
-          className="relative px-4 md:px-8 lg:px-12 max-w-7xl mx-auto"
+          className="relative px-4 md:px-8 lg:px-12 max-w-7xl mx-auto mb-8 md:mb-12"
           onMouseEnter={handleSubcategoryRowEnter}
           onMouseLeave={handleSubcategoryRowLeave}
         >
           {showSubcategories && (
-            <div className="pb-4 pt-1">
+            <div className="pt-1">
               <CategoryScrollMenu
                 options={CLOTHING_SUBCATEGORIES}
                 selected={selectedSubcategory}
@@ -196,9 +196,6 @@ const Shop = () => {
             </div>
           )}
         </div>
-
-        {/* Consistent spacer — no conditional height changes */}
-        <div className="mb-6 md:mb-10" />
 
         {/* Toolbar */}
         <div className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto">
