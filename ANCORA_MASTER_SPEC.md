@@ -1,7 +1,7 @@
 ANCORA — MASTER PROJECT SPECIFICATION
-Version 1.10
+Version 1.8
 
-Changelog v1.10:
+Changelog v1.8:
 
 ### 2026-07-07 — Filter & Sortering på Shop + CategoryPage
 
