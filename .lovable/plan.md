@@ -1,75 +1,32 @@
-Uppdatera `supabase/functions/sellpy-item/index.ts` så att den läser samma Algolia-fältvägar som `supabase/functions/sellpy-search/index.ts`, men behåll den nuvarande svarsstrukturen så att frontend/integrationer fortsätter fungera utan ändringar.
+## Plan: Filter & Sort UI för Shop och CategoryPage
 
-## Förändringar
+Implementera exakt enligt specifikationen — inga andra ändringar.
 
-### 1. Ersätt träff-extraheringen i `sellpy-item/index.ts`
+### Nya filer
+1. `src/constants/subcategories.ts` — delad `CLOTHING_SUBCATEGORIES` + `SubcategoryOption`-typ.
+2. `src/components/CategoryScrollMenu.tsx` — horisontell scrollbar-meny för subkategorier (delas av Shop + CategoryPage).
+3. `src/components/ProductFilters.tsx` — sidebar med collapsible grupper för Färg/Storlek/Varumärke + `ActiveProductFilters`-typ och `EMPTY_FILTERS`.
+4. `src/components/ProductToolbar.tsx` — "Visa/Dölj filter"-knapp + sort `<Select>` (Pris ↑/↓, Senast inkommet).
 
-Efter att `hit` har hämtats från Algolia (rad 127) och innan `item`-objektet sätts samman, ersätts nuvarande `extractImages`-anrop och alla `firstString`-extraktioner med exakt denna logik från `sellpy-search`:
+### Ändrade filer
+5. `src/hooks/useProducts.ts` — lägg endast till `parsePriceValue`-export längst ner. Inga andra ändringar.
+6. `src/pages/Shop.tsx`
+   - Ta bort lokal `CLOTHING_SUBCATEGORIES`, importera delad + nya komponenter + `useMemo` + `parsePriceValue`.
+   - Ny state: `filtersOpen`, `sortValue`, `activeFilters`.
+   - Ersätt subcategory-knappsblocket (både desktop overlay och mobile) med `<CategoryScrollMenu>`, wrap i befintlig `showSubcategories`-logik (hover-state orörd). När sub väljs och clothing inte är vald → auto-välj clothing-kategorin.
+   - Bygg om filtrering: `categoryFilteredProducts` (bas) → dynamiska color/size/brand-optioner → `filteredProducts` (applicerar activeFilters + sortering). `sortValue === null` behåller ursprunglig `created_at desc`-ordning.
+   - Lägg `<ProductToolbar>` ovanför griden och wrap grid i flex-layout med `<ProductFilters>` som sidebar (endast när `filtersOpen`).
+7. `src/pages/CategoryPage.tsx`
+   - Samma mönster: delad import, ny state, ersätt subcategory-block med `<CategoryScrollMenu>` (endast när `isClothing`).
+   - Bygg om `filteredProducts` via `subcategoryFilteredProducts` + dynamiska optioner. `sortValue === null` → INGET extra sort-anrop, behåller `sort_order asc` från queryn.
+   - Lägg `<ProductToolbar>` + wrap grid i flex+sidebar-layout.
 
-```typescript
-const metadata = (hit.metadata ?? {}) as Record<string, unknown>;
-const pricing = (hit.pricing ?? {}) as Record<string, unknown>;
+### Invarianter som bevaras
+- Ingen ändring i DB-schema, enums, categories/products-tabeller, eller queries.
+- Default-ordning oförändrad när ingen sortering vald (Shop = `created_at desc`, CategoryPage = `sort_order asc`).
+- Hover/show-logik för subcategories oförändrad i Shop.
+- Grid-JSX (kort-rendering, "All gone"-empty state, loading skeleton) orörd — bara wrappad i flex-container.
+- `CLOTHING_SUBCATEGORIES` finns nu på exakt ett ställe.
 
-const brand = (metadata.brand as string) ?? null;
-const type = (metadata.type as string) ?? "";
-const size = (metadata.size as string) ?? null;
-const title = [brand, type, size].filter(Boolean).join(" ") || "Untitled";
-const price = typeof pricing.amount === "number" ? pricing.amount : null;
-
-const colorArr = Array.isArray(metadata.color) ? metadata.color : [];
-const materialArr = Array.isArray(metadata.material) ? metadata.material : [];
-
-const available = hit.isForSale === true;
-const condition_raw = (metadata.condition as string) ?? null;
-const images = Array.isArray(hit.images) ? (hit.images as string[]) : [];
-const objectID = String(hit.objectID ?? "");
-```
-
-Därefter sätts `item` ihop med den befintliga svarsstrukturen:
-
-```typescript
-const item = {
-  external_id: objectID,
-  title,
-  handle: objectID,
-  description: null,
-  price,
-  currency: "SEK",
-  brand,
-  size,
-  color: colorArr.join(", ") || null,
-  material: materialArr.join(", ") || null,
-  condition: mapCondition(condition_raw),
-  condition_raw,
-  available,
-  images,
-  productUrl: `${PRODUCT_BASE}/${objectID}`,
-  tags: [],
-  era: null,
-  vendor: brand ?? "Sellpy",
-  productType: type,
-};
-```
-
-### 2. Ta bort eller behåll hjälpfunktioner
-
-- `extractImages` och `extractPrice` blir oanvända och kan tas bort.
-- `firstString` blir oanvänd och kan tas bort.
-- `mapCondition` och `CONDITION_MAP` behålls oförändrade eftersom de ger korrekt condition-mappning.
-- `corsHeaders`, konstanter för Algolia, URL-byggare och felhantering behålls oförändrade.
-
-### 3. Validering innan deploy
-
-- Kör en snabb syntaxkontroll av filen.
-- Verifiera att `condition_raw` fortfarande mappas via `mapCondition` till `new`, `very_good`, `good`, `fair` eller `null`.
-
-### 4. Deploy
-
-Deploya endast `sellpy-item` edge function.
-
-### 5. Test
-
-- Gör en ny sökning i Sellpy-drawern (admin > imports).
-- Välj ett resultat och importera det.
-- Verifiera att produkten skapas korrekt med fälten: titel, pris, brand, storlek, färg, material, skick, bilder och tillgänglighet.
-- Om något fält saknas eller är fel, inspektera edge-function-loggarna och justera.
+### Verifiering
+`tsgo --noEmit` efter ändringarna.
