@@ -96,3 +96,10 @@ export const formatPrice = (price: string | number): string => {
   // Price is now stored as text, return as-is
   return String(price);
 };
+
+export const parsePriceValue = (price: string | number): number => {
+  if (typeof price === "number") return price;
+  const cleaned = price.replace(/[^\d.,-]/g, "").replace(",", ".");
+  const num = parseFloat(cleaned);
+  return Number.isNaN(num) ? 0 : num;
+};
