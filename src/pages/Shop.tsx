@@ -88,9 +88,10 @@ const Shop = () => {
     const groups = new Map<string, string>(); // groupKey -> canonical display
     categoryFilteredProducts.forEach((p) => {
       if (!p.brand) return;
-      const key = brandGroupKey(p.brand);
+      const display = canonicalBrandDisplay(p.brand);
+      const key = brandGroupKey(display);
       if (!groups.has(key)) {
-        groups.set(key, canonicalBrandDisplay(p.brand));
+        groups.set(key, display);
       }
     });
     return Array.from(groups.values()).sort();
