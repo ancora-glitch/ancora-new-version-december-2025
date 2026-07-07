@@ -3279,3 +3279,33 @@ Rules:
   aborted_kill_switch
   aborted_flag_disabled
   aborted_rate_limit
+
+### 2026-07-07 — Filter & Sortering på Shop + CategoryPage
+
+Vad: Ersatte flex-wrap subkategori-knappar med horisontell scroll-meny
+(CategoryScrollMenu, delad mellan Shop och CategoryPage). Lade till
+Filter-sidebar (Färg/Storlek/Varumärke, dynamiskt extraherade ur synliga
+produkter — inga lookup-tabeller finns) och Sortera-dropdown
+(Pris låg→hög, Pris hög→låg, Senast inkommet).
+
+Filer: src/constants/subcategories.ts (ny), CategoryScrollMenu.tsx (ny),
+ProductFilters.tsx (ny), ProductToolbar.tsx (ny), useProducts.ts
+(+parsePriceValue), Shop.tsx, CategoryPage.tsx
+
+DB: Inga migrations. Inga enum-ändringar.
+
+Invarianter: Default-sortering oförändrad (Shop: created_at desc,
+CategoryPage: sort_order asc) när ingen sortering vald. CLOTHING_SUBCATEGORIES
+nu på exakt ett ställe. Typecheck OK (tsgo --noEmit).
+
+Security-scan: 9 findings, samtliga pre-existing (2026-02-01–2026-06-28),
+inga introducerade av denna ändring — se separat post nedan för åtgärd.
+
+Känd bugg, ej åtgärdad: useAllProducts dubbeldeklarerad i useProducts.ts
+(rad 50 & 79) — andra deklarationen vinner, sold-arkivet kan vara trasigt.
+
+Ej åtgärdat, kräver eget beslut:
+- Tradera Edge Functions (tradera-sync, tradera-upload-images, m.fl.) saknar
+  auth helt — error-nivå finding, öppet sedan 2026-02-01.
+- RLS på products tillåter publik läsning av unpublished/internal data
+  (draft-produkter kan vara läsbara via API trots att UI döljer dem).
