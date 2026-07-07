@@ -11,7 +11,7 @@ import { CategoryScrollMenu } from "@/components/CategoryScrollMenu";
 import { ProductToolbar, SortOption } from "@/components/ProductToolbar";
 import { ProductFilters, ActiveProductFilters, EMPTY_FILTERS } from "@/components/ProductFilters";
 import { brandGroupKey, canonicalBrandDisplay } from "@/utils/normalizeBrand";
-import { colorGroupKey, canonicalColorDisplay } from "@/utils/normalizeColor";
+import { colorGroupKey, canonicalColorDisplay, splitColorValue } from "@/utils/normalizeColor";
 
 const Shop = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -71,10 +71,12 @@ const Shop = () => {
     const groups = new Map<string, string>(); // groupKey -> canonical display
     categoryFilteredProducts.forEach((p) => {
       if (!p.color) return;
-      const key = colorGroupKey(p.color);
-      if (!groups.has(key)) {
-        groups.set(key, canonicalColorDisplay(p.color));
-      }
+      splitColorValue(p.color).forEach((token) => {
+        const key = colorGroupKey(token);
+        if (!groups.has(key)) {
+          groups.set(key, canonicalColorDisplay(token));
+        }
+      });
     });
     return Array.from(groups.values()).sort();
   }, [categoryFilteredProducts]);
@@ -96,14 +98,14 @@ const Shop = () => {
 
   const filteredProducts = useMemo(() => {
     let result = categoryFilteredProducts.filter((p) => {
-      if (
-        activeFilters.colors.length &&
-        !activeFilters.colors.some((selectedDisplay) => {
-          const productKey = p.color ? colorGroupKey(p.color) : "";
-          const selectedKey = colorGroupKey(selectedDisplay);
-          return productKey === selectedKey;
-        })
-      ) return false;
+      if (activeFilters.colors.length) {
+        if (!p.color) return false;
+        const productColorKeys = splitColorValue(p.color).map(colorGroupKey);
+        const matchesAnySelected = activeFilters.colors.some((selectedDisplay) =>
+          productColorKeys.includes(colorGroupKey(selectedDisplay))
+        );
+        if (!matchesAnySelected) return false;
+      }
       if (activeFilters.sizes.length && !activeFilters.sizes.includes(p.size ?? "")) return false;
       if (
         activeFilters.brands.length &&
