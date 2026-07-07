@@ -11,9 +11,10 @@ import { PUBLIC_VISIBLE_PRODUCT_STATUSES, formatPrice, parsePriceValue } from "@
 import { CLOTHING_SUBCATEGORIES } from "@/constants/subcategories";
 import { CategoryScrollMenu } from "@/components/CategoryScrollMenu";
 import { ProductToolbar, SortOption } from "@/components/ProductToolbar";
-import { ProductFilters, ActiveProductFilters, EMPTY_FILTERS } from "@/components/ProductFilters";
+import { ProductFilters, ActiveProductFilters } from "@/components/ProductFilters";
 import { brandGroupKey, canonicalBrandDisplay } from "@/utils/normalizeBrand";
 import { colorGroupKey, canonicalColorDisplay, splitColorValue } from "@/utils/normalizeColor";
+import { parseListParam, buildSearchParams } from "@/utils/urlFilterParams";
 
 type Category = Tables<"categories">;
 type Product = Tables<"products">;
@@ -64,8 +65,14 @@ const CategoryPage = () => {
   const subFromUrl = searchParams.get("sub");
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(subFromUrl);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [sortValue, setSortValue] = useState<SortOption | null>(null);
-  const [activeFilters, setActiveFilters] = useState<ActiveProductFilters>(EMPTY_FILTERS);
+  const [sortValue, setSortValue] = useState<SortOption | null>(
+    (searchParams.get("sort") as SortOption) || null
+  );
+  const [activeFilters, setActiveFilters] = useState<ActiveProductFilters>(() => ({
+    colors: parseListParam(searchParams, "color"),
+    sizes: parseListParam(searchParams, "size"),
+    brands: parseListParam(searchParams, "brand"),
+  }));
 
   const { data: category, isLoading: categoryLoading, error: categoryError } = useCategoryBySlug(slug);
   const { data: products, isLoading: productsLoading } = useCategoryProducts(category?.id);
@@ -77,13 +84,26 @@ const CategoryPage = () => {
     setSelectedSubcategory(subFromUrl);
   }, [subFromUrl]);
 
+  // Sync filter/sort state back to URL (replace, so back-knappen inte fylls)
+  useEffect(() => {
+    setSearchParams(
+      (prev) =>
+        buildSearchParams(prev, {
+          color: activeFilters.colors,
+          size: activeFilters.sizes,
+          brand: activeFilters.brands,
+          sort: sortValue,
+        }),
+      { replace: true }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFilters, sortValue]);
+
   const handleSubcategoryChange = (sub: string | null) => {
     setSelectedSubcategory(sub);
-    if (sub) {
-      setSearchParams({ sub });
-    } else {
-      setSearchParams({});
-    }
+    setSearchParams(
+      (prev) => buildSearchParams(prev, { sub: sub ?? null })
+    );
   };
 
   const subcategoryFilteredProducts = useMemo(() => {

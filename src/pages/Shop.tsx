@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -9,21 +9,70 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { CLOTHING_SUBCATEGORIES } from "@/constants/subcategories";
 import { CategoryScrollMenu } from "@/components/CategoryScrollMenu";
 import { ProductToolbar, SortOption } from "@/components/ProductToolbar";
-import { ProductFilters, ActiveProductFilters, EMPTY_FILTERS } from "@/components/ProductFilters";
+import { ProductFilters, ActiveProductFilters } from "@/components/ProductFilters";
 import { brandGroupKey, canonicalBrandDisplay } from "@/utils/normalizeBrand";
 import { colorGroupKey, canonicalColorDisplay, splitColorValue } from "@/utils/normalizeColor";
+import { parseListParam, buildSearchParams } from "@/utils/urlFilterParams";
 
 const Shop = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Snapshot av initiala URL-parametrar — läses en gång vid mount så att
+  // write-effekten inte hinner radera dem innan categories laddats.
+  const initialCategorySlugRef = useRef<string | null>(searchParams.get("category"));
+  const [categoryInitialized, setCategoryInitialized] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(
+    searchParams.get("sub")
+  );
   const [isHoveringClothing, setIsHoveringClothing] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [sortValue, setSortValue] = useState<SortOption | null>(null);
-  const [activeFilters, setActiveFilters] = useState<ActiveProductFilters>(EMPTY_FILTERS);
+  const [sortValue, setSortValue] = useState<SortOption | null>(
+    (searchParams.get("sort") as SortOption) || null
+  );
+  const [activeFilters, setActiveFilters] = useState<ActiveProductFilters>(() => ({
+    colors: parseListParam(searchParams, "color"),
+    sizes: parseListParam(searchParams, "size"),
+    brands: parseListParam(searchParams, "brand"),
+  }));
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { data: products, isLoading } = useProducts();
   const { data: categories } = useCategories();
   const isMobile = useIsMobile();
+
+  // Initiera selectedCategory från URL när categories laddats (en gång)
+  useEffect(() => {
+    if (categoryInitialized || !categories) return;
+    const slug = initialCategorySlugRef.current;
+    if (slug) {
+      const match = categories.find((c) => c.slug === slug);
+      if (match) setSelectedCategory(match.id);
+    }
+    setCategoryInitialized(true);
+  }, [categories, categoryInitialized]);
+
+  // Skriv all state till URL som bieffekt (replace, ingen history-spam).
+  // Vänta tills categories-init är klar, annars raderas ?category= innan
+  // vi hunnit läsa den.
+  useEffect(() => {
+    if (!categoryInitialized) return;
+    const categorySlug =
+      categories?.find((c) => c.id === selectedCategory)?.slug ?? null;
+    setSearchParams(
+      (prev) =>
+        buildSearchParams(prev, {
+          category: categorySlug,
+          sub: selectedSubcategory,
+          color: activeFilters.colors,
+          size: activeFilters.sizes,
+          brand: activeFilters.brands,
+          sort: sortValue,
+        }),
+      { replace: true }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategory, selectedSubcategory, activeFilters, sortValue, categories, categoryInitialized]);
+
+
 
   const selectedCatSlug = categories?.find((c) => c.id === selectedCategory)?.slug;
   const isClothingSelected = selectedCatSlug === "clothing";
