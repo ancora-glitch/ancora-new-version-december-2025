@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, Navigate, Link, useSearchParams, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,24 +7,11 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Tables } from "@/integrations/supabase/types";
-import { PUBLIC_VISIBLE_PRODUCT_STATUSES, formatPrice } from "@/hooks/useProducts";
-
-type Category = Tables<"categories">;
-type Product = Tables<"products">;
-
-const CLOTHING_SUBCATEGORIES = [
-  { value: "outerwear", label: "Outerwear" },
-  { value: "tops", label: "Tops" },
-  { value: "knitwear", label: "Knitwear" },
-  { value: "shirts", label: "Shirts" },
-  { value: "blazers", label: "Blazers" },
-  { value: "dresses", label: "Dresses" },
-  { value: "skirts", label: "Skirts" },
-  { value: "jeans", label: "Jeans" },
-  { value: "trousers", label: "Trousers" },
-  { value: "shorts", label: "Shorts" },
-  { value: "swimwear", label: "Swimwear" },
-];
+import { PUBLIC_VISIBLE_PRODUCT_STATUSES, formatPrice, parsePriceValue } from "@/hooks/useProducts";
+import { CLOTHING_SUBCATEGORIES } from "@/constants/subcategories";
+import { CategoryScrollMenu } from "@/components/CategoryScrollMenu";
+import { ProductToolbar, SortOption } from "@/components/ProductToolbar";
+import { ProductFilters, ActiveProductFilters, EMPTY_FILTERS } from "@/components/ProductFilters";
 
 const useCategoryBySlug = (slug: string | undefined) => {
   return useQuery({
