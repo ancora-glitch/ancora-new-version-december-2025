@@ -16,6 +16,10 @@ import { parseListParam, buildSearchParams } from "@/utils/urlFilterParams";
 
 const Shop = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  // Snapshot av initiala URL-parametrar — läses en gång vid mount så att
+  // write-effekten inte hinner radera dem innan categories laddats.
+  const initialCategorySlugRef = useRef<string | null>(searchParams.get("category"));
+  const [categoryInitialized, setCategoryInitialized] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(
     searchParams.get("sub")
@@ -35,18 +39,22 @@ const Shop = () => {
   const { data: categories } = useCategories();
   const isMobile = useIsMobile();
 
-  // Initiera selectedCategory från URL när categories laddats
+  // Initiera selectedCategory från URL när categories laddats (en gång)
   useEffect(() => {
-    const categorySlug = searchParams.get("category");
-    if (categorySlug && categories) {
-      const match = categories.find((c) => c.slug === categorySlug);
+    if (categoryInitialized || !categories) return;
+    const slug = initialCategorySlugRef.current;
+    if (slug) {
+      const match = categories.find((c) => c.slug === slug);
       if (match) setSelectedCategory(match.id);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categories]);
+    setCategoryInitialized(true);
+  }, [categories, categoryInitialized]);
 
-  // Skriv all state till URL som bieffekt (replace, ingen history-spam)
+  // Skriv all state till URL som bieffekt (replace, ingen history-spam).
+  // Vänta tills categories-init är klar, annars raderas ?category= innan
+  // vi hunnit läsa den.
   useEffect(() => {
+    if (!categoryInitialized) return;
     const categorySlug =
       categories?.find((c) => c.id === selectedCategory)?.slug ?? null;
     setSearchParams(
@@ -62,7 +70,8 @@ const Shop = () => {
       { replace: true }
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCategory, selectedSubcategory, activeFilters, sortValue, categories]);
+  }, [selectedCategory, selectedSubcategory, activeFilters, sortValue, categories, categoryInitialized]);
+
 
 
   const selectedCatSlug = categories?.find((c) => c.id === selectedCategory)?.slug;
