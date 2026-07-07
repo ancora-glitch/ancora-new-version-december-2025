@@ -10,6 +10,7 @@ import { CLOTHING_SUBCATEGORIES } from "@/constants/subcategories";
 import { CategoryScrollMenu } from "@/components/CategoryScrollMenu";
 import { ProductToolbar, SortOption } from "@/components/ProductToolbar";
 import { ProductFilters, ActiveProductFilters, EMPTY_FILTERS } from "@/components/ProductFilters";
+import { brandGroupKey, canonicalBrandDisplay } from "@/utils/normalizeBrand";
 
 const Shop = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -73,16 +74,30 @@ const Shop = () => {
     () => Array.from(new Set(categoryFilteredProducts.map((p) => p.size).filter(Boolean))) as string[],
     [categoryFilteredProducts]
   );
-  const brandOptions = useMemo(
-    () => Array.from(new Set(categoryFilteredProducts.map((p) => p.brand).filter(Boolean))) as string[],
-    [categoryFilteredProducts]
-  );
+  const brandOptions = useMemo(() => {
+    const groups = new Map<string, string>(); // groupKey -> canonical display
+    categoryFilteredProducts.forEach((p) => {
+      if (!p.brand) return;
+      const key = brandGroupKey(p.brand);
+      if (!groups.has(key)) {
+        groups.set(key, canonicalBrandDisplay(p.brand));
+      }
+    });
+    return Array.from(groups.values()).sort();
+  }, [categoryFilteredProducts]);
 
   const filteredProducts = useMemo(() => {
     let result = categoryFilteredProducts.filter((p) => {
       if (activeFilters.colors.length && !activeFilters.colors.includes(p.color ?? "")) return false;
       if (activeFilters.sizes.length && !activeFilters.sizes.includes(p.size ?? "")) return false;
-      if (activeFilters.brands.length && !activeFilters.brands.includes(p.brand ?? "")) return false;
+      if (
+        activeFilters.brands.length &&
+        !activeFilters.brands.some((selectedDisplay) => {
+          const productKey = p.brand ? brandGroupKey(p.brand) : "";
+          const selectedKey = brandGroupKey(selectedDisplay);
+          return productKey === selectedKey;
+        })
+      ) return false;
       return true;
     });
 
