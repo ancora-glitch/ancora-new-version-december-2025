@@ -77,19 +77,19 @@ export const ProductFilters = ({
   return (
     <aside className="w-full md:w-56 shrink-0">
       <FilterGroup
-        title="Färg"
+        title="Color"
         options={colorOptions}
         selected={active.colors}
         onToggle={(v) => toggle("colors", v)}
       />
       <FilterGroup
-        title="Storlek"
+        title="Size"
         options={sizeOptions}
         selected={active.sizes}
         onToggle={(v) => toggle("sizes", v)}
       />
       <FilterGroup
-        title="Varumärke"
+        title="Brand"
         options={brandOptions}
         selected={active.brands}
         onToggle={(v) => toggle("brands", v)}
