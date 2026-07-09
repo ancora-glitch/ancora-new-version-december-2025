@@ -31,7 +31,7 @@ export const ProductToolbar = ({
       className="inline-flex items-center gap-2 text-sm text-foreground hover:text-foreground/80 transition-colors"
     >
       <SlidersHorizontal className="h-4 w-4" />
-      <span>{filtersOpen ? "Dölj filter" : "Visa filter"}</span>
+      <span>{filtersOpen ? "Hide filters" : "Show filters"}</span>
       {activeFilterCount > 0 && (
         <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground text-background text-xs px-1.5">
           {activeFilterCount}
@@ -39,14 +39,14 @@ export const ProductToolbar = ({
       )}
     </button>
 
-    <Select value={sortValue ?? undefined} onValueChange={(v) => onSortChange(v as SortOption)}>
+      <Select value={sortValue ?? undefined} onValueChange={(v) => onSortChange(v as SortOption)}>
       <SelectTrigger className="w-[200px] h-9 text-sm">
-        <SelectValue placeholder="Sortera" />
+        <SelectValue placeholder="Sort" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="price_asc">Pris, lågt till högt</SelectItem>
-        <SelectItem value="price_desc">Pris, högt till lågt</SelectItem>
-        <SelectItem value="newest">Senast inkommet</SelectItem>
+        <SelectItem value="price_asc">Price, low to high</SelectItem>
+        <SelectItem value="price_desc">Price, high to low</SelectItem>
+        <SelectItem value="newest">Newest arrivals</SelectItem>
       </SelectContent>
     </Select>
   </div>
