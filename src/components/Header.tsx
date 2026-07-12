@@ -193,6 +193,12 @@ export function Header() {
         {/* Right side: About (desktop) + spacer (mobile) */}
         <div className="flex items-center">
           <Link
+            to="/style-guarantee"
+            className="hidden md:block px-4 py-2 text-[11px] font-medium uppercase tracking-[0.14em] text-foreground/80 hover:text-primary transition-colors duration-200"
+          >
+            Style Guarantee
+          </Link>
+          <Link
             to="/about"
             className="hidden md:block px-4 py-2 text-[11px] font-medium uppercase tracking-[0.14em] text-foreground/80 hover:text-primary transition-colors duration-200"
           >
