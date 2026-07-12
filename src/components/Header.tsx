@@ -168,7 +168,7 @@ export function Header() {
 
           {/* Other nav items (desktop left) */}
           {navItems
-            .filter((item) => item.label !== "About")
+            .filter((item) => item.label !== "About" && item.label !== "Style Guarantee")
             .map((item) => (
               <Link
                 key={item.href}
