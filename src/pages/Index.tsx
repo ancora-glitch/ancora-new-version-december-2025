@@ -76,7 +76,7 @@ const Index = () => {
                   </div>
                 </Link>) : <p className="col-span-full text-center text-muted-foreground">No products available</p>}
           </div>
-          <div className="text-center mt-20">
+          <div className="text-center my-20">
             <Button variant="outline" className="px-10 py-4 h-auto uppercase tracking-wide" onClick={() => navigate('/this-weeks-edit')}>
               View all
             </Button>
