@@ -84,7 +84,7 @@ const Index = () => {
         </section>
 
         {/* Stories Section */}
-        <section className="px-4 md:px-8 lg:px-12 py-20 md:py-28 lg:py-32 bg-primary">
+        <section className="px-4 md:px-8 lg:px-12 bg-primary pt-20 md:pt-20 lg:pt-20 pb-20 md:pb-28 lg:pb-32">
           <Link to="/stories" className="block text-center mb-14 md:mb-16 hover:opacity-80 transition-opacity">
             <h2 className="text-2xl md:text-3xl lg:text-4xl text-primary-foreground font-normal">Stories</h2>
           </Link>
