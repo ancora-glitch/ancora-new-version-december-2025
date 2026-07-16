@@ -47,7 +47,7 @@ const Index = () => {
         </section>
 
         {/* This Week's Edit Section */}
-        <section className="px-4 md:px-8 lg:px-12 md:py-28 bg-secondary/40 lg:py-[6px] py-[40px] pt-[50px] lg:pt-[80px]">
+        <section className="px-4 md:px-8 lg:px-12 bg-secondary/40 pt-[50px] lg:pt-[80px] pb-0">
           <Link to="/this-weeks-edit" className="block text-center mb-4 hover:opacity-80 transition-opacity">
             <span className="block text-base font-serif text-primary/70 mb-2 md:text-[1.35rem]">This Week's Edit</span>
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-normal">
@@ -76,7 +76,7 @@ const Index = () => {
                   </div>
                 </Link>) : <p className="col-span-full text-center text-muted-foreground">No products available</p>}
           </div>
-          <div className="text-center mt-12">
+          <div className="text-center mt-20">
             <Button variant="outline" className="px-10 py-4 h-auto uppercase tracking-wide" onClick={() => navigate('/this-weeks-edit')}>
               View all
             </Button>
@@ -84,7 +84,7 @@ const Index = () => {
         </section>
 
         {/* Stories Section */}
-        <section className="px-4 md:px-8 lg:px-12 py-20 md:py-28 lg:py-32 bg-primary">
+        <section className="px-4 md:px-8 lg:px-12 bg-primary pt-20 md:pt-20 lg:pt-20 pb-20 md:pb-28 lg:pb-32">
           <Link to="/stories" className="block text-center mb-14 md:mb-16 hover:opacity-80 transition-opacity">
             <h2 className="text-2xl md:text-3xl lg:text-4xl text-primary-foreground font-normal">Stories</h2>
           </Link>
