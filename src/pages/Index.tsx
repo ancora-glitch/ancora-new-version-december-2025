@@ -47,7 +47,7 @@ const Index = () => {
         </section>
 
         {/* This Week's Edit Section */}
-        <section className="px-4 md:px-8 lg:px-12 bg-secondary/40 pt-[50px] lg:pt-[80px] pb-0">
+        <section className="px-4 md:px-8 lg:px-12 bg-secondary/40 pt-[50px] lg:pt-[80px] pb-20">
           <Link to="/this-weeks-edit" className="block text-center mb-4 hover:opacity-80 transition-opacity">
             <span className="block text-base font-serif text-primary/70 mb-2 md:text-[1.35rem]">This Week's Edit</span>
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-normal">
@@ -76,7 +76,7 @@ const Index = () => {
                   </div>
                 </Link>) : <p className="col-span-full text-center text-muted-foreground">No products available</p>}
           </div>
-          <div className="text-center my-20">
+          <div className="text-center mt-20">
             <Button variant="outline" className="px-10 py-4 h-auto uppercase tracking-wide" onClick={() => navigate('/this-weeks-edit')}>
               View all
             </Button>
