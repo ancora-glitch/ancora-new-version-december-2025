@@ -96,6 +96,35 @@ Ej åtgärdat, kräver eget beslut, sedan tidigare:
 - RLS på products tillåter publik läsning av unpublished/internal data
 
 
+### 2026-07-07 — Default sortering ändrad till "Newest arrivals"
+
+Vad: Default sortValue på Shop.tsx och CategoryPage.tsx ändrad från null
+
+ till "newest". Rena länkar (/shop, /category/[slug]) sorterar nu
+
+nyast-först (created_at desc) utan synlig ?sort=-param i URL:en.
+
+AVSIKTLIGT OVERRIDE av tidigare invariant: CategoryPage visade tidigare
+
+sort_order (redaktionellt kuraterad ordning) som default — nu ersatt av
+
+datumbaserad sortering överallt. Beslutat medvetet av projektägare
+
+(2026-07-07). sort_order-kolumnen och admins möjlighet att sätta den
+
+finns kvar oförändrad i DB/Admin Portal, bara inte längre default-vy
+
+för besökare.
+
+Verifierat: manuellt sortval (price_asc/desc) fungerar och syns i URL
+
+som vanligt. Att välja "Newest arrivals" manuellt tar bort ?sort= utan
+
+synlig omordning. tsgo --noEmit OK.
+
+DB: Ingen ändring.
+
+
 ### 2026-06-24 — Sellpy: korrigerad Algolia-fältmappning + UI-label
 
 **Vad:** sellpy-search och sellpy-item uppdaterade till de verifierade
