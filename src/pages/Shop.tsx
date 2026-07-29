@@ -26,8 +26,8 @@ const Shop = () => {
   );
   const [isHoveringClothing, setIsHoveringClothing] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [sortValue, setSortValue] = useState<SortOption | null>(
-    (searchParams.get("sort") as SortOption) || null
+  const [sortValue, setSortValue] = useState<SortOption>(
+    (searchParams.get("sort") as SortOption) || "newest"
   );
   const [activeFilters, setActiveFilters] = useState<ActiveProductFilters>(() => ({
     colors: parseListParam(searchParams, "color"),
@@ -65,7 +65,7 @@ const Shop = () => {
           color: activeFilters.colors,
           size: activeFilters.sizes,
           brand: activeFilters.brands,
-          sort: sortValue,
+          sort: sortValue === "newest" ? null : sortValue,
         }),
       { replace: true }
     );
