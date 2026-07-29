@@ -65,8 +65,8 @@ const CategoryPage = () => {
   const subFromUrl = searchParams.get("sub");
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(subFromUrl);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [sortValue, setSortValue] = useState<SortOption | null>(
-    (searchParams.get("sort") as SortOption) || null
+  const [sortValue, setSortValue] = useState<SortOption>(
+    (searchParams.get("sort") as SortOption) || "newest"
   );
   const [activeFilters, setActiveFilters] = useState<ActiveProductFilters>(() => ({
     colors: parseListParam(searchParams, "color"),
@@ -92,7 +92,7 @@ const CategoryPage = () => {
           color: activeFilters.colors,
           size: activeFilters.sizes,
           brand: activeFilters.brands,
-          sort: sortValue,
+          sort: sortValue === "newest" ? null : sortValue,
         }),
       { replace: true }
     );
@@ -173,7 +173,7 @@ const CategoryPage = () => {
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
     }
-    // sortValue === null → behåller ursprunglig sort_order-ordning
+    // Default är "newest" → created_at desc (sort_order används inte längre som default-vy)
 
     return result;
   }, [subcategoryFilteredProducts, activeFilters, sortValue]);
