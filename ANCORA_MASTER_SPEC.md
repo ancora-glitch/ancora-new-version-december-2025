@@ -96,6 +96,19 @@ Ej åtgärdat, kräver eget beslut, sedan tidigare:
 - RLS på products tillåter publik läsning av unpublished/internal data
 
 
+### 2026-08-01 — Sorteringslista: "Newest arrivals" visas först
+
+Vad: Ordningen på alternativen i sort-dropdownen (ProductToolbar.tsx)
+
+ändrad så att "Newest arrivals" ligger överst, följt av Price low→high
+
+och Price high→low. Ren list-ordning, ingen logik eller default-värde
+
+påverkat.
+
+DB: Ingen ändring. tsgo --noEmit OK.
+
+
 ### 2026-07-07 — Default sortering ändrad till "Newest arrivals"
 
 Vad: Default sortValue på Shop.tsx och CategoryPage.tsx ändrad från null
