@@ -78,3 +78,6 @@ verify_jwt = false
 [functions.pureeffect-item]
 verify_jwt = false
 
+[functions.newsletter-feed]
+verify_jwt = false
+
