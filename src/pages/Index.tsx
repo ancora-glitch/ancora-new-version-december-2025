@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { GuideCard } from "@/components/GuideCard";
 import { useActiveWeeklyEdit } from "@/hooks/useWeeklyEdits";
 import { formatPrice } from "@/hooks/useProducts";
-import { useStyleGuides } from "@/hooks/useStyleGuides";
+import { useMergedStories } from "@/hooks/useMergedStories";
 import heroAsset from "@/assets/hero-hands.jpg.asset.json";
 const heroImage = heroAsset.url;
 
@@ -16,9 +16,9 @@ const Index = () => {
     isLoading
   } = useActiveWeeklyEdit();
   const {
-    data: styleGuides,
-    isLoading: guidesLoading
-  } = useStyleGuides();
+    stories: mergedStories,
+    isLoading: storiesLoading
+  } = useMergedStories(6);
   return <div className="min-h-screen bg-background">
       <Header />
       
