@@ -5,6 +5,7 @@ interface GuideCardProps {
   title: string;
   href?: string;
   focalPoint?: string | null;
+  external?: boolean;
   onGoToGuide?: () => void;
 }
 
@@ -13,18 +14,14 @@ export const GuideCard = ({
   title,
   href,
   focalPoint,
+  external = false,
   onGoToGuide
 }: GuideCardProps) => {
   const linkTarget = href || "#";
   const objectPosition = focalPoint || '50% 25%';
-  
-  return (
-    <Link 
-      to={linkTarget}
-      onClick={onGoToGuide}
-      className="group block min-h-[44px] transition-all duration-300"
-      aria-label={`Read: ${title}`}
-    >
+
+  const inner = (
+    <>
       {/* Image with Title Overlay — 4:5 mobile, 3:4 desktop */}
       <div className="relative aspect-[4/5] md:aspect-[3/4] overflow-hidden mb-4">
         <img 
@@ -52,6 +49,34 @@ export const GuideCard = ({
       >
         Read story
       </span>
+    </>
+  );
+
+  const className = "group block min-h-[44px] transition-all duration-300";
+
+  if (external) {
+    return (
+      <a
+        href={linkTarget}
+        target="_blank"
+        rel="noopener"
+        onClick={onGoToGuide}
+        className={className}
+        aria-label={`Read: ${title}`}
+      >
+        {inner}
+      </a>
+    );
+  }
+
+  return (
+    <Link 
+      to={linkTarget}
+      onClick={onGoToGuide}
+      className={className}
+      aria-label={`Read: ${title}`}
+    >
+      {inner}
     </Link>
   );
 };
