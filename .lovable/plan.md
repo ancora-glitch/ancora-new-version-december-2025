@@ -1,54 +1,34 @@
-## Staged rollout: Google auth for Admin Portal + retire custom /auth
+# Newsletter Feed (Substack) on Stories
 
-Målet är att gå från vår custom `/auth`-sida (email/password) till Lovable Clouds inbyggda Google-auth, utan att låsa ute befintliga admins (Sophie + du själv) och utan att skapa dubbletter för Carin.
+Pull the public Substack RSS feed into the site as a read-only section at the top of `/stories`, above the existing style guides. Fully isolated: no database tables, no products/enum/editorial changes, no cron wiring.
 
-### Steg 1 — Aktivera Google som provider (behåll email tillfälligt)
+## What gets built
 
-- Kör `configure_social_auth` med `providers: ["google"]` (INGEN `disable_providers` ännu).
-- Effekt: Google blir tillgänglig; existerande email/password-inloggning fortsätter fungera som fallback under verifieringen.
-- Ingen kodändring i det här steget.
+1. **Edge function `newsletter-feed`** — fetches `https://theancoraedit.substack.com/feed` server-side, parses each item into `{ title, excerpt, url, image, publishedAt }`, returns JSON with open CORS and 1-hour caching. Fails quietly with a 502 JSON error instead of throwing.
+2. **Hook `useNewsletterFeed(limit)`** — invokes the function, returns `{ posts, loading, error }`.
+3. **Component `NewsletterStories`** — renders the posts in an editorial card grid matching the existing Stories look (Playfair headings, burgundy accents, `aspect-[4/5]` images, lazy loading, native `<a target="_blank" rel="noopener">` for outbound Substack links). Renders nothing on error.
+4. **`/stories` page** — newsletter section first, existing style guide grid below it, unchanged.
 
-### Steg 2 — Uppdatera `/auth`-sidan till en Google-knapp (transition-läge)
+Homepage is not touched.
 
-- Ersätt email/password-formuläret i `src/pages/Auth.tsx` med en enda "Sign in with Google"-knapp som anropar `lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/admin-portal" — nej, se nedan })`.
-- Enligt Lovable-reglerna: `redirect_uri` MÅSTE vara en publik same-origin URL. Vi använder `window.location.origin` och låter `RequireAdmin` skicka vidare till `/admin-portal` efter session hydration (befintlig logik i `RequireAdmin` gör det redan).
-- `RequireAdmin.tsx` rörs inte — den fortsätter skydda `/admin-portal` via `has_role(auth.uid(), 'admin')`.
-- Behåll `/auth`-routen tills Steg 5.
+## Technical details
 
-### Steg 3 — Verifiera med Sophie (befintlig admin, säker testperson)
+- `supabase/functions/newsletter-feed/index.ts` uses `fast-xml-parser@4.5.0` via esm.sh, `ignoreAttributes: false`, `cdataPropName: "__cdata"`.
+- Limit resolved from `?limit=` query string or JSON POST body; default 6, max 20.
+- `image`: first `<img src>` inside `content:encoded`, falling back to `enclosure/@_url`, else `null`.
+- `excerpt`: `<description>` with HTML stripped, collapsed whitespace, truncated at ~200 chars on a word boundary.
+- `publishedAt`: ISO string from `pubDate`.
+- Headers: `Access-Control-Allow-Origin: *` and `Cache-Control: public, max-age=3600, stale-while-revalidate=3600`.
+- `supabase/config.toml` gets `[functions.newsletter-feed] verify_jwt = false` in line with the other public functions.
+- Hook imports the client from `@/integrations/supabase/client` (confirmed path).
+- The provided component JSX arrived with its markup stripped by markdown, so the markup will be rewritten to match existing Stories card styling while keeping the same props (`limit`, `title`, `showTitle`) and behavior.
 
-- Sophie loggar in via Google på `sophie.gill.se@gmail.com` (matchar hennes befintliga confirmed email `gill.sophie@gmail.com` — kontrollera exakt adress först via `read_query` mot `auth.users`).
-- Direkt efter hennes inlogg: kör en `read_query` mot `auth.users` + `auth.identities` för att bekräfta:
-  - Samma `user_id` som tidigare (ingen ny rad skapad)
-  - Ny rad i `auth.identities` med `provider = 'google'` kopplad till samma `user_id`
-  - `user_roles`-raden med `role = 'admin'` är fortfarande giltig
-- Om ny `user_id` skapades → STOPP. Manuellt merge: flytta `admin`-rollen till nya user_id ELLER radera duplikaten och länka om. Först därefter går vi vidare.
+## Verification
 
-### Steg 4 — Bjud in Carin
+- Call the deployed function directly and confirm it returns parsed posts (title, excerpt, image, date) and a clean 502 shape on failure.
+- Load `/stories` and confirm newsletter cards render above the style guides, links open Substack in a new tab, and the page still renders if the feed is unavailable.
+- `tsgo --noEmit`.
 
-- Bekräftat Sophie fungerar → Carin loggar in med Google på `carin.roeraade@gmail.com`.
-- Samma verifiering: `auth.users` + `auth.identities`.
-- Om ny user_id → merge först. Annars: `INSERT INTO user_roles (user_id, role) VALUES (<carins user_id>, 'admin')`.
-- Testa att Carin når `/admin-portal` utan "Ingen åtkomst"-skärmen.
+## Not touched
 
-### Steg 5 — Ta bort email-provider och custom /auth
-
-Först när både Sophie OCH Carin är verifierade på Google:
-
-- `configure_social_auth` med `providers: ["google"], disable_providers: ["email"]`.
-- Ta bort `src/pages/Auth.tsx` helt och route-registreringen i `src/App.tsx` (`<Route path="/auth" ...>`).
-- Ersätt `RequireAdmin`s redirect från `navigate("/auth", ...)` → direkt anrop till `lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin })`. Detta gör att oinloggade besökare på `/admin-portal` skickas direkt till Google istället för en mellansida.
-- `tsgo --noEmit` för verifiering.
-
-### Steg 6 — Bekräftelse på preview vs published
-
-- Lovable Cloud-auth delar samma backend mellan preview och published (samma project ref). Detta noteras uttryckligen i changelog så vi slipper förvirringen igen.
-- Uppdatera `ANCORA_MASTER_SPEC.md` med changelog-entry för 2026-07-20: "Admin-auth migrerad till Lovable Cloud Google OAuth; custom /auth borttagen; email-provider disabled."
-
-### Öppna frågor innan jag kör
-
-1. **Account linking**: Supabase länkar automatiskt ny Google-identitet till befintlig user vid matchande **verified** email. Sophies existerande email är redan `email_confirmed_at`-satt, så det ska funka — men jag vill ändå validera Sophies exakta Google-adress mot `auth.users.email` INNAN Steg 3. Är hennes Google-adress exakt `gill.sophie@gmail.com`?
-2. **Carin har inget konto ännu?** Bekräftat från tidigare turnering: hon finns inte i `auth.users`. Google-first-signin skapar då automatiskt en ny rad — vi ger henne admin-rollen efteråt i Steg 4. OK?
-3. **`/auth`-fallback under transition (Steg 2–4)**: Vill du att jag behåller en liten "email/password (legacy)"-toggle på `/auth`-sidan som säkerhetsnät ifall Google-flödet fallerar mitt i migreringen? Eller kör vi enbart Google-knapp direkt?
-
-Säg till om något ska justeras, annars börjar jag på Steg 1 så fort planen är godkänd.
+`products` table, editorial fields, status enum, `tradera-sync`, `ebay-availability`, `tradera-retry-import`, Tradera quota logic, homepage.
