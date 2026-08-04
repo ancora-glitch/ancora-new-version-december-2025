@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useStyleGuides } from "@/hooks/useStyleGuides";
+import { NewsletterStories } from "@/components/NewsletterStories";
 
 
 const Stories = () => {
@@ -31,6 +32,9 @@ const Stories = () => {
             Considered stories on style, sustainability, and the art of dressing well.
           </p>
         </div>
+
+        {/* Newsletter Feed */}
+        <NewsletterStories limit={6} />
 
         {/* Articles Grid */}
         <section className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto">
