@@ -24,10 +24,13 @@ interface NewsletterPost {
   publishedAt: string | null;
 }
 
-function firstImageFromHtml(html: string | undefined): string | null {
+// Substack post bodies start with the masthead banner, so prefer the SECOND
+// image; fall back to the only image when there is just one.
+function bodyImageFromHtml(html: string | undefined): string | null {
   if (!html) return null;
-  const match = html.match(/<img[^>]+src="([^"]+)"/i);
-  return match ? match[1] : null;
+  const matches = [...html.matchAll(/<img[^>]+src="([^"]+)"/gi)].map((m) => m[1]);
+  if (matches.length === 0) return null;
+  return matches[1] ?? matches[0];
 }
 
 function stripHtml(html: string | undefined): string {
