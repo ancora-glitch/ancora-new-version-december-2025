@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
         item?.["content:encoded"]?.__cdata ?? item?.["content:encoded"];
       const description: string = item?.description?.__cdata ?? item?.description ?? "";
 
-      const image = firstImageFromHtml(contentHtml) ?? item?.enclosure?.["@_url"] ?? null;
+      const image = bodyImageFromHtml(contentHtml) ?? item?.enclosure?.["@_url"] ?? null;
 
       return {
         title: item?.title?.__cdata ?? item?.title ?? "",
