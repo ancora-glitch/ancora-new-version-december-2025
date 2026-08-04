@@ -1,12 +1,13 @@
 import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { useStyleGuides } from "@/hooks/useStyleGuides";
-import { NewsletterStories } from "@/components/NewsletterStories";
+import { useMergedStories } from "@/hooks/useMergedStories";
 
+const formatDate = (value: string) =>
+  new Date(value).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
 const Stories = () => {
-  const { data: styleGuides, isLoading } = useStyleGuides();
+  const { stories, isLoading } = useMergedStories();
 
   return (
     <div className="min-h-screen bg-background">
@@ -33,44 +34,35 @@ const Stories = () => {
           </p>
         </div>
 
-        {/* Newsletter Feed */}
-        <NewsletterStories limit={6} />
-
-        {/* Articles Grid */}
+        {/* Merged Articles Grid */}
         <section className="px-4 md:px-8 lg:px-12 max-w-7xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 max-w-6xl mx-auto">
             {isLoading ? (
               <p className="col-span-full text-center text-muted-foreground">Loading stories...</p>
-            ) : styleGuides && styleGuides.length > 0 ? (
-              styleGuides.map((guide) => (
-                <article key={guide.id} className="group flex flex-col">
-                  <Link 
-                    to={`/style-guides/${guide.slug}`} 
-                    className="flex flex-col flex-1"
-                    aria-label={`Read: ${guide.title}`}
-                  >
+            ) : stories.length > 0 ? (
+              stories.map((story) => {
+                const inner = (
+                  <>
                     <div className="relative aspect-[4/5] md:aspect-[3/4] overflow-hidden mb-5">
                       <img
-                        src={guide.image}
-                        alt={guide.title}
+                        src={story.image || ""}
+                        alt={story.title}
                         loading="lazy"
                         width={600}
                         height={800}
-                        style={{ objectPosition: guide.focal_point || '50% 25%' }}
+                        style={{ objectPosition: story.focalPoint || '50% 25%' }}
                         className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
                       />
                       <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/15 transition-colors duration-300 pointer-events-none" />
                     </div>
                     <div className="flex-1">
                       <h2 className="font-serif text-base md:text-xl text-foreground mb-2 leading-snug group-hover:text-primary transition-colors">
-                        {guide.title}
+                        {story.title}
                       </h2>
-                      {guide.author && (
+                      {story.author && (
                         <p className="text-[10px] md:text-xs tracking-[0.1em] uppercase text-muted-foreground/80">
-                          By {guide.author}
-                          {guide.published_at && (
-                            <> · {new Date(guide.published_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</>
-                          )}
+                          By {story.author}
+                          {story.publishedAt && <> · {formatDate(story.publishedAt)}</>}
                         </p>
                       )}
                     </div>
@@ -79,9 +71,33 @@ const Stories = () => {
                     >
                       Read story
                     </span>
-                  </Link>
-                </article>
-              ))
+                  </>
+                );
+
+                return (
+                  <article key={story.id} className="group flex flex-col">
+                    {story.external ? (
+                      <a
+                        href={story.href}
+                        target="_blank"
+                        rel="noopener"
+                        className="flex flex-col flex-1"
+                        aria-label={`Read: ${story.title}`}
+                      >
+                        {inner}
+                      </a>
+                    ) : (
+                      <Link 
+                        to={story.href}
+                        className="flex flex-col flex-1"
+                        aria-label={`Read: ${story.title}`}
+                      >
+                        {inner}
+                      </Link>
+                    )}
+                  </article>
+                );
+              })
             ) : (
               <p className="col-span-full text-center text-muted-foreground">No stories available yet</p>
             )}
