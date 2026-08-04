@@ -43,6 +43,7 @@ export function useMergedStories(limit?: number) {
       publishedAt: p.publishedAt,
       href: p.url,
       external: true,
+      author: "Carin Roeraade",
     }));
 
     const merged = [...internal, ...external].sort((a, b) => {
