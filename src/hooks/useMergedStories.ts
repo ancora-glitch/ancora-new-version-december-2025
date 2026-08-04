@@ -20,7 +20,7 @@ export interface MergedStory {
  */
 export function useMergedStories(limit?: number) {
   const { data: styleGuides, isLoading: guidesLoading } = useStyleGuides();
-  const { posts, loading: feedLoading } = useNewsletterFeed(limit ?? 6);
+  const { posts, loading: feedLoading } = useNewsletterFeed(limit ?? 20);
 
   const stories = useMemo<MergedStory[]>(() => {
     const internal: MergedStory[] = (styleGuides ?? []).map((g) => ({
