@@ -13,6 +13,7 @@ import { ProductFilters, ActiveProductFilters } from "@/components/ProductFilter
 import { brandGroupKey, canonicalBrandDisplay } from "@/utils/normalizeBrand";
 import { colorGroupKey, canonicalColorDisplay, splitColorValue } from "@/utils/normalizeColor";
 import { parseListParam, buildSearchParams } from "@/utils/urlFilterParams";
+import { useProductPopularity } from "@/hooks/useProductPopularity";
 
 const Shop = () => {
   const [searchParams, setSearchParams] = useSearchParams();
