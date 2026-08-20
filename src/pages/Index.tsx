@@ -38,8 +38,8 @@ const Index = () => {
                 <Button className="font-medium text-xs md:text-sm tracking-wide px-4 md:px-8 py-2 md:py-4 h-auto" onClick={() => navigate('/shop')}>
                   New Arrivals
                 </Button>
-                <Button className="font-medium text-xs md:text-sm tracking-wide px-4 md:px-8 py-2 md:py-4 h-auto" onClick={() => navigate('/stories')}>
-                  Guides & Stories
+                <Button className="font-medium text-xs md:text-sm tracking-wide px-4 md:px-8 py-2 md:py-4 h-auto" onClick={() => navigate('/shop?sort=popularity')}>
+                  Most Popular
                 </Button>
               </div>
             </div>
