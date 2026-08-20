@@ -77,6 +77,7 @@ const CategoryPage = () => {
 
   const { data: category, isLoading: categoryLoading, error: categoryError } = useCategoryBySlug(slug);
   const { data: products, isLoading: productsLoading } = useCategoryProducts(category?.id);
+  const { data: popularityMap } = useProductPopularity(30);
 
   const isClothing = slug === "clothing";
 
