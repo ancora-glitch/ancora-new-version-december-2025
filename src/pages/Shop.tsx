@@ -38,6 +38,7 @@ const Shop = () => {
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { data: products, isLoading } = useProducts();
   const { data: categories } = useCategories();
+  const { data: popularityMap } = useProductPopularity(30);
   const isMobile = useIsMobile();
 
   // Initiera selectedCategory från URL när categories laddats (en gång)
