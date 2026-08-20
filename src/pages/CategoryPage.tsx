@@ -170,6 +170,12 @@ const CategoryPage = () => {
       result = [...result].sort((a, b) => parsePriceValue(a.price) - parsePriceValue(b.price));
     } else if (sortValue === "price_desc") {
       result = [...result].sort((a, b) => parsePriceValue(b.price) - parsePriceValue(a.price));
+    } else if (sortValue === "popularity") {
+      result = [...result].sort((a, b) => {
+        const aClicks = popularityMap?.get(a.id) ?? 0;
+        const bClicks = popularityMap?.get(b.id) ?? 0;
+        return bClicks - aClicks; // flest klick först, produkter utan klick sist
+      });
     } else if (sortValue === "newest") {
       result = [...result].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -178,7 +184,7 @@ const CategoryPage = () => {
     // Default är "newest" → created_at desc (sort_order används inte längre som default-vy)
 
     return result;
-  }, [subcategoryFilteredProducts, activeFilters, sortValue]);
+  }, [subcategoryFilteredProducts, activeFilters, sortValue, popularityMap]);
 
   // Update document metadata when category data is available
   useEffect(() => {
