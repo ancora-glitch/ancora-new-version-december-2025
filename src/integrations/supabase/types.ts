@@ -1199,6 +1199,13 @@ export type Database = {
     }
     Functions: {
       check_cron_job_exists: { Args: { p_job_name: string }; Returns: boolean }
+      get_product_popularity: {
+        Args: { rolling_days?: number }
+        Returns: {
+          click_count: number
+          product_id: string
+        }[]
+      }
       get_unique_visitors: {
         Args: { p_bot_threshold?: number; p_end?: string; p_start?: string }
         Returns: {
