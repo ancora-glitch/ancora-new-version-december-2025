@@ -96,17 +96,19 @@ Ej åtgärdat, kräver eget beslut, sedan tidigare:
 - RLS på products tillåter publik läsning av unpublished/internal data
 
 
+### 2026-08-20 — Sortering: "Most popular" (30-dagars rullande klick)
+
+Vad: Ny sorteringsoption på Shop.tsx och CategoryPage.tsx, driven av aggregerad produktklick-data från senaste 30 dagarna. Placerad mellan "Newest arrivals" och pris-alternativen i dropdownen.
+
+DB: Nytt partiellt index på site_analytics. Ny SECURITY DEFINER-funktion get_product_popularity(rolling_days) — returnerar endast product_id + click_count. EXECUTE till anon + authenticated. Regex-skydd på UUID-format före cast, förebyggande mot framtida skräpdata (inget idag).
+
+Filer: useProductPopularity.ts (ny), ProductToolbar.tsx, Shop.tsx, CategoryPage.tsx.
+
+Verifierat: anon-anrop 200, endast rätt fält, 940 rader (939→940 = ett nytt klick, ingen dataförlust), tsgo rent. Ingen ändring av produkt- eller analyticsdata.
+
 ### 2026-08-01 — Sorteringslista: "Newest arrivals" visas först
 
-Vad: Ordningen på alternativen i sort-dropdownen (ProductToolbar.tsx)
-
-ändrad så att "Newest arrivals" ligger överst, följt av Price low→high
-
-och Price high→low. Ren list-ordning, ingen logik eller default-värde
-
-påverkat.
-
-DB: Ingen ändring. tsgo --noEmit OK.
+Ordningen i sort-dropdownen justerad. Ren list-ordning, ingen logik påverkad.
 
 
 ### 2026-07-07 — Default sortering ändrad till "Newest arrivals"
