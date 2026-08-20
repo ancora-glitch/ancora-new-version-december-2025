@@ -106,6 +106,15 @@ Filer: useProductPopularity.ts (ny), ProductToolbar.tsx, Shop.tsx, CategoryPage.
 
 Verifierat: anon-anrop 200, endast rätt fält, 940 rader (939→940 = ett nytt klick, ingen dataförlust), tsgo rent. Ingen ändring av produkt- eller analyticsdata.
 
+### 2026-08-20 — Hero-knapp på startsidan: "Guides & Stories" → "Most Popular"
+
+Vad: Andra hero-knappen på Index.tsx bytt från "Guides & Stories" (→ /stories) till "Most Popular" (→ /shop?sort=popularity). Utnyttjar befintlig URL-synk — Shop.tsx läser sort-param vid mount och applicerar popularity-sortering direkt, ingen ny logik krävdes.
+
+Oförändrat: "New Arrivals"-knappen, STORIES i toppnav, Stories-sektionen på Index.tsx.
+
+DB: Ingen ändring. tsgo --noEmit OK.
+
+
 ### 2026-08-01 — Sorteringslista: "Newest arrivals" visas först
 
 Ordningen i sort-dropdownen justerad. Ren list-ordning, ingen logik påverkad.
