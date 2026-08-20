@@ -45,6 +45,7 @@ export const ProductToolbar = ({
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="newest">Newest arrivals</SelectItem>
+        <SelectItem value="popularity">Most popular</SelectItem>
         <SelectItem value="price_asc">Price, low to high</SelectItem>
         <SelectItem value="price_desc">Price, high to low</SelectItem>
       </SelectContent>
