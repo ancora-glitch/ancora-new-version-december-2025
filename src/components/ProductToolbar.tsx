@@ -7,7 +7,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export type SortOption = "price_asc" | "price_desc" | "newest";
+export type SortOption = "newest" | "popularity" | "price_asc" | "price_desc";
 
 interface ProductToolbarProps {
   filtersOpen: boolean;
