@@ -173,6 +173,12 @@ const Shop = () => {
       result = [...result].sort((a, b) => parsePriceValue(a.price) - parsePriceValue(b.price));
     } else if (sortValue === "price_desc") {
       result = [...result].sort((a, b) => parsePriceValue(b.price) - parsePriceValue(a.price));
+    } else if (sortValue === "popularity") {
+      result = [...result].sort((a, b) => {
+        const aClicks = popularityMap?.get(a.id) ?? 0;
+        const bClicks = popularityMap?.get(b.id) ?? 0;
+        return bClicks - aClicks; // flest klick först, produkter utan klick sist
+      });
     } else if (sortValue === "newest") {
       result = [...result].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -181,7 +187,7 @@ const Shop = () => {
     // Ingen sortval vald = behåll ursprunglig ordning (created_at desc från useProducts)
 
     return result;
-  }, [categoryFilteredProducts, activeFilters, sortValue]);
+  }, [categoryFilteredProducts, activeFilters, sortValue, popularityMap]);
 
   return (
     <div className="min-h-screen bg-background">
