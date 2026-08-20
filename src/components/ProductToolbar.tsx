@@ -7,7 +7,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export type SortOption = "price_asc" | "price_desc" | "newest";
+export type SortOption = "newest" | "popularity" | "price_asc" | "price_desc";
 
 interface ProductToolbarProps {
   filtersOpen: boolean;
@@ -45,6 +45,7 @@ export const ProductToolbar = ({
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="newest">Newest arrivals</SelectItem>
+        <SelectItem value="popularity">Most popular</SelectItem>
         <SelectItem value="price_asc">Price, low to high</SelectItem>
         <SelectItem value="price_desc">Price, high to low</SelectItem>
       </SelectContent>
