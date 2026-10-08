@@ -856,6 +856,9 @@ Changelog v1.9:
 
 Changelog v1.8:
 
+### 2026-10-08 — VintageSphere avvecklad som partner
+Vad: Partnern finns inte längre. Borttaget: VintageSphereSearchDrawer, edge functions vintagesphere-search/-item (raderade i drift + config.toml), knapp i ImportsTab, länk i SourcingTool, källfilter i AnalyticsDashboard, sourceLabel i ProductDetail. Data: 20 produkter hårdraderade (plus deras 20 Weekly Edit-placeringar) och 60 rader i ancora_import_items. Gamla länkar ger 404. Behållet: intervjun med Olivia (style_guides). Enum-värdet `vintagesphere` i ais_source_type ligger kvar (oanvänt) för att undvika brytande schemaändring. Sektion 4.4 (VintageSphere) är historisk.
+
 - eBay EPN affiliate URL format standardised (Section 4.3.1)
 - buildEbayAffiliateUrl switched to direct item URLs with full EPN query params
 - isEbayAffiliateUrl validation now checks mkevt=1

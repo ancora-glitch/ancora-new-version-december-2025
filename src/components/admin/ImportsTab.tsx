@@ -4,7 +4,6 @@ import { ImportItemDetail } from "./ImportItemDetail";
 import { NewImportDialog } from "./NewImportDialog";
 import { EbaySearchDrawer } from "./EbaySearchDrawer";
 import { TraderaSearchDrawer } from "./TraderaSearchDrawer";
-import { VintageSphereSearchDrawer } from "./VintageSphereSearchDrawer";
 import { WornVintageSearchDrawer } from "./WornVintageSearchDrawer";
 import { SellpySearchDrawer } from "./SellpySearchDrawer";
 import { PureEffectSearchDrawer } from "./PureEffectSearchDrawer";
@@ -40,7 +39,6 @@ export function ImportsTab() {
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [showEbayDrawer, setShowEbayDrawer] = useState(false);
   const [showTraderaDrawer, setShowTraderaDrawer] = useState(false);
-  const [showVintageSphereDrawer, setShowVintageSphereDrawer] = useState(false);
   const [showWornVintageDrawer, setShowWornVintageDrawer] = useState(false);
   const [showSellpyDrawer, setShowSellpyDrawer] = useState(false);
   const [showPureEffectDrawer, setShowPureEffectDrawer] = useState(false);
@@ -162,7 +160,7 @@ export function ImportsTab() {
             </div>
           )}
           <p className="text-sm text-muted-foreground leading-relaxed whitespace-normal break-words">
-            Search and import items from Tradera/eBay/VintageSphere/Pure Effect — they become draft Products directly.
+            Search and import items from Tradera/eBay/Pure Effect — they become draft Products directly.
             This log tracks import provenance and deduplication.
           </p>
           <div className="flex gap-2 flex-wrap">
@@ -173,10 +171,6 @@ export function ImportsTab() {
             <Button variant="outline" onClick={() => setShowEbayDrawer(true)}>
               <Search className="w-4 h-4 mr-2" />
               Search eBay
-            </Button>
-            <Button variant="outline" onClick={() => setShowVintageSphereDrawer(true)}>
-              <Search className="w-4 h-4 mr-2" />
-              Search VintageSphere
             </Button>
             <Button variant="outline" onClick={() => setShowWornVintageDrawer(true)}>
               <Search className="w-4 h-4 mr-2" />
@@ -664,11 +658,6 @@ export function ImportsTab() {
       <TraderaSearchDrawer
         open={showTraderaDrawer}
         onOpenChange={setShowTraderaDrawer}
-        onImported={() => setSelectedItemId(null)}
-      />
-      <VintageSphereSearchDrawer
-        open={showVintageSphereDrawer}
-        onOpenChange={setShowVintageSphereDrawer}
         onImported={() => setSelectedItemId(null)}
       />
       <WornVintageSearchDrawer
