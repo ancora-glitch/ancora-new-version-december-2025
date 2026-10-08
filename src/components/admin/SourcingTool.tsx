@@ -47,8 +47,6 @@ const SOURCES: Source[] = [
     build: ({ brand }) => `https://www.ebay.it/sch/i.html?_nkw=${enc(brand)}&LH_ItemCondition=3000` },
   { id: "vestiaire", name: "Vestiaire Collective", description: "Internationell pre-loved", group: "intl",
     build: ({ brand }) => `https://www.vestiairecollective.com/search/?q=${enc(brand)}` },
-  { id: "vintagesphere", name: "VintageSphere", description: "Svensk vintage", group: "intl",
-    build: ({ brand, keywords }) => `https://vintagesphere.se/search?type=product&q=${joinBK(brand, keywords)}` },
   { id: "redesignedby", name: "ReDesignedBy", description: "Svensk pre-loved", group: "intl",
     build: ({ brand, keywords }) => `https://redesignedby.se/search?type=product&q=${joinBK(brand, keywords)}` },
   { id: "beyondretro", name: "Beyond Retro", description: "Internationell vintage", group: "intl",

@@ -17,7 +17,7 @@ type RollingValue = "7days" | "30days" | "all";
 type DateRange =
   | { kind: "rolling"; value: RollingValue }
   | { kind: "month"; year: number; month: number };
-type SourceFilter = "all" | "tradera" | "ebay" | "vintagesphere" | "pure_effect";
+type SourceFilter = "all" | "tradera" | "ebay" | "pure_effect";
 
 interface TopProduct {
   product_id: string;
@@ -494,7 +494,7 @@ export const AnalyticsDashboard = () => {
           <div className="flex items-center gap-2">
             <Store size={16} className="text-muted-foreground" />
             <div className="flex rounded-md border border-border overflow-hidden">
-              {(["all", "tradera", "ebay", "vintagesphere", "pure_effect"] as SourceFilter[]).map((source) => (
+              {(["all", "tradera", "ebay", "pure_effect"] as SourceFilter[]).map((source) => (
                 <Button
                   key={source}
                   variant="ghost"
@@ -506,7 +506,7 @@ export const AnalyticsDashboard = () => {
                       : "hover:bg-secondary"
                   }`}
                 >
-                  {source === "all" ? "All Sources" : source === "tradera" ? "Tradera" : source === "ebay" ? "eBay" : source === "pure_effect" ? "Pure Effect" : "VintageSphere"}
+                  {source === "all" ? "All Sources" : source === "tradera" ? "Tradera" : source === "ebay" ? "eBay" : "Pure Effect"}
                 </Button>
               ))}
             </div>

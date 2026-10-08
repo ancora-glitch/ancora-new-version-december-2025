@@ -470,7 +470,6 @@ const ProductDetail = () => {
                   const sourceLabels: Record<string, string> = {
                     tradera: "Tradera",
                     ebay: "eBay",
-                    vintagesphere: "VintageSphere",
                     pure_effect: "Pure Effect",
                     wornvintage: "Worn Vintage",
                     sellpy: "Sellpy",
