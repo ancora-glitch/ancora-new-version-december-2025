@@ -29,7 +29,7 @@ const Index = () => {
           <img alt="Close-up of thick textured paint in warm rust, terracotta and slate tones" fetchPriority="high" width={1920} height={409} className="absolute inset-0 w-full h-full object-cover [object-position:0%_50%] md:[object-position:50%_50%]" src={heroImage} />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
           <div className="absolute inset-0 flex items-end md:items-center justify-center px-4 md:px-8 pb-2 md:pb-0">
-            <div className="rounded-lg px-4 md:px-6 py-4 w-fit max-w-full text-center mx-auto bg-black/18 backdrop-blur-[3px]">
+            <div className="rounded-lg px-4 md:px-6 py-4 w-fit max-w-full text-center mx-auto bg-black/20 backdrop-blur-[3px]">
               <h1 className="text-3xl md:text-4xl lg:text-5xl mb-2 md:mb-3 leading-tight text-white font-serif text-center whitespace-nowrap">
                 Fashion worth finding
               </h1>
