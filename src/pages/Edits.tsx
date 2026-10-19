@@ -41,7 +41,7 @@ const Edits = () => {
                 </p>
               )}
               {activeEdit.short_intro && (
-                <p className="text-center text-muted-foreground max-w-2xl mx-auto">
+                <p className="text-center text-primary max-w-2xl mx-auto">
                   {activeEdit.short_intro}
                 </p>
               )}
