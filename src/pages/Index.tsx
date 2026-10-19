@@ -6,7 +6,7 @@ import { GuideCard } from "@/components/GuideCard";
 import { useActiveWeeklyEdit } from "@/hooks/useWeeklyEdits";
 import { formatPrice } from "@/hooks/useProducts";
 import { useMergedStories } from "@/hooks/useMergedStories";
-import heroAsset from "@/assets/hero-hands.jpg.asset.json";
+import heroAsset from "@/assets/hero-street.jpg.asset.json";
 const heroImage = heroAsset.url;
 
 const Index = () => {
@@ -25,11 +25,11 @@ const Index = () => {
       {/* Main content with padding for fixed header */}
       <main className="pt-16">
         {/* Hero Section */}
-        <section className="relative w-full h-[40vh] min-h-[300px]">
-          <img alt="Person on a sports court, hands at center" fetchPriority="high" width={1280} height={1920} className="absolute inset-0 w-full h-full object-cover [object-position:50%_50%]" src={heroImage} />
+        <section className="relative w-full h-[40vh] min-h-[300px] md:h-auto md:min-h-0 md:aspect-[1920/409]">
+          <img alt="Person walking in silhouette past sunlit tiled pillars" fetchPriority="high" width={1920} height={409} className="absolute inset-0 w-full h-full object-cover [object-position:75%_50%] md:[object-position:50%_50%]" src={heroImage} />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
           <div className="absolute inset-0 flex items-end md:items-center justify-center px-4 md:px-8 pb-2 md:pb-0">
-            <div className="rounded-lg px-3 md:px-4 max-w-md text-center py-[14px] mx-auto pb-[10px] pt-[5px]">
+            <div className="rounded-lg px-3 md:px-4 max-w-md text-center py-[14px] mx-auto pb-[10px] pt-[5px] bg-black/35 backdrop-blur-[3px]">
               <h1 className="text-3xl md:text-4xl lg:text-5xl mb-2 md:mb-3 leading-tight text-white font-serif text-center whitespace-nowrap">
                 Fashion worth finding
               </h1>
