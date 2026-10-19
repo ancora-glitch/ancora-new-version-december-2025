@@ -26,7 +26,7 @@ const Index = () => {
       <main className="pt-16">
         {/* Hero Section */}
         <section className="relative w-full h-[40vh] min-h-[300px] md:h-auto md:min-h-0 md:aspect-[1920/409]">
-          <img alt="Empty asphalt street bordered by a brick sidewalk, dappled with tree shadows" fetchPriority="high" width={1920} height={409} className="absolute inset-0 w-full h-full object-cover [object-position:50%_50%]" src={heroImage} />
+          <img alt="Empty asphalt street bordered by a brick sidewalk, dappled with tree shadows" fetchPriority="high" width={1920} height={409} className="absolute inset-0 w-full h-full object-cover [object-position:0%_50%] md:[object-position:50%_50%]" src={heroImage} />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
           <div className="absolute inset-0 flex items-end md:items-center justify-center px-4 md:px-8 pb-2 md:pb-0">
             <div className="rounded-lg px-3 md:px-4 max-w-md text-center py-[14px] mx-auto pb-[10px] pt-[5px] bg-black/35 backdrop-blur-[3px]">
