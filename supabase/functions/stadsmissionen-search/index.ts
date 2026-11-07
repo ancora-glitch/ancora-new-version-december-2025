@@ -37,8 +37,9 @@ Deno.serve(async (req) => {
 
   const apiKey = Deno.env.get("STADSMISSIONEN_API_KEY");
   const rawHost = Deno.env.get("STADSMISSIONEN_HOST");
-  if (!apiKey) return json({ error: "Stadsmissionen API key is not configured" }, 500);
-  if (!rawHost) return json({ error: "Stadsmissionen host is not configured yet" }, 500);
+  // Missing config is an expected setup state, not a server failure → 200 with notConfigured flag.
+  if (!apiKey) return json({ notConfigured: true, error: "Stadsmissionen API key is not configured" }, 200);
+  if (!rawHost) return json({ notConfigured: true, error: "Stadsmissionen server address is not configured yet. Search will work once it is added." }, 200);
   const host = rawHost.replace(/^https?:\/\//, "").replace(/\/+$/, "");
   const base = `https://${host}/api/v1`;
 
