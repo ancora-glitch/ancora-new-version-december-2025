@@ -141,5 +141,6 @@ export function ImportsTab() {
         onOpenChange={setShowReDesignedByDrawer}
         onImported={() => setSelectedItemId(null)}
       />
+    </div>
   );
 }
