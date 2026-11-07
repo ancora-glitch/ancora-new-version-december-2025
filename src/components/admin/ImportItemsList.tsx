@@ -1,3 +1,4 @@
+// ARCHIVED 2026-11-07: no longer rendered (Import log removed from Imports tab). Kept for reference.
 import { useState } from "react";
 import { useImportItems, type AisStatus, type AisSourceType } from "@/hooks/useImportItems";
 import { Badge } from "@/components/ui/badge";
