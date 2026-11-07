@@ -3470,3 +3470,5 @@ Ej åtgärdat, kräver eget beslut:
   auth helt — error-nivå finding, öppet sedan 2026-02-01.
 - RLS på products tillåter publik läsning av unpublished/internal data
   (draft-produkter kan vara läsbara via API trots att UI döljer dem).
+
+- 2026-11-07 — Import log (ImportItemsList + ImportItemDetail) borttagen från Imports-fliken. Koden arkiverad, ingen påverkan på publika sajten, dubblettkontroll eller nattliga körningar.

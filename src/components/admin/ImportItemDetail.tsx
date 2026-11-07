@@ -1,3 +1,4 @@
+// ARCHIVED 2026-11-07: no longer rendered (Import log removed from Imports tab). Kept for reference.
 import { useState, useEffect } from "react";
 import {
   useImportItem,
