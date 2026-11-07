@@ -856,6 +856,13 @@ Changelog v1.9:
 
 Changelog v1.8:
 
+### 2026-11-07 — Ny partner: Stadsmissionen (Stockholms Stadsmission Catalog API v1.0.0)
+- Manuell kuratering via "Search Stadsmissionen" i Imports-fliken (StadsmissionenSearchDrawer). Ingen cron, ingen polling.
+- Edge function `stadsmissionen-search` (actions: categories/search/item), kräver inloggad admin. Anropar `GET /api/v1/categories`, `/products`, `/products/{id}` med header `ssm-api-key`.
+- Secrets: `STADSMISSIONEN_API_KEY` (server-side only), `STADSMISSIONEN_HOST` (host från Stadsmissionen).
+- marketplace = `stadsmissionen`, source_ref = produkt-UUID, affiliate_url = `shop_url`. Importer alltid `draft`, max 10 per körning. Brand "Okänt märke" → "Unknown".
+- Påverkar inte Tradera-kvoten (separat API).
+
 ### 2026-11-07 — Flikarna Sourcing och Intake (test) arkiverade
 Vad: Flikarna "Sourcing" och "Intake (test)" borttagna ur Admin Portal (AdminPortal.tsx, nu 6 flikar). Ny start för ett automatiskt intake-flöde.
 ARKIVERAD kod (kvar endast som referens, ej importerad någonstans): src/components/admin/SourcingTool.tsx, IntakeTab.tsx, IntakeReviewQueue.tsx — märkta med ARKIVERAD-kommentar överst. Sektionerna om Sourcing Tool (2026-06-08) och Intake v1 (test) är historiska.
