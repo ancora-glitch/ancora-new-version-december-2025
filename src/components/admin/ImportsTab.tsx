@@ -7,6 +7,7 @@ import { WornVintageSearchDrawer } from "./WornVintageSearchDrawer";
 import { SellpySearchDrawer } from "./SellpySearchDrawer";
 import { PureEffectSearchDrawer } from "./PureEffectSearchDrawer";
 import { ReDesignedBySearchDrawer } from "./ReDesignedBySearchDrawer";
+import { StadsmissionenSearchDrawer } from "./StadsmissionenSearchDrawer";
 import { Button } from "@/components/ui/button";
 import { Search, X } from "lucide-react";
 
@@ -18,6 +19,7 @@ export function ImportsTab() {
   const [showSellpyDrawer, setShowSellpyDrawer] = useState(false);
   const [showPureEffectDrawer, setShowPureEffectDrawer] = useState(false);
   const [showReDesignedByDrawer, setShowReDesignedByDrawer] = useState(false);
+  const [showStadsmissionenDrawer, setShowStadsmissionenDrawer] = useState(false);
 
 
   const detailRef = useRef<HTMLDivElement>(null);
@@ -75,6 +77,10 @@ export function ImportsTab() {
             <Button variant="outline" onClick={() => setShowReDesignedByDrawer(true)}>
               <Search className="w-4 h-4 mr-2" />
               Search ReDesignedBy
+            </Button>
+            <Button variant="outline" onClick={() => setShowStadsmissionenDrawer(true)}>
+              <Search className="w-4 h-4 mr-2" />
+              Search Stadsmissionen
             </Button>
           </div>
         </div>
@@ -139,6 +145,11 @@ export function ImportsTab() {
       <ReDesignedBySearchDrawer
         open={showReDesignedByDrawer}
         onOpenChange={setShowReDesignedByDrawer}
+        onImported={() => setSelectedItemId(null)}
+      />
+      <StadsmissionenSearchDrawer
+        open={showStadsmissionenDrawer}
+        onOpenChange={setShowStadsmissionenDrawer}
         onImported={() => setSelectedItemId(null)}
       />
     </div>
