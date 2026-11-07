@@ -856,6 +856,11 @@ Changelog v1.9:
 
 Changelog v1.8:
 
+### 2026-11-07 — Flikarna Sourcing och Intake (test) arkiverade
+Vad: Flikarna "Sourcing" och "Intake (test)" borttagna ur Admin Portal (AdminPortal.tsx, nu 6 flikar). Ny start för ett automatiskt intake-flöde.
+ARKIVERAD kod (kvar endast som referens, ej importerad någonstans): src/components/admin/SourcingTool.tsx, IntakeTab.tsx, IntakeReviewQueue.tsx — märkta med ARKIVERAD-kommentar överst. Sektionerna om Sourcing Tool (2026-06-08) och Intake v1 (test) är historiska.
+Opåverkat: publika sajten, produkter, databas, edge functions och cron.
+
 ### 2026-10-08 — VintageSphere avvecklad som partner
 Vad: Partnern finns inte längre. Borttaget: VintageSphereSearchDrawer, edge functions vintagesphere-search/-item (raderade i drift + config.toml), knapp i ImportsTab, länk i SourcingTool, källfilter i AnalyticsDashboard, sourceLabel i ProductDetail. Data: 20 produkter hårdraderade (plus deras 20 Weekly Edit-placeringar) och 60 rader i ancora_import_items. Gamla länkar ger 404. Behållet: intervjun med Olivia (style_guides). Enum-värdet `vintagesphere` i ais_source_type ligger kvar (oanvänt) för att undvika brytande schemaändring. Sektion 4.4 (VintageSphere) är historisk.
 

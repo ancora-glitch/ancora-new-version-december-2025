@@ -1,3 +1,8 @@
+/**
+ * ARKIVERAD 2026-11-07 — används inte längre i Admin Portal.
+ * Fliken togs bort inför ett nytt automatiskt intake-flöde.
+ * Behålls endast som referens. Se ANCORA_MASTER_SPEC.md (2026-11-07).
+ */
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { IntakeReviewQueue } from "./IntakeReviewQueue";
