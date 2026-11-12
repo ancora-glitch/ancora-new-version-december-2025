@@ -1,3 +1,4 @@
 - [x] Normalize Edit Product attributes, name and size; preserve originals and links.
 - [x] Apply the correction to new Stadsmissionen imports.
 - [x] Run regression tests and verify the signed-in editor (saved and reopened a real Stadsmissionen draft).
+- [x] Correct Stadsmissionen decimal-size purchase URLs and the reported Prada link; verified Buy now on the published page opens the matching partner product.

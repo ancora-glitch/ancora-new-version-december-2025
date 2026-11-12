@@ -3,6 +3,11 @@ Version 1.8
 
 Changelog v1.8:
 
+### 2026-11-12 — Stadsmissionen: rättad köplänk för decimalstorlek
+- Import Layer: decimalpunkten i originaltitelns storlek tas bort när partnerlänken skapas (37.5 → 375), inte ersätts med bindestreck. Verifierat mot Prada-produktens faktiska butikssida.
+- Befintlig köplänk för Brown Suede Boots rättas separat; ANCORA-slug, namn och övriga redaktionella fält bevaras.
+- Kod: `src/lib/stadsmissionenShopUrl.ts`, Stadsmissionen-adaptern och regressionstest. Ingen migration, serverändring eller nya externa API-anrop; enums, delad kvoträknare, nattlig cron 03:00 UTC och abortgränsen <30 är oförändrade.
+
 ### 2026-11-12 — Edit Product: engelska attribut, namn utan brand och storlek utan parenteser
 - Admin UI / Editorial: Condition, Material och Color normaliseras till engelska vid öppning och sparande. Name innehåller endast plaggets namn, inte brand eller storlek. Size behåller storleksvärdet (t.ex. S), utan parentesförklaringar.
 - Stadsmissionen-import använder redan översatta condition/material och samma attribut-, namn- och storleksnormalisering. Originalfält och befintliga produktlänkar bevaras.

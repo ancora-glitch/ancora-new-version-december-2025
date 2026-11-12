@@ -1,2 +1,3 @@
 # Architecture rules
 - Keep deterministic editorial attribute/name/size normalization in `src/lib/productEditorialFields.ts`, shared by the product editor and Stadsmissionen adapter, so imports and manual saves follow the same rules without new external calls.
+- Keep Stadsmissionen shop alias generation in `src/lib/stadsmissionenShopUrl.ts`, used by import and duplicate checks, so partner-specific URL rules can be regression-tested without loading admin UI.

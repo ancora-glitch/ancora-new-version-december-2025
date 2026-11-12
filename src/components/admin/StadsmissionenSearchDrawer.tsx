@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useImportToProduct, checkProductDuplicate } from "@/hooks/useImportToProduct";
 import { translateImport } from "@/lib/translateImport";
 import { cleanProductName, cleanProductSize, englishCondition, englishMaterial, englishColor } from "@/lib/productEditorialFields";
+import { ssmShopUrl } from "@/lib/stadsmissionenShopUrl";
 import { toast } from "sonner";
 import { Loader2, Search, Package, AlertCircle, Store } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -42,22 +43,6 @@ const MARKETPLACE = "stadsmissionen";
 const PAGE_LIMIT = 20;
 const MAX_IMPORT_PER_RUN = 10;
 const ALL = "__all__";
-
-/**
- * The API's shop_url (/product/<uuid>) 404s on stadsmissionen.se.
- * Real product pages live at /shop/produkt/<slugified title>.
- */
-export function ssmShopUrl(title: string): string {
-  const slug = title
-    .toLowerCase()
-    .replace(/[åä]/g, "a")
-    .replace(/ö/g, "o")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return `https://www.stadsmissionen.se/shop/produkt/${slug}`;
-}
 
 async function callSsm(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke("stadsmissionen-search", { body });
