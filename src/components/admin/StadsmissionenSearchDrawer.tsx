@@ -42,6 +42,22 @@ const PAGE_LIMIT = 20;
 const MAX_IMPORT_PER_RUN = 10;
 const ALL = "__all__";
 
+/**
+ * The API's shop_url (/product/<uuid>) 404s on stadsmissionen.se.
+ * Real product pages live at /shop/produkt/<slugified title>.
+ */
+export function ssmShopUrl(title: string): string {
+  const slug = title
+    .toLowerCase()
+    .replace(/[åä]/g, "a")
+    .replace(/ö/g, "o")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return `https://www.stadsmissionen.se/shop/produkt/${slug}`;
+}
+
 async function callSsm(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke("stadsmissionen-search", { body });
   if (error) {
@@ -97,12 +113,13 @@ export function StadsmissionenSearchDrawer({ open, onOpenChange, onImported }: P
     setSelected(new Set());
     try {
       const { data: prods } = await supabase.from("products").select("slug, affiliate_url").eq("marketplace", MARKETPLACE);
-      const set = new Set<string>();
+      const urls = new Set<string>();
+      const legacyIds = new Set<string>();
       for (const p of prods || []) {
+        if (p.affiliate_url) urls.add(p.affiliate_url);
         const m = p.affiliate_url?.match(/\/product\/([0-9a-f-]{36})/i);
-        if (m) set.add(m[1]);
+        if (m) legacyIds.add(m[1]);
       }
-      setExisting(set);
 
       const d = await callSsm({
         action: "search",
@@ -112,6 +129,7 @@ export function StadsmissionenSearchDrawer({ open, onOpenChange, onImported }: P
         limit: PAGE_LIMIT,
       });
       const list: SsmListItem[] = d?.data || [];
+      setExisting(new Set(list.filter((it) => legacyIds.has(it.id) || urls.has(ssmShopUrl(it.title))).map((it) => it.id)));
       setResults(list);
       // Fetch previews (image + price) for the visible page in parallel
       list.forEach((it) => {
@@ -141,7 +159,7 @@ export function StadsmissionenSearchDrawer({ open, onOpenChange, onImported }: P
   const importOne = async (item: SsmListItem): Promise<"ok" | "dupe" | "fail"> => {
     const p = details[item.id] ?? ((await callSsm({ action: "item", id: item.id }))?.data as SsmProduct | undefined);
     if (!p) return "fail";
-    if (await checkProductDuplicate(MARKETPLACE, p.id, p.shop_url)) return "dupe";
+    if (await checkProductDuplicate(MARKETPLACE, p.id, ssmShopUrl(p.title))) return "dupe";
 
     const a = p.attributes || {};
     const brandRaw: string | null = a.brand ?? null;
@@ -166,8 +184,8 @@ export function StadsmissionenSearchDrawer({ open, onOpenChange, onImported }: P
     await importMutation.mutateAsync({
       marketplace: MARKETPLACE,
       source_ref: p.id,
-      source_url: p.shop_url,
-      affiliate_url: p.shop_url,
+      source_url: ssmShopUrl(p.title),
+      affiliate_url: ssmShopUrl(p.title),
       title: p.title,
       title_original: p.title,
       title_en: tx.title_en,

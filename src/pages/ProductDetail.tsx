@@ -473,6 +473,7 @@ const ProductDetail = () => {
                     pure_effect: "Pure Effect",
                     wornvintage: "Worn Vintage",
                     sellpy: "Sellpy",
+                    stadsmissionen: "Stadsmissionen",
                     manual: "Manual",
                     redesignedby: "AddNewDesign",
                   };
