@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useImportToProduct, checkProductDuplicate } from "@/hooks/useImportToProduct";
 import { translateImport } from "@/lib/translateImport";
+import { cleanProductName, cleanProductSize, englishCondition, englishMaterial, englishColor } from "@/lib/productEditorialFields";
 import { toast } from "sonner";
 import { Loader2, Search, Package, AlertCircle, Store } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -186,9 +187,9 @@ export function StadsmissionenSearchDrawer({ open, onOpenChange, onImported }: P
       source_ref: p.id,
       source_url: ssmShopUrl(p.title),
       affiliate_url: ssmShopUrl(p.title),
-      title: p.title,
+      title: cleanProductName(p.title, brand),
       title_original: p.title,
-      title_en: tx.title_en,
+      title_en: tx.title_en ? cleanProductName(tx.title_en, brand) : null,
       description,
       description_original: description,
       description_en: tx.description_en,
@@ -196,12 +197,12 @@ export function StadsmissionenSearchDrawer({ open, onOpenChange, onImported }: P
       translated_at: tx.translated_at,
       brand,
       brand_original: brandRaw,
-      size,
-      color,
+      size: cleanProductSize(size) || null,
+      color: englishColor(color) || null,
       color_original: color,
-      material,
+      material: englishMaterial(tx.material_en || material) || null,
       material_original: material,
-      condition: p.condition,
+      condition: englishCondition(tx.condition_en || p.condition) || null,
       condition_original: p.condition,
       price: price != null && !isNaN(price) ? price : null,
       currency: p.price?.currency || "SEK",

@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { ImportsTab } from "@/components/admin/ImportsTab";
 import { WeeklyEditsTab } from "@/components/admin/WeeklyEditsTab";
 import { slugify } from "@/utils/slugify";
+import { cleanProductName, cleanProductSize, englishCondition, englishMaterial, englishColor } from "@/lib/productEditorialFields";
 import {
   DndContext,
   closestCenter,
@@ -496,18 +497,18 @@ const AdminPortal = () => {
     setEditingProductId(product.id);
     setProductBrand(product.brand);
     // Prefer name_en for editing; fall back to name
-    setProductName(product.name_en || product.name);
+    setProductName(cleanProductName(product.name_en || product.name, product.brand));
     setProductPrice(product.price);
-    setProductSize(product.size || "");
-   setProductColor((product as any).color || "");
+    setProductSize(cleanProductSize(product.size));
+    setProductColor(englishColor(product.color));
     const allImages = [product.image, ...(product.additional_images || [])];
     setProductImages(allImages);
     // Prefer description_en for editing; fall back to description
     setProductDescription(product.description_en || product.description || "");
     setProductAffiliateUrl(product.affiliate_url || "");
     setProductMarketplace(product.marketplace || "");
-    setProductCondition(product.condition || "");
-    setProductMaterial(product.material || "");
+    setProductCondition(englishCondition(product.condition));
+    setProductMaterial(englishMaterial(product.material));
     // Normalize legacy 'published' to 'active' for the UI
     setProductStatus(product.status === "published" ? "active" : product.status);
     setProductCategoryId(product.category_id || null);
@@ -720,7 +721,12 @@ const AdminPortal = () => {
     const mainImage = productImages[0];
     const additionalImages = productImages.slice(1);
     
-    const trimmedName = productName.trim();
+    const trimmedName = cleanProductName(productName, productBrand);
+    if (!trimmedName) {
+      toast.error("Name must contain the product name, not only the brand");
+      setSavingProduct(false);
+      return;
+    }
     const trimmedDesc = productDescription.trim() || null;
  
     const productData = {
@@ -730,14 +736,14 @@ const AdminPortal = () => {
       description: trimmedDesc,
       description_en: trimmedDesc,
       price: productPrice.trim(),
-      size: productSize.trim() || null,
-      color: productColor.trim() || null,
+      size: cleanProductSize(productSize) || null,
+      color: englishColor(productColor) || null,
       image: mainImage,
       additional_images: additionalImages,
       affiliate_url: productAffiliateUrl.trim() || null,
       marketplace: productMarketplace.trim() || null,
-      condition: productCondition.trim() || null,
-      material: productMaterial.trim() || null,
+      condition: englishCondition(productCondition) || null,
+      material: englishMaterial(productMaterial) || null,
       status: productStatus,
       slug,
       category_id: productCategoryId || null,

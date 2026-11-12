@@ -3,6 +3,12 @@ Version 1.8
 
 Changelog v1.8:
 
+### 2026-11-12 — Edit Product: engelska attribut, namn utan brand och storlek utan parenteser
+- Admin UI / Editorial: Condition, Material och Color normaliseras till engelska vid öppning och sparande. Name innehåller endast plaggets namn, inte brand eller storlek. Size behåller storleksvärdet (t.ex. S), utan parentesförklaringar.
+- Stadsmissionen-import använder redan översatta condition/material och samma attribut-, namn- och storleksnormalisering. Originalfält och befintliga produktlänkar bevaras.
+- Kod: `src/lib/productEditorialFields.ts`, `src/pages/AdminPortal.tsx`, `src/components/admin/StadsmissionenSearchDrawer.tsx` och regressionstester.
+- Ingen migration eller ändrad serverfunktion. Enums, externa API-anrop, kvoträknare, nattlig cron 03:00 UTC och abortgränsen <30 är oförändrade. Ingen bakgrundsöverskrivning av redaktionella fält.
+
 ### 2026-07-07 — Filter & Sortering på Shop + CategoryPage
 
 Vad: Ersatte flex-wrap subkategori-knappar med horisontell scroll-meny
