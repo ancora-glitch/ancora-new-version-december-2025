@@ -72,6 +72,7 @@ export function StadsmissionenSearchDrawer({ open, onOpenChange, onImported }: P
   const [existing, setExisting] = useState<Set<string>>(new Set());
   const [isImporting, setIsImporting] = useState(false);
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
+  const [details, setDetails] = useState<Record<string, SsmProduct>>({});
 
   useEffect(() => {
     if (!open) {
@@ -110,7 +111,14 @@ export function StadsmissionenSearchDrawer({ open, onOpenChange, onImported }: P
         page: targetPage,
         limit: PAGE_LIMIT,
       });
-      setResults(d?.data || []);
+      const list: SsmListItem[] = d?.data || [];
+      setResults(list);
+      // Fetch previews (image + price) for the visible page in parallel
+      list.forEach((it) => {
+        callSsm({ action: "item", id: it.id })
+          .then((r) => r?.data && setDetails((prev) => ({ ...prev, [it.id]: r.data as SsmProduct })))
+          .catch(() => { /* preview is optional */ });
+      });
       setPage(d?.meta?.page || targetPage);
       setTotalPages(d?.meta?.pages || 0);
       setTotal(d?.meta?.total || 0);
@@ -131,8 +139,7 @@ export function StadsmissionenSearchDrawer({ open, onOpenChange, onImported }: P
   };
 
   const importOne = async (item: SsmListItem): Promise<"ok" | "dupe" | "fail"> => {
-    const d = await callSsm({ action: "item", id: item.id });
-    const p = d?.data as SsmProduct | undefined;
+    const p = details[item.id] ?? ((await callSsm({ action: "item", id: item.id }))?.data as SsmProduct | undefined);
     if (!p) return "fail";
     if (await checkProductDuplicate(MARKETPLACE, p.id, p.shop_url)) return "dupe";
 
@@ -307,9 +314,23 @@ export function StadsmissionenSearchDrawer({ open, onOpenChange, onImported }: P
                         isExisting ? "opacity-50 bg-muted" : isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
                       }`}>
                         <Checkbox checked={isSelected} onCheckedChange={() => !isExisting && toggle(item.id)} disabled={isExisting || isImporting} />
+                        {details[item.id]?.images?.[0]?.url ? (
+                          <img
+                            src={details[item.id].images[0].url}
+                            alt={details[item.id].images[0].alt || item.title}
+                            className="w-16 h-16 object-cover rounded flex-shrink-0"
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 bg-muted rounded flex items-center justify-center flex-shrink-0">
+                            {details[item.id] ? <Package className="w-6 h-6 text-muted-foreground" /> : <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+                          </div>
+                        )}
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm line-clamp-2">{item.title}</p>
                           <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                            {details[item.id]?.price && <span>{parseFloat(details[item.id].price!.amount).toFixed(0)} {details[item.id].price!.currency}</span>}
                             {item.sku && <span>{item.sku}</span>}
                             {isExisting && <Badge variant="outline" className="text-[10px] h-4 px-1">Already imported</Badge>}
                           </div>
