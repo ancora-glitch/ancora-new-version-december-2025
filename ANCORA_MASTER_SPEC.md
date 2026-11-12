@@ -3472,3 +3472,4 @@ Ej åtgärdat, kräver eget beslut:
   (draft-produkter kan vara läsbara via API trots att UI döljer dem).
 
 - 2026-11-07 — Import log (ImportItemsList + ImportItemDetail) borttagen från Imports-fliken. Koden arkiverad, ingen påverkan på publika sajten, dubblettkontroll eller nattliga körningar.
+- 2026-11-12 — Statistics (AnalyticsDashboard): källfiltret utökat med Stadsmissionen (SourceFilter + SOURCE_LABELS). Filtreringen sker via products.marketplace, inga nya tabeller eller event-typer. Övriga källor oförändrade.
