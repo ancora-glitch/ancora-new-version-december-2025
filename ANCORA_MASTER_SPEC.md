@@ -3473,3 +3473,4 @@ Ej åtgärdat, kräver eget beslut:
 
 - 2026-11-07 — Import log (ImportItemsList + ImportItemDetail) borttagen från Imports-fliken. Koden arkiverad, ingen påverkan på publika sajten, dubblettkontroll eller nattliga körningar.
 - 2026-11-12 — Statistics (AnalyticsDashboard): källfiltret utökat med Stadsmissionen (SourceFilter + SOURCE_LABELS). Filtreringen sker via products.marketplace, inga nya tabeller eller event-typer. Övriga källor oförändrade.
+- 2026-11-12 — Statistics (AnalyticsDashboard): källfiltret utökat med ReDesignedBy (marketplace "redesignedby") och Worn Vintage (marketplace "wornvintage"). Samma mekanism som ovan — SourceFilter + SOURCE_LABELS + knappsatsen, filtrering via products.marketplace. Inga nya tabeller, event-typer eller enum-värden. Sellpy (1 produkt, marketplace "Sellpy") är fortfarande inte med i filtret.

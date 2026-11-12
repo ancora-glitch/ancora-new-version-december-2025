@@ -17,13 +17,22 @@ type RollingValue = "7days" | "30days" | "all";
 type DateRange =
   | { kind: "rolling"; value: RollingValue }
   | { kind: "month"; year: number; month: number };
-type SourceFilter = "all" | "tradera" | "ebay" | "pure_effect" | "stadsmissionen";
+type SourceFilter =
+  | "all"
+  | "tradera"
+  | "ebay"
+  | "pure_effect"
+  | "redesignedby"
+  | "wornvintage"
+  | "stadsmissionen";
 
 const SOURCE_LABELS: Record<SourceFilter, string> = {
   all: "All Sources",
   tradera: "Tradera",
   ebay: "eBay",
   pure_effect: "Pure Effect",
+  redesignedby: "ReDesignedBy",
+  wornvintage: "Worn Vintage",
   stadsmissionen: "Stadsmissionen",
 };
 
@@ -502,7 +511,17 @@ export const AnalyticsDashboard = () => {
           <div className="flex items-center gap-2">
             <Store size={16} className="text-muted-foreground" />
             <div className="flex rounded-md border border-border overflow-hidden">
-              {(["all", "tradera", "ebay", "pure_effect", "stadsmissionen"] as SourceFilter[]).map((source) => (
+              {(
+                [
+                  "all",
+                  "tradera",
+                  "ebay",
+                  "pure_effect",
+                  "redesignedby",
+                  "wornvintage",
+                  "stadsmissionen",
+                ] as SourceFilter[]
+              ).map((source) => (
                 <Button
                   key={source}
                   variant="ghost"
