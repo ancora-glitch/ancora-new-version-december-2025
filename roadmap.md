@@ -7,3 +7,8 @@
 - [x] Remove any confirmed sold Stadsmissionen products from Weekly Edit placements, per editorial choice.
 - [x] Make future Stadsmissionen imports and duplicate checks use verified partner URLs.
 - [x] Run regression tests, verify representative Weekly Edit purchases end to end, and update the master spec.
+- [x] Add an admin-only Stadsmissionen auto-import configuration for brands, materials, colors and a 30-item weekly target.
+- [x] Build the import runner with filtering, deduplication, verified purchase links, translation and draft-only product creation.
+- [x] Add the Monday 08:00 Europe/Stockholm schedule without changing existing nightly availability jobs.
+- [x] Add Imports UI with save, enable and “Testkör nu” controls.
+- [x] Run a real small import test, verify the created drafts and scheduled behavior, and update the master spec.

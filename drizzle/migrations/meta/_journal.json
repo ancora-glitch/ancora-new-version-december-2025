@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1795375133400,
+      "tag": "0000_create_stadsmissionen_auto_import_config",
+      "breakpoints": true
+    }
+  ]
+}

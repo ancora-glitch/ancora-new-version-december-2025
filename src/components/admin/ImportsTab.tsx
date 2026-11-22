@@ -6,6 +6,7 @@ import { SellpySearchDrawer } from "./SellpySearchDrawer";
 import { PureEffectSearchDrawer } from "./PureEffectSearchDrawer";
 import { ReDesignedBySearchDrawer } from "./ReDesignedBySearchDrawer";
 import { StadsmissionenSearchDrawer } from "./StadsmissionenSearchDrawer";
+import { StadsmissionenAutoImport } from "./StadsmissionenAutoImport";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 
@@ -60,6 +61,7 @@ export function ImportsTab() {
         </div>
       </div>
 
+      <StadsmissionenAutoImport />
 
       <EbaySearchDrawer
         open={showEbayDrawer}

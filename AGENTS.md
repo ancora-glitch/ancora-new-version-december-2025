@@ -1,3 +1,4 @@
 # Architecture rules
 - Keep deterministic editorial attribute/name/size normalization in `src/lib/productEditorialFields.ts`, shared by the product editor and Stadsmissionen adapter, so imports and manual saves follow the same rules without new external calls.
-- Keep Stadsmissionen shop alias generation in `src/lib/stadsmissionenShopUrl.ts`, used by import and duplicate checks, so partner-specific URL rules can be regression-tested without loading admin UI.
+- Keep Stadsmissionen shop alias generation in `src/lib/stadsmissionenShopUrl.ts`, used by manual import and duplicate checks; mirror it in `supabase/functions/stadsmissionen-auto-import/rules.ts` for the scheduled runner and keep both regression tests in sync, because Edge Functions cannot deploy imports from `src/`.
+- Keep Stadsmissionen scheduled and manual auto-import in `supabase/functions/stadsmissionen-auto-import`, configured only through the admin-only `stadsmissionen_auto_import_configs` table; every run creates drafts only and must preserve the existing nightly availability jobs.

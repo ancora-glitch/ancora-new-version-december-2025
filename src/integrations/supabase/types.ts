@@ -873,6 +873,54 @@ export type Database = {
         }
         Relationships: []
       }
+      stadsmissionen_auto_import_configs: {
+        Row: {
+          active: boolean
+          brands: string[]
+          colors: string[]
+          config_key: string
+          created_at: string
+          id: string
+          last_run_at: string | null
+          last_run_status: string | null
+          last_run_summary: Json
+          materials: string[]
+          running_started_at: string | null
+          target_count: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          brands?: string[]
+          colors?: string[]
+          config_key?: string
+          created_at?: string
+          id?: string
+          last_run_at?: string | null
+          last_run_status?: string | null
+          last_run_summary?: Json
+          materials?: string[]
+          running_started_at?: string | null
+          target_count?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          brands?: string[]
+          colors?: string[]
+          config_key?: string
+          created_at?: string
+          id?: string
+          last_run_at?: string | null
+          last_run_status?: string | null
+          last_run_summary?: Json
+          materials?: string[]
+          running_started_at?: string | null
+          target_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       story_views: {
         Row: {
           id: string

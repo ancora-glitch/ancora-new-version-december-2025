@@ -3,6 +3,14 @@ Version 1.8
 
 Changelog v1.8:
 
+### 2026-11-22 — Stadsmissionen: schemalagd måndagsimport och Testkör nu
+- Admin UI / Imports: nytt panelavsnitt `Auto-import Stadsmissionen` med märken, material, färger, veckomål (1–50, standard 30), på/av samt knappen `Testkör nu`. Testkörning sparar inställningarna och fungerar även när schemat är pausat. Bekräftat urval: Filippa K, TOTEME, Ganni, By Malene Birger, Rodebjer; ull, kashmir, silke; svart, beige, brun, burgundy (matchar även vinröd).
+- DB: ny admin-only tabell `stadsmissionen_auto_import_configs` med RLS via `has_role(auth.uid(), 'admin')`, explicit grants till authenticated/service_role, körningslås (45 min stale) och senaste körningsresultat. Ingen anon-åtkomst, ingen enumändring.
+- Edge function `stadsmissionen-auto-import`: manuella körningar kräver admin-JWT; schemalagda kräver `LOVABLE_CRON_SECRET` via delad `authenticateCronRequest`. Söker per märke (max 5 sidor × 50), endast kategorier under Dam/Herr, filtrerar material/färg, deduplicerar på partner-ID, originaltitel och verifierade aliasvarianter. Köplänken måste ge HTTP 200 och matchande H1. Återanvänder `translate-swedish`, redaktionella namn/storleks-/attributregler och unika slugs. Produkter sparas alltid som `draft`, aldrig publicerade eller i Weekly Edit.
+- Importlogg: `ancora_import_items.source_type = 'other'` och `marketplace = 'stadsmissionen'` bevarar partnerns produkt-UUID utan enum drift. Manuella redaktionella fält på befintliga produkter skrivs inte över.
+- Cron: `stadsmissionen-weekly-auto-import`, jobb-ID 17, `0 6,7 * * 1`. Funktionen fortsätter endast måndag 08:00 i Europe/Stockholm; den andra UTC-kontrollen blir no-op vid sommar-/vintertid. Tradera 03:00 UTC och eBay 03:15 UTC är oförändrade. Ingen Tradera API-kvot eller delad Tradera-räknare används.
+- Verifiering: 4 Deno-regeltester. Riktig admin-test med max 1 skapade draft `Rib-knit scarf with fringes` (Filippa K) med HTTP 200 på rätt partnerprodukt; färgfiltret återställdes direkt efter det kontrollerade testet. Separat UI-test med bekräftade filter slutfördes utan fel (0 nya, 11 dubbletter).
+
 ### 2026-11-22 — Stadsmissionen: samtliga köplänkar granskade och importvalidering
 - Data: Samtliga 47 Stadsmissionen-produkter och 16 Weekly Edit-placeringar granskades mot partnerns publika produktsidor. Fem trasiga länkar rättades och verifierades mot rätt produkt. By Malene Birger-kjolen saknade fungerande produktsida, markerades `sold` och togs bort från eventuella Weekly Edit-placeringar. Redaktionella namn, texter, bilder och ANCORA-slugs ändrades inte.
 - Import Layer: `src/lib/stadsmissionenShopUrl.ts` följer Drupal Pathautos engelska stop-words (`Tiger of Sweden` → `tiger-sweden`, `A Lamberg` → `lamberg`), nordisk translitterering (`Samsøe` → `samsoe`) och kollisionvarianterna `-0`, `-1`, `-2`.
@@ -875,7 +883,7 @@ Changelog v1.9:
 Changelog v1.8:
 
 ### 2026-11-07 — Ny partner: Stadsmissionen (Stockholms Stadsmission Catalog API v1.0.0)
-- Manuell kuratering via "Search Stadsmissionen" i Imports-fliken (StadsmissionenSearchDrawer). Ingen cron, ingen polling.
+- Manuell kuratering via "Search Stadsmissionen" i Imports-fliken (StadsmissionenSearchDrawer). Automatisk måndagsimport och Testkör nu finns enligt 2026-11-22-sektionen; ingen annan polling.
 - Edge function `stadsmissionen-search` (actions: categories/search/item), kräver inloggad admin. Anropar `GET /api/v1/categories`, `/products`, `/products/{id}` med header `ssm-api-key`.
 - Secrets: `STADSMISSIONEN_API_KEY` (server-side only), `STADSMISSIONEN_HOST` (host från Stadsmissionen).
 - marketplace = `stadsmissionen`, source_ref = produkt-UUID. affiliate_url måste vara en live-verifierad `/shop/produkt/`-adress enligt 2026-11-22-reglerna; API:ets otestade `shop_url` används inte direkt. Importer alltid `draft`, max 10 per körning. Brand "Okänt märke" → "Unknown".
