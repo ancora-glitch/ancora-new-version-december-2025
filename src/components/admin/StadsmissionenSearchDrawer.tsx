@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useImportToProduct, checkProductDuplicate } from "@/hooks/useImportToProduct";
 import { translateImport } from "@/lib/translateImport";
 import { cleanProductName, cleanProductSize, englishCondition, englishMaterial, englishColor } from "@/lib/productEditorialFields";
-import { ssmShopUrl } from "@/lib/stadsmissionenShopUrl";
+import { ssmShopUrlCandidates } from "@/lib/stadsmissionenShopUrl";
 import { toast } from "sonner";
 import { Loader2, Search, Package, AlertCircle, Store } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -56,6 +56,14 @@ async function callSsm(body: Record<string, unknown>) {
   }
   if (data?.error) throw new Error(data.error);
   return data;
+}
+
+async function resolveVerifiedShopUrl(title: string): Promise<string> {
+  for (const candidate of ssmShopUrlCandidates(title)) {
+    const result = await callSsm({ action: "validateShopUrl", url: candidate, title });
+    if (result?.data?.valid) return candidate;
+  }
+  throw new Error(`Ingen fungerande Stadsmissionen-sida hittades för ”${title}”. Importen stoppades.`);
 }
 
 export function StadsmissionenSearchDrawer({ open, onOpenChange, onImported }: Props) {
@@ -115,7 +123,9 @@ export function StadsmissionenSearchDrawer({ open, onOpenChange, onImported }: P
         limit: PAGE_LIMIT,
       });
       const list: SsmListItem[] = d?.data || [];
-      setExisting(new Set(list.filter((it) => legacyIds.has(it.id) || urls.has(ssmShopUrl(it.title))).map((it) => it.id)));
+      setExisting(new Set(list.filter((it) =>
+        legacyIds.has(it.id) || ssmShopUrlCandidates(it.title).some((url) => urls.has(url))
+      ).map((it) => it.id)));
       setResults(list);
       // Fetch previews (image + price) for the visible page in parallel
       list.forEach((it) => {
@@ -145,7 +155,8 @@ export function StadsmissionenSearchDrawer({ open, onOpenChange, onImported }: P
   const importOne = async (item: SsmListItem): Promise<"ok" | "dupe" | "fail"> => {
     const p = details[item.id] ?? ((await callSsm({ action: "item", id: item.id }))?.data as SsmProduct | undefined);
     if (!p) return "fail";
-    if (await checkProductDuplicate(MARKETPLACE, p.id, ssmShopUrl(p.title))) return "dupe";
+    const shopUrl = await resolveVerifiedShopUrl(p.title);
+    if (await checkProductDuplicate(MARKETPLACE, p.id, shopUrl)) return "dupe";
 
     const a = p.attributes || {};
     const brandRaw: string | null = a.brand ?? null;
@@ -170,8 +181,8 @@ export function StadsmissionenSearchDrawer({ open, onOpenChange, onImported }: P
     await importMutation.mutateAsync({
       marketplace: MARKETPLACE,
       source_ref: p.id,
-      source_url: ssmShopUrl(p.title),
-      affiliate_url: ssmShopUrl(p.title),
+      source_url: shopUrl,
+      affiliate_url: shopUrl,
       title: cleanProductName(p.title, brand),
       title_original: p.title,
       title_en: tx.title_en ? cleanProductName(tx.title_en, brand) : null,
@@ -213,6 +224,7 @@ export function StadsmissionenSearchDrawer({ open, onOpenChange, onImported }: P
     setIsImporting(true);
     setProgress({ current: 0, total: ids.length });
     let ok = 0, dupe = 0, fail = 0;
+    const importErrors: string[] = [];
     const nextExisting = new Set(existing);
     for (let i = 0; i < ids.length; i++) {
       setProgress({ current: i + 1, total: ids.length });
@@ -225,6 +237,7 @@ export function StadsmissionenSearchDrawer({ open, onOpenChange, onImported }: P
         else fail++;
       } catch (e) {
         console.error("[Stadsmissionen] import failed", e);
+        if (e instanceof Error) importErrors.push(e.message);
         fail++;
       }
     }
@@ -233,8 +246,9 @@ export function StadsmissionenSearchDrawer({ open, onOpenChange, onImported }: P
     setIsImporting(false);
     setProgress(null);
     const parts = [ok && `${ok} imported`, dupe && `${dupe} already existed`, fail && `${fail} failed`].filter(Boolean).join(", ");
-    if (ok) { toast.success(parts); onImported?.(); }
-    else if (fail) toast.error(parts || "Import failed");
+    if (ok) onImported?.();
+    if (fail) toast.error([parts, importErrors[0]].filter(Boolean).join(". ") || "Import failed");
+    else if (ok) toast.success(parts);
     else toast.info(parts);
   };
 

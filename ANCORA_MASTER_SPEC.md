@@ -3,6 +3,13 @@ Version 1.8
 
 Changelog v1.8:
 
+### 2026-11-22 — Stadsmissionen: samtliga köplänkar granskade och importvalidering
+- Data: Samtliga 47 Stadsmissionen-produkter och 16 Weekly Edit-placeringar granskades mot partnerns publika produktsidor. Fem trasiga länkar rättades och verifierades mot rätt produkt. By Malene Birger-kjolen saknade fungerande produktsida, markerades `sold` och togs bort från eventuella Weekly Edit-placeringar. Redaktionella namn, texter, bilder och ANCORA-slugs ändrades inte.
+- Import Layer: `src/lib/stadsmissionenShopUrl.ts` följer Drupal Pathautos engelska stop-words (`Tiger of Sweden` → `tiger-sweden`, `A Lamberg` → `lamberg`), nordisk translitterering (`Samsøe` → `samsoe`) och kollisionvarianterna `-0`, `-1`, `-2`.
+- Edge function `stadsmissionen-search`: ny admin-skyddad action `validateShopUrl` tillåter endast Stadsmissionens `/shop/produkt/`-adresser. Importen provar aliasvarianter i ordning och kräver HTTP 200 samt att sidans H1 matchar API:ets originaltitel. Om ingen korrekt sida finns stoppas importen med felmeddelande; ingen trasig draft-länk sparas.
+- Duplicate check: alla aliasvarianter kontrolleras mot befintliga produkter, med kvarvarande kontroll av gamla UUID-länkar.
+- Ingen migration eller schemaändring. Ingen ny cron eller polling; manuell import max 10 per körning är oförändrad. Tradera-kvot, delad kvoträknare, nattlig cron 03:00 UTC och abortgränsen <30 påverkas inte. Inga redaktionella fält skrivs över i bakgrunden.
+
 ### 2026-11-12 — Stadsmissionen: rättad köplänk för decimalstorlek
 - Import Layer: decimalpunkten i originaltitelns storlek tas bort när partnerlänken skapas (37.5 → 375), inte ersätts med bindestreck. Verifierat mot Prada-produktens faktiska butikssida.
 - Befintlig köplänk för Brown Suede Boots rättas separat; ANCORA-slug, namn och övriga redaktionella fält bevaras.
@@ -871,7 +878,7 @@ Changelog v1.8:
 - Manuell kuratering via "Search Stadsmissionen" i Imports-fliken (StadsmissionenSearchDrawer). Ingen cron, ingen polling.
 - Edge function `stadsmissionen-search` (actions: categories/search/item), kräver inloggad admin. Anropar `GET /api/v1/categories`, `/products`, `/products/{id}` med header `ssm-api-key`.
 - Secrets: `STADSMISSIONEN_API_KEY` (server-side only), `STADSMISSIONEN_HOST` (host från Stadsmissionen).
-- marketplace = `stadsmissionen`, source_ref = produkt-UUID, affiliate_url = `shop_url`. Importer alltid `draft`, max 10 per körning. Brand "Okänt märke" → "Unknown".
+- marketplace = `stadsmissionen`, source_ref = produkt-UUID. affiliate_url måste vara en live-verifierad `/shop/produkt/`-adress enligt 2026-11-22-reglerna; API:ets otestade `shop_url` används inte direkt. Importer alltid `draft`, max 10 per körning. Brand "Okänt märke" → "Unknown".
 - Påverkar inte Tradera-kvoten (separat API).
 
 ### 2026-11-07 — Flikarna Sourcing och Intake (test) arkiverade

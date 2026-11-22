@@ -2,3 +2,8 @@
 - [x] Apply the correction to new Stadsmissionen imports.
 - [x] Run regression tests and verify the signed-in editor (saved and reopened a real Stadsmissionen draft).
 - [x] Correct Stadsmissionen decimal-size purchase URLs and the reported Prada link; verified Buy now on the published page opens the matching partner product.
+- [x] Audit every Stadsmissionen purchase link, including all Weekly Edit placements.
+- [x] Repair broken links without changing editorial product content or ANCORA slugs.
+- [x] Remove any confirmed sold Stadsmissionen products from Weekly Edit placements, per editorial choice.
+- [x] Make future Stadsmissionen imports and duplicate checks use verified partner URLs.
+- [x] Run regression tests, verify representative Weekly Edit purchases end to end, and update the master spec.
