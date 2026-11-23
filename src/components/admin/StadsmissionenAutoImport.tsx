@@ -11,8 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 
 const DEFAULTS = {
   brands: "Filippa K\nTOTEME\nGanni\nBy Malene Birger\nRodebjer",
-  materials: "ull\nkashmir\nsilke",
-  colors: "svart\nbeige\nbrun\nburgundy",
+  materials: "ull\nkashmir\nsilke\nbomull",
+  colors: "svart\nbeige\nbrun\nburgundy\nnaturvit\ngräddvit\nvit\ngrå\nmarinblå",
 };
 
 const toLines = (values: string[] | null | undefined) => values?.join("\n") || "";

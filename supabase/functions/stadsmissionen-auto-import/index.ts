@@ -10,6 +10,7 @@ import {
   englishMaterial,
   isStockholmMondayEight,
   matchedBrand,
+  materialFromAttributes,
   matchesColor,
   matchesMaterial,
   normalizeText,
@@ -283,7 +284,7 @@ Deno.serve(async (req) => {
               summary.filtered = (summary.filtered as number) + 1;
               continue;
             }
-            const material = attributes.material_text || (Array.isArray(attributes.material) ? attributes.material.join(", ") : null);
+            const material = materialFromAttributes(attributes);
             const color = typeof attributes.color === "string" ? attributes.color : null;
             if (!matchesMaterial(material, typedConfig.materials) || !matchesColor(color, typedConfig.colors)) {
               summary.filtered = (summary.filtered as number) + 1;

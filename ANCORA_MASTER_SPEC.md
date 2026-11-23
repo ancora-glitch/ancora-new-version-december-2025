@@ -3,6 +3,12 @@ Version 1.8
 
 Changelog v1.8:
 
+### 2026-11-23 — Stadsmissionen: bredare urval och tvåspråkig ordlista
+- Import Layer: material- och färgfilter matchar svenska/engelska synonymer, inklusive virgin wool, cashmere, silk och cotton. Material hämtas från både material_text och API:ets material-taggar; saknade material gissas inte och ull får inte matcha bomull.
+- Bekräftat urval: samma fem märken; ull, kashmir, silke, bomull; svart, beige, brun, burgundy, naturvit, gräddvit, vit, grå, marinblå. Både material och färg måste fortfarande matcha.
+- Verifiering: 10 Deno-tester passerade; urval sparat och återläst i admin. Testkörningar skapade totalt 8 drafts utan fel (7 med bredare urval, ytterligare 1 efter ordlistans driftsättning: Rodebjer med Virgin wool). Draft verifierad i Products; befintligt veckomål 20 lämnat oförändrat.
+- Endast nya drafts skapas. Adminskydd, dubblettkontroll, länkvalidering, måndagar 08:00 svensk tid, Tradera 03:00 UTC, delad Tradera-kvot och abortgräns <30 lämnas oförändrade. Ingen schema- eller enumändring och inga nya externa anrop för normaliseringen.
+
 ### 2026-11-22 — Stadsmissionen: schemalagd måndagsimport och Testkör nu
 - Admin UI / Imports: nytt panelavsnitt `Auto-import Stadsmissionen` med märken, material, färger, veckomål (1–50, standard 30), på/av samt knappen `Testkör nu`. Testkörning sparar inställningarna och fungerar även när schemat är pausat. Bekräftat urval: Filippa K, TOTEME, Ganni, By Malene Birger, Rodebjer; ull, kashmir, silke; svart, beige, brun, burgundy (matchar även vinröd).
 - DB: ny admin-only tabell `stadsmissionen_auto_import_configs` med RLS via `has_role(auth.uid(), 'admin')`, explicit grants till authenticated/service_role, körningslås (45 min stale) och senaste körningsresultat. Ingen anon-åtkomst, ingen enumändring.

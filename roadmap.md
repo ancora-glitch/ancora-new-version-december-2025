@@ -12,3 +12,5 @@
 - [x] Add the Monday 08:00 Europe/Stockholm schedule without changing existing nightly availability jobs.
 - [x] Add Imports UI with save, enable and “Testkör nu” controls.
 - [x] Run a real small import test, verify the created drafts and scheduled behavior, and update the master spec.
+- [x] Expand Stadsmissionen bilingual material/color filters and read material tags alongside text; 10 regression tests passed.
+- [x] Save cotton and the approved additional colors, test the real auto-import and verify drafts in Products; 8 new drafts, no failures.

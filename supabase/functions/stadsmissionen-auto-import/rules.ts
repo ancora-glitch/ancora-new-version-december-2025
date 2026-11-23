@@ -47,27 +47,54 @@ export function matchesConfiguredValue(value: string | null | undefined, allowed
   });
 }
 
+const COLOR_ALIASES = [
+  ["svart", "black"], ["beige"], ["brun", "brown"], ["burgundy", "vinröd", "bordeaux"],
+  ["naturvit", "benvit", "off-white", "off white"],
+  ["gräddvit", "cremevit", "krämvit", "cream", "ivory"],
+  ["vit", "white"], ["grå", "gray", "grey"], ["marinblå", "navy", "navy blue"],
+];
+
+const MATERIAL_ALIASES = [
+  ["ull", "wool", "merinoull", "merino wool", "lammull", "lambswool", "lamb wool", "virgin ull", "virgin wool", "ny ull", "new wool", "återvunnen ull", "recycled wool"],
+  ["kashmir", "cashmere"], ["silke", "siden", "silk"], ["bomull", "cotton"],
+];
+
+function aliasesFor(entry: string, groups: string[][]): string[] {
+  const normalized = normalizeText(entry);
+  return groups.find((group) => group.some((alias) => normalizeText(alias) === normalized)) ?? [entry];
+}
+
+function matchesWholeTerm(value: string, alias: string): boolean {
+  const normalizedAlias = normalizeText(alias);
+  if (!normalizedAlias) return false;
+  const escaped = normalizedAlias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?<![\\p{L}])${escaped}(?![\\p{L}])`, "u").test(value);
+}
+
 export function matchesColor(value: string | null | undefined, allowed: string[]): boolean {
   if (allowed.length === 0) return true;
+  const normalized = normalizeText(value);
   return allowed.some((entry) => {
-    const aliases = normalizeText(entry) === "burgundy" ? [entry, "vinröd"] : [entry];
-    return aliases.some((alias) => matchesConfiguredValue(value, [alias]));
+    return aliasesFor(entry, COLOR_ALIASES).some((alias) => {
+      // Preserve Swedish shade matching (e.g. mörkbrun), but do not match English substrings.
+      const isSwedish = ["svart", "brun", "vit", "grå"].includes(alias);
+      return isSwedish ? matchesConfiguredValue(value, [alias]) : matchesWholeTerm(normalized, alias);
+    });
   });
 }
 
 export function matchesMaterial(value: string | null | undefined, allowed: string[]): boolean {
   if (allowed.length === 0) return true;
   const normalized = normalizeText(value);
-  const aliases = (needle: string): string[] => {
-    if (needle === "ull") return ["ull", "merinoull", "lammull", "virgin ull", "ny ull", "återvunnen ull"];
-    if (needle === "silke") return ["silke", "siden"];
-    return [needle];
-  };
-  return allowed.some((entry) => aliases(normalizeText(entry)).some((alias) => {
-    if (!alias) return false;
-    const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return new RegExp(`(?<![\\p{L}])${escaped}(?![\\p{L}])`, "u").test(normalized);
-  }));
+  return allowed.some((entry) => aliasesFor(entry, MATERIAL_ALIASES).some((alias) => matchesWholeTerm(normalized, alias)));
+}
+
+export function materialFromAttributes(attributes: Record<string, unknown>): string | null {
+  const text = typeof attributes.material_text === "string" ? attributes.material_text.trim() : "";
+  const tags = Array.isArray(attributes.material)
+    ? attributes.material.filter((tag): tag is string => typeof tag === "string").map((tag) => tag.trim()).filter(Boolean)
+    : [];
+  return [...new Set([text, ...tags].filter(Boolean))].join(", ") || null;
 }
 
 export function matchedBrand(title: string, apiBrand: string | null, brands: string[]): string | null {
@@ -135,7 +162,7 @@ const COLORS: Record<string, string> = {
   grön: "green", röd: "red", gul: "yellow", rosa: "pink", lila: "purple",
   orange: "orange", beige: "beige", guld: "gold", silver: "silver",
   flerfärgad: "multicolor", flerfärgat: "multicolor", naturvit: "off-white",
-  benvit: "off-white", cremevit: "cream", turkos: "turquoise",
+  benvit: "off-white", cremevit: "cream", gräddvit: "cream", krämvit: "cream", turkos: "turquoise",
 };
 
 function translateTerms(value: string, terms: Record<string, string>): string {
